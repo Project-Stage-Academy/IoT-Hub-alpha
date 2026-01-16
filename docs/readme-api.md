@@ -25,6 +25,10 @@ Spec format: OpenAPI 3.0.3
 
 Docs location: [Industry ReDocly](https://iot-industry.redocly.app)
 
+Postman wrokspace: [Workspace](https://app.getpostman.com/join-team?invite_code=dd81ab120ddf5fc4e2e04b31ec1bb07004b4fa89e26caad2d004bde97e76a257&target_code=e0949259bdabcd7186883424baab71c6)
+
+(Curl, python requests etc' examples can be found on ReDocly.)
+
 Linting rules: Spectral ruleset link TODO
 
 
