@@ -2,7 +2,17 @@ openapi: 3.0.3
 info:
   title: Industry 4.0 IoT
   version: 1.0.0
+  contact:
+    name: "Api Owner"
+    url: "http://www.example-industry.com"
+    email: "support@idustry.com"
   description: IoT Service for industrial use
+
+tags:
+  - name: devices
+    description: Devices reporting telemetry data
+  - name: telemetry
+    description: Telemetry ingestion and retrieval
 
 servers:
   - url: /api/v1
@@ -10,7 +20,10 @@ servers:
 paths:
   /telemetry:
     get:
+      description: get telemetry data
       summary: Get paginated telemetry data
+      operationId: TelemetryList
+      tags: [telemetry]
       parameters:
         - $ref: '#/components/parameters/PageParam'
         - $ref: '#/components/parameters/PageSizeParam'
@@ -37,7 +50,10 @@ paths:
           $ref: '#/components/responses/UnauthorizedError'
 
     post:
+      description: Submit telemetry data to ingest
       summary: ingest for telemetry collection
+      operationId: TelemetrySubmit
+      tags: [telemetry]
       requestBody:
         required: true
         content:
@@ -45,21 +61,18 @@ paths:
             schema:
               $ref: '#/components/schemas/TelemetryPost'
       responses:
-        '200':
-          description: Page of telemetry data
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Telemetry'
+        '202':
+          description: Telemetry accepted for processing
       
 
 
 
   /devices:
     get:
+      description: get list of devices
       summary: Get paginated Device data
+      operationId: DeviceList
+      tags: [devices]
       parameters:
         - $ref: '#/components/parameters/PageParam'
         - $ref: '#/components/parameters/PageSizeParam'
@@ -77,7 +90,10 @@ paths:
         '401':
           $ref: '#/components/responses/UnauthorizedError'
     post:
+      description: create a new device
       summary: create a new device
+      operationId: DeviceSubmit
+      tags: [devices]
       requestBody:
         required: true
         content:
@@ -103,7 +119,10 @@ paths:
 
   /devices/{id}:
     get:
+      description: get a specific deviced by id
       summary: Get a specific device based on id in url paths
+      operationId: DeviceGet
+      tags: [devices]
       parameters:
         - name: id
           in: path
@@ -147,6 +166,14 @@ components:
         minimum: 1
         maximum: 100
       example: 10
+
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
 
     Telemetry:
       type: object
@@ -247,39 +274,18 @@ components:
       content:
         application/json:
           schema:
-              Error:
-                type: object
-                required:
-                  - error
-                properties:
-                  error:
-                    type: string
-                    example: No or invalid JWT token provided
+            $ref: '#/components/schemas/Error'
 
     NotFoundError:
       description: Resource not found
       content:
         application/json:
           schema:
-              Error:
-                type: object
-                required:
-                  - error
-                properties:
-                  error:
-                    type: string
-                    example: Resource not found
+            $ref: '#/components/schemas/Error'
     
     BadRequest:
-      description: Bad requestBody
+      description: Bad request body
       content:
         application/json:
-            schemas:
-              Error:
-                type: object
-                required:
-                  - error
-                properties:
-                  error:
-                    type: string
-                    example: Bad request (Probably misformed post)
+          schema:
+            $ref: '#/components/schemas/Error'
