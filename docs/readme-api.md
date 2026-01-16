@@ -1,25 +1,33 @@
 Style guide:
 
+## `0) Obtaining a JWT Token for testing`
+
+- curl / call / postman the following endpoint:
+
+`https://iot-industry.redocly.app/_mock/openapi/auth/fake`
+
+Copy the token and insert it into the header as described in chapter `6) Authentication & Authorization`
+
 API Style Guide (Industry 4.0)
-1) Overview
+## `1) Overview`
 
-API name: industry
+- API name: Api Owner
 
-Owner/team: industry
+- Owner/team: industry
 
-Audience/consumers: API
+- Audience/consumers: API
 
-Base URL(s): TODO
+- Base URL(s): TODO
 
-Prod: https://TODO
+- Prod: https://TODO
 
-Staging: https://TODO
+- Staging: https://TODO
 
-API style: REST / JSON
+- API style: REST / JSON
 
 Primary goals: To create a restful API alongside Ingest API for telemetry gathering from machine sensors
 
-2) Standards & Tooling
+## `2) Standards & Tooling`
 
 Spec format: OpenAPI 3.0.3
 
@@ -32,7 +40,7 @@ Postman wrokspace: [Workspace](https://app.getpostman.com/join-team?invite_code=
 Linting rules: Spectral ruleset link TODO
 
 
-3) URL Design
+## `3) URL Design`
 3.1 Base Path & Versioning
 
 Versioning approach: URL/Header hybrid approach
@@ -43,11 +51,11 @@ Versioning approach: URL/Header hybrid approach
 
 Rule for introducing v2: TBD, anything that would break previous functionality
 
-Deprecation policy: None at the moment (Basic 6 month warning unless otherwise specified)
+Deprecation policy: None at the moment as we are dealing with hardware
 
-3.2 Resource Naming
+#### `3.2 Resource Naming`
 
-Use nouns, plural collections: /users, /devices
+Use nouns, plural collections: /telemetry, /devices
 
 Use snake_case in URLs
 
@@ -55,30 +63,28 @@ Nested resources only when it’s a true hierarchy:
 
 Example: /devices/{id}
 
-3.3 Query Parameters
+#### `3.3 Query Parameters`
 
-Filtering: TODO (e.g., ?status=active)
+Filtering: .../?status=active
 
-Sorting: TODO (e.g., ?sort=created_at,-name)
+Sorting: .../?sort=created_at
 
-Searching: TODO (e.g., ?q=term)
+Pagination: [Industry ReDocly](https://iot-industry.redocly.app).
 
-Pagination: See ReDocly.
-
-4) HTTP Methods & Semantics
+## `4) HTTP Methods & Semantics`
 
 GET — read
 
 POST — create
 
-5) Request & Response Format
+## `5) Request & Response Format`
 5.1 Content Types
 
 Requests: Content-Type: application/json
 
 Responses: application/json
 
-5.2 JSON Conventions
+#### `5.2 JSON Conventions`
 
 Field naming: snake_case
 
@@ -86,17 +92,17 @@ Dates/times: ISO 8601, timezone: UTC
 
 Booleans: true/false
 
-5.3 Envelope (Pick one)
+#### `5.3 Envelope`
 
 no envelope:
 
-{ "id": 123, "name": "..." }
+{ "ssn": 123321, "value": 2342 }
 
-6) Authentication & Authorization
+## `6) Authentication & Authorization`
 
 Auth type: JWT
 
-How to send: Authorization: Bearer <token>
+How to send(Header): Authorization: Bearer `<token>`
 
 Scopes/roles model: TODO
 
@@ -104,11 +110,17 @@ Permissions rules: TODO (who can read/write which resources)
 
 Token expiry/refresh: TODO
 
-7) Pagination
+Example:
+```http
+GET /api/v1/devices
+Authorization: Bearer <token>
+```
+
+## `7) Pagination`
 
 See [Industry ReDocly](https://iot-industry.redocly.app) for pagination rules
 
-8) Errors
+## `8) Errors`
 8.1 Status Codes
 
 Use:
@@ -129,7 +141,7 @@ Use:
 
 500/503 server issues
 
-8.2 Error Response Format
+## `8.2 Error Response Format`
 
 Standard shape:
 
@@ -137,38 +149,33 @@ Standard shape:
     "error" : "An error has occured"
 }
 
-9) Create/Update Patterns
+## `9) Create/Update Patterns`
 
 Create returns: 201 + created resource (or location header) With telemetry exception, which returns 202 with no body
 
-10) Resource Representations
-10.1 IDs
+## `10) Resource Representations`
 
 IDs are not exposed at all at this point in the API
 
-11) Filtering, Searching, Sorting
+## `11) Filtering, Searching, Sorting`
 
 Please refer to [Industry ReDocly](https://iot-industry.redocly.app) for max per page and pagination rules
 
-12) Performance & Limits
-
-TBD
-
-13) Security Requirements
+## `12) Security Requirements`
 
 TLS only: yes
 
 Audit logging: TODO
 
-14) Deprecation Policy
+## `13) Deprecation Policy`
 
-How endpoints are deprecated: End points are deprecated 6 month after the release of a newer version.
+How endpoints are deprecated: Endpoints are never deprecated as it is a IoT system
 
 How clients are notified: Changelog
 
-Deprecation: true
+Deprecation: false
 
-15) Documentation Rules
+## `15) Documentation Rules`
 
 For every endpoint, document:
 
@@ -182,6 +189,6 @@ Error cases (at least 2–3 common ones)
 
 Field descriptions + constraints
 
-Pagination/filtering notes (if applicable)
+Pagination (if applicable)
 
 (see [Industry ReDocly](https://iot-industry.redocly.app) for examples)
