@@ -7,16 +7,17 @@ info:
     url: "http://www.example-industry.com"
     email: "support@idustry.com"
   description: IoT Service for industrial use
-
 tags:
   - name: devices
     description: Devices reporting telemetry data
   - name: telemetry
     description: Telemetry ingestion and retrieval
-
+  - name: auth
+    description: Authentication control
+security:
+  - BearerAuth: []
 servers:
   - url: /api/v1
-
 paths:
   /telemetry:
     get:
@@ -25,31 +26,29 @@ paths:
       operationId: TelemetryList
       tags: [telemetry]
       parameters:
-        - $ref: '#/components/parameters/PageParam'
-        - $ref: '#/components/parameters/PageSizeParam'
-
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/PageSizeParam"
         - name: device_id
           in: query
           description: Get telemetry data of specific device by id
           schema:
             type: integer
           example: 7
-
       responses:
-        '200':
+        "200":
           description: Page of telemetry data
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Telemetry'
-        '404':
-          $ref: '#/components/responses/NotFoundError'
-        '401':
-          $ref: '#/components/responses/UnauthorizedError'
-
+                  $ref: "#/components/schemas/Telemetry"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
     post:
+      security: []
       description: Submit telemetry data to ingest
       summary: ingest for telemetry collection
       operationId: TelemetrySubmit
@@ -59,14 +58,12 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/TelemetryPost'
+              $ref: "#/components/schemas/TelemetryPost"
       responses:
-        '202':
+        "202":
           description: Telemetry accepted for processing
-      
-
-
-
+        "400":
+          $ref: "#/components/responses/NotFoundError"
   /devices:
     get:
       description: get list of devices
@@ -74,21 +71,21 @@ paths:
       operationId: DeviceList
       tags: [devices]
       parameters:
-        - $ref: '#/components/parameters/PageParam'
-        - $ref: '#/components/parameters/PageSizeParam'
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/PageSizeParam"
       responses:
-        '200':
+        "200":
           description: a paginated list of all devices
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Devices'
-        '404':
-          $ref: '#/components/responses/NotFoundError'
-        '401':
-          $ref: '#/components/responses/UnauthorizedError'
+                  $ref: "#/components/schemas/Devices"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
     post:
       description: create a new device
       summary: create a new device
@@ -99,24 +96,20 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/DeviceCreate'
+              $ref: "#/components/schemas/DeviceCreate"
       responses:
-        '201':
+        "201":
           description: device created
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Devices'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '404':
-          $ref: '#/components/responses/NotFoundError'
-        '401':
-          $ref: '#/components/responses/UnauthorizedError'
-              
-
-        
-
+                $ref: "#/components/schemas/Devices"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
   /devices/{id}:
     get:
       description: get a specific deviced by id
@@ -131,22 +124,37 @@ paths:
           schema:
             type: integer
           example: 7
-      
       responses:
-        '200':
+        "200":
           description: device information by id
           content:
             application/json:
+              schema:
+                $ref: "#/components/schemas/Devices"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+  /auth/fake:
+    get: 
+      security: []
+      description: Fake JWT token
+      summary: obtain a fake token
+      operationId: TokenFake
+      tags: [auth]
+      responses:
+        "200":
+          description: get a fake token
+          content:
+            application/json:
               schema: 
-                $ref: '#/components/schemas/Devices'
-        '404':
-          $ref: '#/components/responses/NotFoundError'
-        '401':
-          $ref: '#/components/responses/UnauthorizedError'
-
-
-
+                $ref: "#/components/schemas/FakeToken"
 components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
   parameters:
     PageParam:
       name: page
@@ -156,7 +164,6 @@ components:
         type: integer
         minimum: 1
       example: 1
-
     PageSizeParam:
       name: page_size
       in: query
@@ -166,7 +173,6 @@ components:
         minimum: 1
         maximum: 100
       example: 10
-
   schemas:
     Error:
       type: object
@@ -174,7 +180,14 @@ components:
       properties:
         error:
           type: string
-
+          example: Some error has occured
+    FakeToken:
+      type: object
+      required: [fakejwt]
+      properties: 
+        fakejwt:
+          type: string
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyLCJleHAiOjE3MTYyMzkwMjJ9.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
     Telemetry:
       type: object
       required:
@@ -195,20 +208,22 @@ components:
         ts:
           type: string
           example: 22:53 16-01-2026
-    
     TelemetryPost:
-        type: object
-        required:
-          - ssn
-          - value
-        properties:
-          ssn:
-            type: integer
-            example: 222443
-          value:
-            type: integer
-            example: 2443
-
+      type: object
+      required:
+        - ssn
+        - value
+      properties:
+        schema_version:
+          type: string
+          description: Telemetry payload schema version
+          example: "1.0"
+        ssn:
+          type: integer
+          example: 222443
+        value:
+          type: integer
+          example: 2443
     Devices:
       type: object
       required:
@@ -237,7 +252,6 @@ components:
         updated:
           type: string
           example: 5:53 17-01-2026
-
     DeviceCreate:
       type: object
       required:
@@ -266,26 +280,22 @@ components:
         default_metrics:
           type: string
           example: C
-
-  
   responses:
     UnauthorizedError:
       description: No or invalid JWT token provided
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Error'
-
+            $ref: "#/components/schemas/Error"
     NotFoundError:
       description: Resource not found
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Error'
-    
+            $ref: "#/components/schemas/Error"
     BadRequest:
       description: Bad request body
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Error'
+            $ref: "#/components/schemas/Error"
