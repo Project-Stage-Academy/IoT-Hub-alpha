@@ -4,14 +4,10 @@ on:
   pull_request:
     paths:
       - "**/*.yaml"
-      - "**/*.yml"
-      - "**/*.json"
   push:
     branches: ["main", "task-6-Api-docs"]
     paths:
       - "**/*.yaml"
-      - "**/*.yml"
-      - "**/*.json"
 
 jobs:
   redocly-lint:
