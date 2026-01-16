@@ -248,10 +248,12 @@ components:
           example: Paused
         created:
           type: string
-          example: 22:53 16-01-2026
+          format: date-time
+          example: 2026-01-16T14:30:00Z
         updated:
           type: string
-          example: 5:53 17-01-2026
+          format: date-time
+          example: 2026-01-16T17:30:00Z
     DeviceCreate:
       type: object
       required:
