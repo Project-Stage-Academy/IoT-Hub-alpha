@@ -1,0 +1,285 @@
+openapi: 3.0.3
+info:
+  title: Industry 4.0 IoT
+  version: 1.0.0
+  description: IoT Service for industrial use
+
+servers:
+  - url: /api/v1
+
+paths:
+  /telemetry:
+    get:
+      summary: Get paginated telemetry data
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PageSizeParam'
+
+        - name: device_id
+          in: query
+          description: Get telemetry data of specific device by id
+          schema:
+            type: integer
+          example: 7
+
+      responses:
+        '200':
+          description: Page of telemetry data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Telemetry'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+    post:
+      summary: ingest for telemetry collection
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TelemetryPost'
+      responses:
+        '200':
+          description: Page of telemetry data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Telemetry'
+      
+
+
+
+  /devices:
+    get:
+      summary: Get paginated Device data
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PageSizeParam'
+      responses:
+        '200':
+          description: a paginated list of all devices
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Devices'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+    post:
+      summary: create a new device
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeviceCreate'
+      responses:
+        '201':
+          description: device created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Devices'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+              
+
+        
+
+  /devices/{id}:
+    get:
+      summary: Get a specific device based on id in url paths
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Get telemetry data of specific device by id
+          schema:
+            type: integer
+          example: 7
+      
+      responses:
+        '200':
+          description: device information by id
+          content:
+            application/json:
+              schema: 
+                $ref: '#/components/schemas/Devices'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+
+
+components:
+  parameters:
+    PageParam:
+      name: page
+      in: query
+      description: Page number (1-based)
+      schema:
+        type: integer
+        minimum: 1
+      example: 1
+
+    PageSizeParam:
+      name: page_size
+      in: query
+      description: Number of items per page
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+      example: 10
+
+    Telemetry:
+      type: object
+      required:
+        - ssn
+        - value
+        - metric
+        - ts
+      properties:
+        ssn:
+          type: integer
+          example: 2224412
+        value:
+          type: integer
+          example: 2432
+        metric:
+          type: string
+          example: C
+        ts:
+          type: string
+          example: 22:53 16-01-2026
+    
+    TelemetryPost:
+        type: object
+        required:
+          - ssn
+          - value
+        properties:
+          ssn:
+            type: integer
+            example: 222443
+          value:
+            type: integer
+            example: 2443
+
+    Devices:
+      type: object
+      required:
+        - name
+        - ssn
+        - location
+        - status
+        - created
+        - updated
+      properties:
+        name:
+          type: string
+          example: Themometer lower level 5
+        ssn:
+          type: integer
+          example: 2224412
+        location:
+          type: string
+          example: Industrial park 15
+        status:
+          type: string
+          example: Paused
+        created:
+          type: string
+          example: 22:53 16-01-2026
+        updated:
+          type: string
+          example: 5:53 17-01-2026
+
+    DeviceCreate:
+      type: object
+      required:
+        - name
+        - ssn
+        - location
+        - status
+        - description
+        - default_metrics
+      properties:
+        name:
+          type: string
+          example: Themometer lower level 5
+        ssn:
+          type: integer
+          example: 2224412
+        location:
+          type: string
+          example: Industrial park 15
+        status:
+          type: string
+          example: Paused
+        description:
+          type: string
+          example: Gen 2 Themometer
+        default_metrics:
+          type: string
+          example: C
+
+  
+  responses:
+    UnauthorizedError:
+      description: No or invalid JWT token provided
+      content:
+        application/json:
+          schema:
+              Error:
+                type: object
+                required:
+                  - error
+                properties:
+                  error:
+                    type: string
+                    example: No or invalid JWT token provided
+
+    NotFoundError:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+              Error:
+                type: object
+                required:
+                  - error
+                properties:
+                  error:
+                    type: string
+                    example: Resource not found
+    
+    BadRequest:
+      description: Bad requestBody
+      content:
+        application/json:
+            schemas:
+              Error:
+                type: object
+                required:
+                  - error
+                properties:
+                  error:
+                    type: string
+                    example: Bad request (Probably misformed post)
