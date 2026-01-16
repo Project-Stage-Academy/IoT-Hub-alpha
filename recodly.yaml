@@ -1,0 +1,7 @@
+extends:
+  - recommended
+
+rules:
+  no-unused-components: warn
+  operation-summary: warn
+  operation-summary-sentence-case: warn
