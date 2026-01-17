@@ -249,10 +249,9 @@ components:
           description: "Device serial number (must match a registered device)"
           example: SN2224412
         value:
-          type: integer
-          minimum: -50000
-          maximum: 1000000
-          example: 2432
+          type: number
+          format: float
+          example: 24.32
         metric:
           type: string
           example: C
