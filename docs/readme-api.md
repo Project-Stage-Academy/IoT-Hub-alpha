@@ -312,7 +312,7 @@ for example, a thermometer will send its value(31.4) in such a way:
 }
 ``` 
 
-- IDs - TBD
+- IDs - UUID for all API operations, Integer for Telemetry
 
 ## `12) Filtering, Searching, Sorting`
 

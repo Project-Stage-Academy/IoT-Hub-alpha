@@ -118,8 +118,8 @@ paths:
           required: true
           description: Get telemetry data of specific device by id
           schema:
-            type: integer #Might need to switch to string to acomodate UUID
-            example: 7
+            type: string
+            example: a1b2c3d4-e5f6-7890-1234-567890abcdef
       responses:
         "200":
           description: device information by id
