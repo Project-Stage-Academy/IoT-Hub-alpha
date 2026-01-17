@@ -2,10 +2,13 @@ openapi: 3.0.3
 info:
   title: Industry 4.0 IoT
   version: 1.0.0
+  license:
+    name: Apache License 2.0
+    url: https://opensource.org/license/apache-2-0
   contact:
     name: "Api Owner"
     url: "http://www.example-industry.com"
-    email: "support@idustry.com"
+    email: "support@industry.com"
   description: IoT Service for industrial use
 tags:
   - name: devices
@@ -30,19 +33,17 @@ paths:
         - $ref: "#/components/parameters/PageSizeParam"
         - name: device_id
           in: query
-          description: Get telemetry data of specific device by id
+          description: Get telemetry data of specific device by uuid
           schema:
             type: string
           example: a1b2c3d4-e5f6-7890-1234-567890abcdef
       responses:
         "200":
-          description: Page of telemetry data
+          description: Page of telemetry data (may be empty)
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/TelemetryListResponse"
-        "404":
-          $ref: "#/components/responses/NotFoundError"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
     post:
@@ -108,7 +109,7 @@ paths:
           $ref: "#/components/responses/UnauthorizedError"
   /devices/{id}:
     get:
-      description: get a specific deviced by id
+      description: get a specific device by id
       summary: Get a specific device based on id in url paths
       operationId: DeviceGet
       tags: [devices]
@@ -145,12 +146,15 @@ paths:
             application/json:
               schema: 
                 $ref: "#/components/schemas/FakeToken"
+        "400":
+          $ref: "#/components/responses/BadRequest"
 components:
   securitySchemes:
     BearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
+      description: "JWT access tokens expire after 60min.  Obtain via /auth endpoint."
   parameters:
     PageParam:
       name: page
@@ -242,9 +246,12 @@ components:
       properties:
         ssn:
           type: string
+          description: "Device serial number (must match a registered device)"
           example: SN2224412
         value:
           type: integer
+          minimum: -50000
+          maximum: 1000000
           example: 2432
         metric:
           type: string
@@ -266,9 +273,12 @@ components:
           example: "1.0"
         ssn:
           type: string
+          description: "Device serial number (must match a registered device)"
           example: SN222443
         value:
           type: integer
+          minimum: -50000
+          maximum: 1000000
           example: 2443
     Devices:
       type: object
@@ -285,12 +295,14 @@ components:
           example: Themometer lower level 5
         ssn:
           type: string
+          description: "Device serial number (must match a registered device)"
           example: SN2224412
         location:
           type: string
           example: Industrial park 15
         status:
           type: string
+          enum: [Active, Paused, Offline, Maintenance, Error, Deprecated]
           example: Paused
         created:
           type: string
@@ -315,18 +327,21 @@ components:
           example: Themometer lower level 5
         ssn:
           type: string
+          description: "Device serial number (must match a registered device)"
           example: SN2224412
         location:
           type: string
           example: Industrial park 15
         status:
           type: string
+          enum: [Active, Paused, Offline, Maintenance, Error, Deprecated]
           example: Paused
         description:
           type: string
           example: Gen 2 Themometer
         default_metrics:
           type: string
+          enum: [C, K, F, psi, wh]
           example: C
   responses:
     UnauthorizedError:

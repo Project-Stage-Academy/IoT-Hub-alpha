@@ -1,4 +1,4 @@
-Style guide:
+API Style Guide (Industry 4.0)
 
 ## Table of Contents
 
@@ -18,15 +18,15 @@ Style guide:
 14. [Deprecation Policy](#14-deprecation-policy)
 15. [Documentation Rules](#15-documentation-rules)
 
+
 ## `1) Obtaining a JWT Token for testing`
 
 - curl / call / postman the following endpoint:
 
 `https://iot-industry.redocly.app/_mock/openapi/auth/fake`
 
-Copy the token and insert it into the header as described in chapter [Authentication & Authorization](#6-authentication--authorization)
+Copy the token and insert it into the header as described in chapter [Authentication & Authorization](#7-authentication--authorization)
 
-API Style Guide (Industry 4.0)
 ## `2) Overview`
 
 - API name: IoT Industry
@@ -37,7 +37,7 @@ API Style Guide (Industry 4.0)
 
 - API style: REST / JSON
 
-Primary goals: To create a restful API alongside Ingest API for telemetry gathering from machine sensors
+Primary goals: To create a RESTful API alongside Ingest API for telemetry gathering from machine sensors
 
 ## `3) Standards & Tooling`
 
@@ -45,15 +45,15 @@ Spec format: OpenAPI 3.0.3
 
 Docs location: [Industry ReDocly](https://iot-industry.redocly.app)
 
-Postman wrokspace: [Workspace](https://app.getpostman.com/join-team?invite_code=dd81ab120ddf5fc4e2e04b31ec1bb07004b4fa89e26caad2d004bde97e76a257&target_code=e0949259bdabcd7186883424baab71c6)
+Postman: [Collection](IoTIndustry.postman_collection) | [Workspace](https://app.getpostman.com/join-team?invite_code=dd81ab120ddf5fc4e2e04b31ec1bb07004b4fa89e26caad2d004bde97e76a257&target_code=e0949259bdabcd7186883424baab71c6)
 
-(Curl, python requests etc' examples can be found on ReDocly.)
+(Curl, python requests examples can be found on [Industry ReDocly](https://iot-industry.redocly.app).)
 
 Linting rules: redocly.yaml in root
 
 
 ## `4) URL Design`
-3.1 Base Path & Versioning
+#### `4.1 Base Path & Versioning`
 
 Versioning approach: URL/Header hybrid approach
 
@@ -65,7 +65,7 @@ Rule for introducing v2: TBD, anything that would break previous functionality
 
 Deprecation policy: None at the moment as we are dealing with hardware
 
-#### `4.1 Resource Naming`
+#### `4.2 Resource Naming`
 
 Use nouns, plural collections: /telemetry, /devices
 
@@ -89,13 +89,13 @@ GET — read
 POST — create
 
 ## `6) Request & Response Format`
-5.1 Content Types
+#### `6.1 Content Types`
 
 Requests: Content-Type: application/json
 
 Responses: application/json
 
-#### `6.1 JSON Conventions`
+#### `6.2 JSON Conventions`
 
 Field naming: snake_case
 
@@ -103,9 +103,9 @@ Dates/times: ISO 8601, timezone: UTC
 
 Booleans: true/false
 
-#### `6.2 Envelope`
+#### `6.3 Envelope`
 
-Envelopes present on pagination, for more information go to chapter 7 pagination
+Envelopes present on pagination, for more information go to [Pagination](#8-pagination)
 
 ## `7) Authentication & Authorization`
 
@@ -113,13 +113,18 @@ Auth type: JWT
 
 ### Telemetry post ingest endpoint does NOT use auth and is open, validation will be done using the ssn provided
 
-How to send(Header): Authorization: Bearer `<token>`
-
+How to send(Header): 
+```
+Authorization: Bearer <token>
+```
 Scopes/roles model: TODO
 
 Permissions rules: TODO (who can read/write which resources)
 
-Token expiry/refresh: TODO
+Token expiry/refresh: 
+
+- 60 min for access token
+- 10 days for refresh token
 
 Example:
 ```http
@@ -289,7 +294,7 @@ Standard shape:
 
 Create returns: 201 + created resource (or location header) 
 
-telemetry returns 202 with no body
+telemetry POST requests returns 202 with no body
 
 ## `11) Resource Representations`
 
@@ -314,14 +319,14 @@ for example, a thermometer will send its value(31.4) in such a way:
 }
 ``` 
 
-- IDs - UUID for all API operations, Integer for Telemetry
+- IDs - UUID for all API operations
 
 ## `12) Filtering, Searching, Sorting`
 
 Resource access is currently supported on:
 - devices endpoint using a url parameter of {id}
 ```
-GET .../api/v1//devices/7
+GET .../api/v1/devices/a1b2c3d4-e5f6-7890-1234-567890abcdef
 ```
 ``` json
 {
@@ -336,22 +341,22 @@ GET .../api/v1//devices/7
 Filtering is currently supported on: 
 - telemetry endpoint using query parameters:
 ```
-GET .../api/v1/telemetry?device_id=7
+GET .../api/v1/telemetry?device_id=a1b2c3d4-e5f6-7890-1234-567890abcdef
 ```
 ``` json
 {
     "data": [
         {
-            "ssn": 2224412,
+            "ssn": "SN2224412",
             "value": 2432,
             "metric": "C",
-            "ts": "22:53 16-01-2026"
+            "ts": "2026-01-16T22:53:00Z"
         },
         {
-            "ssn": 2224412,
+            "ssn": "SN2224412",
             "value": 2432,
             "metric": "C",
-            "ts": "22:53 16-01-2026"
+            "ts": "2026-01-16T22:53:00Z"
         }
     ],
     "pagination": {

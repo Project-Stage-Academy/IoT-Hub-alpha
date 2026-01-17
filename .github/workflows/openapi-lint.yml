@@ -3,15 +3,13 @@ name: Lint OpenAPI
 on:
   pull_request:
     paths:
-      - "**/*.yaml"
-      - "**/*.yml"
-      - "**/*.json"
+      - "docs/api.yaml"
+      - "redocly.yaml"
   push:
     branches: ["main", "task-6-Api-docs"]
     paths:
-      - "**/*.yaml"
-      - "**/*.yml"
-      - "**/*.json"
+      - "docs/api.yaml"
+      - "redocly.yaml"
 
 jobs:
   redocly-lint:
