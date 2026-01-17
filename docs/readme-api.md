@@ -59,7 +59,7 @@ Versioning approach: URL/Header hybrid approach
 
 - URL versioning /api/v1/...
 
-- header-based (content negotiation) for telemetry data
+- header-based (schema_version) is used for telemetry data submition to ingest endpoint
 
 Rule for introducing v2: TBD, anything that would break previous functionality
 

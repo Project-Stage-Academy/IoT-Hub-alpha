@@ -258,6 +258,7 @@ components:
       required:
         - ssn
         - value
+        - schema_version
       properties:
         schema_version:
           type: string
