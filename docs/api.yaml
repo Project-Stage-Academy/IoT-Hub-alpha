@@ -32,8 +32,8 @@ paths:
           in: query
           description: Get telemetry data of specific device by id
           schema:
-            type: integer
-          example: 7
+            type: string
+          example: a1b2c3d4-e5f6-7890-1234-567890abcdef
       responses:
         "200":
           description: Page of telemetry data
@@ -61,7 +61,7 @@ paths:
         "202":
           description: Telemetry accepted for processing
         "400":
-          $ref: "#/components/responses/NotFoundError"
+          $ref: "#/components/responses/BadRequest"
   /devices:
     get:
       description: get list of devices
@@ -172,7 +172,7 @@ components:
   schemas:
     PaginationMeta:
       type: object
-      required: [page, page_size]
+      required: [page, page_size, total, total_pages, next_page, prev_page]
       properties:
         page:
           type: integer
@@ -251,7 +251,8 @@ components:
           example: C
         ts:
           type: string
-          example: 22:53 16-01-2026
+          format: date-time
+          example: "2026-01-16T22:53:00Z"
     TelemetryPost:
       type: object
       required:

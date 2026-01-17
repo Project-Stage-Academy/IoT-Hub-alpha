@@ -111,6 +111,8 @@ Envelopes present on pagination, for more information go to chapter 7 pagination
 
 Auth type: JWT
 
+### Telemetry post ingest endpoint does NOT use auth and is open, validation will be done using the ssn provided
+
 How to send(Header): Authorization: Bearer `<token>`
 
 Scopes/roles model: TODO
