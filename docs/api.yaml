@@ -40,9 +40,7 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Telemetry"
+                $ref: "#/components/schemas/TelemetryListResponse"
         "404":
           $ref: "#/components/responses/NotFoundError"
         "401":
@@ -50,7 +48,7 @@ paths:
     post:
       security: []
       description: Submit telemetry data to ingest
-      summary: ingest for telemetry collection
+      summary: Ingest for telemetry collection
       operationId: TelemetrySubmit
       tags: [telemetry]
       requestBody:
@@ -67,7 +65,7 @@ paths:
   /devices:
     get:
       description: get list of devices
-      summary: Get paginated Device data
+      summary: Get paginated device data
       operationId: DeviceList
       tags: [devices]
       parameters:
@@ -79,16 +77,14 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Devices"
+                $ref: "#/components/schemas/DeviceListResponse"
         "404":
           $ref: "#/components/responses/NotFoundError"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
     post:
       description: create a new device
-      summary: create a new device
+      summary: Create a new device
       operationId: DeviceSubmit
       tags: [devices]
       requestBody:
@@ -122,8 +118,8 @@ paths:
           required: true
           description: Get telemetry data of specific device by id
           schema:
-            type: integer
-          example: 7
+            type: integer #Might need to switch to string to acomodate UUID
+            example: 7
       responses:
         "200":
           description: device information by id
@@ -139,7 +135,7 @@ paths:
     get: 
       security: []
       description: Fake JWT token
-      summary: obtain a fake token
+      summary: Obtain a test token
       operationId: TokenFake
       tags: [auth]
       responses:
@@ -171,9 +167,57 @@ components:
       schema:
         type: integer
         minimum: 1
-        maximum: 100
+        maximum: 1000
       example: 10
   schemas:
+    PaginationMeta:
+      type: object
+      required: [page, page_size]
+      properties:
+        page:
+          type: integer
+          example: 2
+        page_size:
+          type: integer
+          example: 10
+        total:
+          type: integer
+          description: Total number of items matching the query
+          example: 134
+        total_pages:
+          type: integer
+          description: Total pages available (derived from total/page_size)
+          example: 14
+        next_page:
+          type: integer
+          nullable: true
+          description: Next page number if available, otherwise null
+          example: 3
+        prev_page:
+          type: integer
+          nullable: true
+          description: Previous page number if available, otherwise null
+          example: 1
+    TelemetryListResponse:
+      type: object
+      required: [data, pagination]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Telemetry"
+        pagination:
+          $ref: "#/components/schemas/PaginationMeta"
+    DeviceListResponse:
+      type: object
+      required: [data, pagination]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Devices"
+        pagination:
+          $ref: "#/components/schemas/PaginationMeta"
     Error:
       type: object
       required: [error]
@@ -197,8 +241,8 @@ components:
         - ts
       properties:
         ssn:
-          type: integer
-          example: 2224412
+          type: string
+          example: SN2224412
         value:
           type: integer
           example: 2432
@@ -219,8 +263,8 @@ components:
           description: Telemetry payload schema version
           example: "1.0"
         ssn:
-          type: integer
-          example: 222443
+          type: string
+          example: SN222443
         value:
           type: integer
           example: 2443
@@ -238,8 +282,8 @@ components:
           type: string
           example: Themometer lower level 5
         ssn:
-          type: integer
-          example: 2224412
+          type: string
+          example: SN2224412
         location:
           type: string
           example: Industrial park 15
@@ -268,8 +312,8 @@ components:
           type: string
           example: Themometer lower level 5
         ssn:
-          type: integer
-          example: 2224412
+          type: string
+          example: SN2224412
         location:
           type: string
           example: Industrial park 15

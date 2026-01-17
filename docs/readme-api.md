@@ -1,33 +1,45 @@
 Style guide:
 
-## `0) Obtaining a JWT Token for testing`
+## Table of Contents
+
+1. [Obtaining a JWT Token for testing](#1-obtaining-a-jwt-token-for-testing)
+2. [Overview](#2-overview)
+3. [Standards & Tooling](#3-standards--tooling)
+4. [URL Design](#4-url-design)
+5. [HTTP Methods & Semantics](#5-http-methods--semantics)
+6. [Request & Response Format](#6-request--response-format)
+7. [Authentication & Authorization](#7-authentication--authorization)
+8. [Pagination](#8-pagination)
+9. [Errors](#9-errors)
+10. [Create / Update Patterns](#10-create-update-patterns)
+11. [Resource Representations](#11-resource-representations)
+12. [Filtering, Searching, Sorting](#12-filtering-searching-sorting)
+13. [Security Requirements](#13-security-requirements)
+14. [Deprecation Policy](#14-deprecation-policy)
+15. [Documentation Rules](#15-documentation-rules)
+
+## `1) Obtaining a JWT Token for testing`
 
 - curl / call / postman the following endpoint:
 
 `https://iot-industry.redocly.app/_mock/openapi/auth/fake`
 
-Copy the token and insert it into the header as described in chapter `6) Authentication & Authorization`
+Copy the token and insert it into the header as described in chapter [Authentication & Authorization](#6-authentication--authorization)
 
 API Style Guide (Industry 4.0)
-## `1) Overview`
+## `2) Overview`
 
-- API name: Api Owner
+- API name: IoT Industry
 
-- Owner/team: industry
+- Owner/team: alpha team
 
 - Audience/consumers: API
-
-- Base URL(s): TODO
-
-- Prod: https://TODO
-
-- Staging: https://TODO
 
 - API style: REST / JSON
 
 Primary goals: To create a restful API alongside Ingest API for telemetry gathering from machine sensors
 
-## `2) Standards & Tooling`
+## `3) Standards & Tooling`
 
 Spec format: OpenAPI 3.0.3
 
@@ -37,10 +49,10 @@ Postman wrokspace: [Workspace](https://app.getpostman.com/join-team?invite_code=
 
 (Curl, python requests etc' examples can be found on ReDocly.)
 
-Linting rules: Spectral ruleset link TODO
+Linting rules: redocly.yaml in root
 
 
-## `3) URL Design`
+## `4) URL Design`
 3.1 Base Path & Versioning
 
 Versioning approach: URL/Header hybrid approach
@@ -53,7 +65,7 @@ Rule for introducing v2: TBD, anything that would break previous functionality
 
 Deprecation policy: None at the moment as we are dealing with hardware
 
-#### `3.2 Resource Naming`
+#### `4.1 Resource Naming`
 
 Use nouns, plural collections: /telemetry, /devices
 
@@ -63,28 +75,27 @@ Nested resources only when it’s a true hierarchy:
 
 Example: /devices/{id}
 
-#### `3.3 Query Parameters`
+#### `4.2 Query Parameters`
 
 Filtering: .../?status=active
 
 Sorting: .../?sort=created_at
 
-Pagination: [Industry ReDocly](https://iot-industry.redocly.app).
 
-## `4) HTTP Methods & Semantics`
+## `5) HTTP Methods & Semantics`
 
 GET — read
 
 POST — create
 
-## `5) Request & Response Format`
+## `6) Request & Response Format`
 5.1 Content Types
 
 Requests: Content-Type: application/json
 
 Responses: application/json
 
-#### `5.2 JSON Conventions`
+#### `6.1 JSON Conventions`
 
 Field naming: snake_case
 
@@ -92,13 +103,11 @@ Dates/times: ISO 8601, timezone: UTC
 
 Booleans: true/false
 
-#### `5.3 Envelope`
+#### `6.2 Envelope`
 
-no envelope:
+Envelopes present on pagination, for more information go to chapter 7 pagination
 
-{ "ssn": 123321, "value": 2342 }
-
-## `6) Authentication & Authorization`
+## `7) Authentication & Authorization`
 
 Auth type: JWT
 
@@ -116,11 +125,136 @@ GET /api/v1/devices
 Authorization: Bearer <token>
 ```
 
-## `7) Pagination`
+## `8) Pagination`
 
-See [Industry ReDocly](https://iot-industry.redocly.app) for pagination rules
+### Overview
+All endpoints that return **collections** MUST support pagination and MUST return results in a **pagination envelope** (response wrapper) to provide consistent metadata for clients.
 
-## `8) Errors`
+This API uses **page-based pagination** (`page`, `page_size`) with a standard response envelope:
+
+- `data`: the list of returned items
+- `pagination`: metadata about the current page and the overall result set
+
+---
+
+### Applicable endpoints
+Pagination applies to collection endpoints such as:
+
+- `GET /api/v1/devices`
+- `GET /api/v1/telemetry`
+
+---
+
+### Request parameters
+
+| Parameter | In | Type | Default | Constraints | Description |
+|----------|----|------|---------|-------------|-------------|
+| `page` | query | integer | `1` | min `1` | Page number (1-based) |
+| `page_size` | query | integer | `10` | min `1`, max `1000` | Number of items per page |
+
+**Rules**
+- `page` MUST be **>= 1**
+- `page_size` MUST be **between 1 and 1000**
+- If omitted, defaults MUST apply (`page=1`, `page_size=10`)
+- Invalid values MUST return `400 Bad Request`
+
+---
+
+### Response envelope
+
+|Field |	Type |	Description|
+|---------|-------|--------------------------------------------------|
+|page |	integer |	Current page number|
+|page_size |	integer |	Page size used for this response|
+|total |	integer | Total number of items matching the query (after filters)|
+|total_pages |	 integer |	Total pages available (ceil(total / page_size))|
+|next_page |	integer or null	| Next page number if available, else null|
+|prev_page |	integer or null	| Previous page number if available, else null|
+
+All paginated collection responses MUST follow this structure:
+
+```json
+{
+  "data": [],
+  "pagination": {
+    "page": 1,
+    "page_size": 10,
+    "total": 0,
+    "total_pages": 0,
+    "next_page": null,
+    "prev_page": null
+  }
+}
+```
+
+### Rules
+
+data *MUST* be an array (never null)
+
+total *MUST* reflect the total items for the current filter set
+
+total_pages *MUST* be consistent with total and page_size
+
+next_page / prev_page *MUST* be null when not available
+
+
+### Example
+
+```
+GET /api/v1/devices?page=1&page_size=2
+Authorization: Bearer <token>
+```
+```
+{
+  "data": [
+    {
+      "name": "Thermometer lower level 5",
+      "ssn": "SN2224412",
+      "location": "Industrial park 15",
+      "status": "Paused",
+      "created": "2026-01-16T14:30:00Z",
+      "updated": "2026-01-16T17:30:00Z"
+    },
+    {
+      "name": "Thermometer upper level 2",
+      "ssn": "SN2224413",
+      "location": "Industrial park 15",
+      "status": "Active",
+      "created": "2026-01-16T14:35:00Z",
+      "updated": "2026-01-16T17:31:00Z"
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "page_size": 2,
+    "total": 11,
+    "total_pages": 6,
+    "next_page": 2,
+    "prev_page": null
+  }
+}
+```
+
+### Edge Cases
+When no match is found in filtering return
+```
+{
+  "data": [],
+  "pagination": {
+    "page": 1,
+    "page_size": 10,
+    "total": 0,
+    "total_pages": 0,
+    "next_page": null,
+    "prev_page": null
+  }
+}
+```
+
+### Error handling
+Incase of an error, return 400(Bad request) with standard error format.
+
+## `9) Errors`
 8.1 Status Codes
 
 Use:
@@ -141,33 +275,101 @@ Use:
 
 500/503 server issues
 
-## `8.2 Error Response Format`
+### `9.1 Error Response Format`
 
 Standard shape:
-
+```
 {
     "error" : "An error has occured"
 }
+```
+## `10) Create Update Patterns`
 
-## `9) Create/Update Patterns`
+Create returns: 201 + created resource (or location header) 
 
-Create returns: 201 + created resource (or location header) With telemetry exception, which returns 202 with no body
+telemetry returns 202 with no body
 
-## `10) Resource Representations`
+## `11) Resource Representations`
 
-IDs are not exposed at all at this point in the API
+- JSON objects use snake_case
 
-## `11) Filtering, Searching, Sorting`
+- Arrays are returned for collections
 
-Please refer to [Industry ReDocly](https://iot-industry.redocly.app) for max per page and pagination rules
+- Fields are explicitly defined (no magic / undocumented fields)
 
-## `12) Security Requirements`
+- Avoid abbreviations unless domain-standard (id, ts, ssn)
+
+### Common type representation
+
+- Timestamps - ISO 8601 (date-time)
+
+- Numbers - integers are used for telemetry data which may represent floats
+for example, a thermometer will send its value(31.4) in such a way:
+```
+{
+"ssn": "sn222432"
+"value": 3140
+}
+``` 
+
+- IDs - TBD
+
+## `12) Filtering, Searching, Sorting`
+
+Resource access is currently supported on:
+- devices endpoint using a url parameter of {id}
+```
+GET .../api/v1//devices/7
+```
+``` json
+{
+    "name": "Themometer lower level 5",
+    "ssn": "SN2224412",
+    "location": "Industrial park 15",
+    "status": "Paused",
+    "created": "2026-01-16T14:30:00Z",
+    "updated": "2026-01-16T17:30:00Z"
+}
+```
+Filtering is currently supported on: 
+- telemetry endpoint using query parameters:
+```
+GET .../api/v1/telemetry?device_id=7
+```
+``` json
+{
+    "data": [
+        {
+            "ssn": 2224412,
+            "value": 2432,
+            "metric": "C",
+            "ts": "22:53 16-01-2026"
+        },
+        {
+            "ssn": 2224412,
+            "value": 2432,
+            "metric": "C",
+            "ts": "22:53 16-01-2026"
+        }
+    ],
+    "pagination": {
+        "page": 2,
+        "page_size": 2,
+        "total": 2,
+        "total_pages": 1,
+        "next_page": null,
+        "prev_page": null
+    }
+}
+```
+
+## `13) Security Requirements`
 
 TLS only: yes
 
 Audit logging: TODO
 
-## `13) Deprecation Policy`
+## `14) Deprecation Policy`
 
 How endpoints are deprecated: Endpoints are never deprecated as it is a IoT system
 
