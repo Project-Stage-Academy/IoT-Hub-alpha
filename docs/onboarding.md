@@ -18,7 +18,7 @@ docker compose version
 ```
 ## 1) Clone the repository
 
-![Clone the repository](images/onboarding-01-clone) and switch to the required branch:
+![Clone the repository](images/onboarding-01-clone.png) and switch to the required branch:
 ```bash
 git clone https://github.com/Project-Stage-Academy/IoT-Hub-alpha.git
 cd IoT-Hub-alpha
