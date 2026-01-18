@@ -19,3 +19,11 @@ docker compose version
 ## 1) Clone the repository
 
 Clone the repository and switch to the required branch:
+```bash
+git clone https://github.com/Project-Stage-Academy/IoT-Hub-alpha.git
+cd IoT-Hub-alpha
+```
+Switch to the required branch:
+`git checkout task-8-project-skeleton`
+
+Verify that the correct branch is checked out:
