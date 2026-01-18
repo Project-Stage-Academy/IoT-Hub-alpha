@@ -9,4 +9,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
+# Development only - in production this should be replaced with gunicorn.
 CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
