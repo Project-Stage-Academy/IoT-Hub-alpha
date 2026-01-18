@@ -18,7 +18,7 @@ docker compose version
 ```
 ## 1) Clone the repository
 
-Clone the repository and switch to the required branch:
+Clone the repository and navigate to the project directory:
 ```bash
 git clone https://github.com/Project-Stage-Academy/IoT-Hub-alpha.git
 cd IoT-Hub-alpha
@@ -29,3 +29,18 @@ Switch to the required branch:
 ```
 ![example-clone](images/onboarding-01-clone.png)
 
+## 2) Create environment file
+In the folder where the `.env.example` is located create `.env`
+* Linux / macOS / Git Bash
+```bash
+cp .env.example .env
+```
+* Windows
+```bash
+copy .env.example .env
+```
+The .env file is used only for local development and must not be committed.
+At minimum, ensure the following variables exist:
+* DB_NAME
+* DB_USER
+* DB_PASSWORD
