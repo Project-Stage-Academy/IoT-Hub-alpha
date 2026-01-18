@@ -16,3 +16,6 @@ git --version
 docker --version
 docker compose version
 ```
+## 1) Clone the repository
+
+Clone the repository and switch to the required branch:
