@@ -22,6 +22,9 @@ cp .env.example .env
 docker compose up -d --build
 # open http://localhost:8000 for the API and admin
 ```
+## Api style guide
+
+[Api style guide](docs/readme-api.md)
 
 ## Project workflow
 
