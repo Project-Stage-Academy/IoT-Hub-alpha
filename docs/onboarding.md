@@ -30,7 +30,7 @@ Switch to the required branch:
 ![example-clone](images/onboarding-01-clone.png)
 
 ## 2) Create environment file
-In the folder where the `.env.example` is located create `.env`
+In the folder where the `.env.example` is located, run the following comand:
 * Linux / macOS / Git Bash
 ```bash
 cp .env.example .env
@@ -44,3 +44,33 @@ At minimum, ensure the following variables exist:
 * DB_NAME
 * DB_USER
 * DB_PASSWORD
+
+![example-env](images/onboarding-02-env.png)
+
+## 3) Start the development stack
+Run the following command from the project root:
+```bash
+docker compose up -d --build
+```
+This will:
+- start PostgreSQL (db service),
+- build and start the Django backend (backend service),
+- automatically run database migrations,
+- expose the backend on port 8000.
+
+![example-up](images/onboarding-03-up.png)
+
+## 4) Create a Django superuser
+To access the Django Admin UI, create a superuser():
+```bash
+docker compose exec backend python manage.py createsuperuser
+```
+Follow the prompts to set username and password.
+![example-admin](images/onboarding-04-admin.png)
+
+## 5) Access the Admin UI
+Open the following URL in your browser:
+```bash
+http://localhost:8000/admin/
+```
+Log in using the superuser credentials created in the previous step.
