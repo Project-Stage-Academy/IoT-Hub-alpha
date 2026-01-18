@@ -1,0 +1,30 @@
+{
+"rate": 30,
+"telemetry_data": [
+        {
+                "json_version": 1.0,
+                "ssn": "SN2221144",
+                "value": 5555
+            },
+        {
+                "json_version": 1.0,
+                "ssn": "SN2221144",
+                "value": 4444
+            }
+        ,{
+                "json_version": 1.0,
+                "ssn": "SN2221144",
+                "value": 1115
+            }
+        ,{
+                "json_version": 1.0,
+                "ssn": "SN2221144",
+                "value": 2225
+            }
+        ,{
+                "json_version": 1.0,
+                "ssn": "SN2221144",
+                "value": 3335
+            }
+]
+}
