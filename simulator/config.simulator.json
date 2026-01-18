@@ -1,0 +1,27 @@
+{
+    "default_url": "127.0.0.1",
+    "default_data_file": [
+        "Demo1.json",
+        "Demo2.json",
+        "Demo3.json"
+    ],
+
+    "devices": [
+        {
+            "device_name": "device1",
+            "data": {
+                "json_version": 1.0,
+                "ssn": "SN2221144",
+                "value": 2652
+            }
+        },
+        {
+            "device_name": "device2",
+            "data": {
+                "json_version": 1.0,
+                "ssn": "SN2225555",
+                "value": 3244
+            }
+        }
+    ]
+}
