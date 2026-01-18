@@ -13,15 +13,57 @@ Django as API Gateway and admin UI. Python agents for telemetry ingestion via MQ
 
 ## Quick start
 
-Clone the repository, set environment variables, and start the development monolith with Docker Compose. Example commands.
+### 1. Clone the Repository
 
 ```bash
 git clone <repo-url>
 cd iot-catalog-hub
-cp .env.example .env
-docker compose up -d --build
-# open http://localhost:8000 for the API and admin
 ```
+
+### 2. Environment Setup
+
+The application relies on environment variables defined in a `.env` file. Create your local version from the provided template:
+
+```bash
+cd backend
+cp .env.example .env
+```
+
+
+> **Note:** The default values in `.env.example` are pre-configured to work with the Docker Compose setup immediately.
+
+---
+
+### 3. Launch with Docker Compose
+
+Build the images and start the services. The setup includes a healthcheck mechanism to ensure the database is ready before the backend starts:
+
+```bash
+docker compose up -d --build
+```
+
+
+### 4. Initialize the Database
+
+Run migrations and create an administrative account to access the dashboard:
+
+```bash
+# Apply database migrations
+docker compose exec backend python manage.py migrate
+
+# Create a superuser
+docker compose exec backend python manage.py createsuperuser
+```
+
+
+## Access Points
+
+| Service      | URL                        |
+|-------------|----------------------------|
+| Web API      | http://localhost:8000/     |
+| Admin Panel  | http://localhost:8000/admin/ |
+
+---
 
 ## Project workflow
 
@@ -34,4 +76,3 @@ A working MVP and microservice stack in staging. CI pipelines that build .deb pa
 ## Contributing
 
 Follow the repository guidelines for branching, testing and CI. Open a pull request for feature work and include tests and documentation for changes.
-
