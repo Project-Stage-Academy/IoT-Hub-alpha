@@ -8,6 +8,9 @@ info:
     email: api@example.com
 servers:
   - url: http://localhost:8000
+tags:
+  - name: Health
+    description: Health check endpoints
 paths:
   /healthz:
     get:
