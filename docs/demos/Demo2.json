@@ -2,7 +2,7 @@
     {
       "name": "Demo2.json",
       "data": {
-        "json_version": 1.0,
+        "schema_version": "1.0",
         "ssn": "SN2221144",
         "value": 5555
       },

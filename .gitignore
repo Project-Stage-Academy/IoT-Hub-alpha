@@ -210,3 +210,6 @@ staticfiles/
 media/
 # spectral linter
 .spectral.yaml
+
+#data simulator log file
+sim_log.txt
