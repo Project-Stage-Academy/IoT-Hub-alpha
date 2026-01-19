@@ -1,5 +1,5 @@
 {
-    "default_url": "127.0.0.1",
+    "default_url": "https://iot-industry.redocly.app/_mock/openapi/telemetry",
     "default_data_file": [
         "Demo1.json",
         "Demo2.json",
@@ -10,7 +10,7 @@
         {
             "name": "device1",
             "data": {
-                "json_version": 1.0,
+                "schema_version": "1.0",
                 "ssn": "SN2221144",
                 "value": 2652
             },
@@ -19,7 +19,7 @@
         {
             "name": "device2",
             "data": {
-                "json_version": 1.0,
+                "schema_version": "1.0",
                 "ssn": "SN2225555",
                 "value": 3244
             },

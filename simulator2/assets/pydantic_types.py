@@ -1,9 +1,9 @@
 from pydantic import BaseModel, ConfigDict
 
 class PayloadBase(BaseModel):
-    json_version: float
-    ssn: str
-    value: int
+    schema_version: str | None = None
+    ssn: str | None = None
+    value: int | None = None
 
 class PayloadExtended(PayloadBase):
     model_config = ConfigDict(extra="allow")

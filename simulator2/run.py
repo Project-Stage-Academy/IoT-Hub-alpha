@@ -68,11 +68,17 @@ def main() -> None:
         help=f"List of avalible devices: {", ".join(d.name for d in config.devices)}",
         type=device_lookup,
         nargs="+",
-        default=None
+        default=None,
+    )
+    parser.add_argument(
+        "-l",
+        "--log",
+        help="Outputs results in sim_log.txt",
+        action="store_true",
     )
 
     raw = parser.parse_args()
-    task_list = MainSim.create_tasks(raw)
+    MainSim.create_tasks(raw)
 
     
 
