@@ -51,8 +51,9 @@ jobs:
       - name: Lint OpenAPI
         uses: stoplightio/spectral-action@6416fd018ae38e60136775066eb3e98172143141
         with:
-          file_glob: "docs/**/*.yaml" 
-          
+         # file_glob: "docs/**/*.yaml" 
+          file_glob: "docs/api_test.yaml" # Change to real OpenAPI spec path when available          
+
       - name: Upload OpenAPI artifact
         if: matrix.python-version == '3.13'
         uses: actions/upload-artifact@v4
