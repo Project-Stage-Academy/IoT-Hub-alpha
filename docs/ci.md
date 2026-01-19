@@ -10,7 +10,7 @@ GitHub Actions to run  CI pipeline on pushes and pull requests.
    - Uploads `docs/api.yaml` as a workflow artifact.
 2. Tests (depends on Lint)
    - Runs `pytest` with coverage output in `coverage.xml`.
-   - Uploads `coverage.xml` as a workflow artifact.
+   - Uploads `coverage.xml` and  as a workflow artifact.
 3. Build (depends on Tests)
    - Builds the Django Docker image from `backend/Dockerfile` as a smoke build (no push).
 
