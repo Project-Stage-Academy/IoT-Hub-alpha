@@ -13,15 +13,30 @@ class DeviceEntry(BaseModel):
     device_name: str
     data: DeviceDataExpanded
 
+class DeviceDemo(BaseModel):
+    data: DeviceDataExpanded
+    expected: int
+
 class Config(BaseModel):
     default_url: str
     default_data_file: list[str] | list[Path]
     devices: list[DeviceEntry]
 
+class TelemetryConfig(BaseModel):
+    rate: int
+    count: int
+    telemetry_data: list[DeviceDemo]
+
+
+class FileTelemetry(BaseModel):
+    rate: int
+    count: int
+    telemetry_data: list[DeviceDemo]
+
 class ParserArgs(BaseModel):
-    files: list[Path]
+    files: list[str]
     mode: str
     url: str
     count: int
     rate: int
-    devices: list[DeviceEntry]
+    devices: list[DeviceEntry] | None

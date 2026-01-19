@@ -1,16 +1,20 @@
-{
-"rate": 25,
-"telemetry_data": [
-        {
-                "json_version": 1.0,
-                "ssn": "SN44444444",
-                "value": 5555
-            },
-        {
-                "json_version": 1.0,
-                "ssn": "SN22222222",
-                "value": 4444
-            }
-
+[
+  {
+    "name": "Demo3.json",
+    "data": {
+      "json_version": 1.0,
+      "ssn": "SN2221144",
+      "value": 5555
+    },
+    "expected": 400
+  },
+  {
+    "name": "Demo3.json",
+    "data": {
+      "json_version": 1.0,
+      "ssn": "SN222334",
+      "value": 2314
+    },
+    "expected": 400
+  }
 ]
-}

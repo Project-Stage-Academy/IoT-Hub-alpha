@@ -1,30 +1,38 @@
-{
-"rate": 30,
-"telemetry_data": [
-        {
-                "json_version": 1.0,
-                "ssn": "SN2221144",
-                "value": 5555
-            },
-        {
-                "json_version": 1.0,
-                "ssn": "SN2221144",
-                "value": 4444
-            }
-        ,{
-                "json_version": 1.0,
-                "ssn": "SN2221144",
-                "value": 1115
-            }
-        ,{
-                "json_version": 1.0,
-                "ssn": "SN2221144",
-                "value": 2225
-            }
-        ,{
-                "json_version": 1.0,
-                "ssn": "SN2221144",
-                "value": 3335
-            }
-]
-}
+  [
+    {
+      "name": "Demo1.json",
+      "data": {
+        "json_version": 1.0,
+        "ssn": "SN2221144",
+        "value": 5555
+      },
+      "expected": 202
+    },
+    {
+      "name": "Demo1.json",
+      "data": {
+        "json_version": 1.0,
+        "ssn": "SN222334",
+        "value": 2314
+      },
+      "expected": 202
+    },
+    {
+      "name": "Demo1.json",
+      "data": {
+        "json_version": 1.0,
+        "ssn": "SN222222",
+        "value": 7254
+      },
+      "expected": 202
+    },
+    {
+      "name": "Demo1.json",
+      "data": {
+        "json_version": 1.0,
+        "ssn": "SN2221144",
+        "value": 1222
+      },
+      "expected": 400
+    }
+  ]
