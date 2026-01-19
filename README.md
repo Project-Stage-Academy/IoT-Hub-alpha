@@ -30,6 +30,9 @@ Ensure you have the following installed:
 git clone <your-repository-url>
 cd iot-catalog-hub
 ```
+## Api style guide
+
+[Api style guide](docs/readme-api.md)
 
 ### 3. Environment Setup
 

@@ -208,3 +208,5 @@ __marimo__/
 
 staticfiles/
 media/
+# spectral linter
+.spectral.yaml
