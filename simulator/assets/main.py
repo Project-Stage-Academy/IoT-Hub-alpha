@@ -15,6 +15,12 @@ def build_tasks(data: list[PayloadEnvelope]) -> list[PayloadEnvelope]:
 
 
 def main_sim(raw: Any):
+    """
+    Main program flow
+    
+    :param raw: Description
+    :type raw: Any
+    """
     prog_start = perf_counter()
     parsed_data = ParsedArgs.model_validate(vars(raw))
     

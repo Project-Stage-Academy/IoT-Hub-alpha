@@ -5,6 +5,9 @@ from assets.helpers import get_config
 
 
 def main() -> None:
+    """
+    Main CLI argument parser and program entry point.
+    """
     config = get_config()
     device_names = ", ".join(d.name for d in config.devices)
 

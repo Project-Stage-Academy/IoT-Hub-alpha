@@ -5,12 +5,18 @@ from .data_structures import PayloadEnvelope, SendResult
 
 
 class Sender(Protocol):
+    """
+    Common http/mqtt interface
+    """
     def send(self, item: PayloadEnvelope) -> SendResult:
         ...
 
 
 
 class HttpSender(Sender):
+    """
+    Http sender
+    """
     def __init__(self, session: requests.Session, base_url: str) -> None:
         self.session = session
         self.base_url = base_url.rstrip("/")
@@ -39,6 +45,9 @@ class HttpSender(Sender):
                               latency = latency)
         
 class MqttSender(Sender):
+    """
+    mqtt sender
+    """
     def __init__(self, broker_url: str, topic: str) -> None:
         self.broker_url = broker_url
         self.topic = topic

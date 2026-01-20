@@ -4,6 +4,14 @@ from pathlib import Path
 from .data_structures import Config, PayloadEnvelope
 
 def get_data_from_demos(files: list[str]) -> list[PayloadEnvelope]:
+    """
+    Extracts tasks from demo files
+    
+    :param files: Description
+    :type files: list[str]
+    :return: Description
+    :rtype: list[PayloadEnvelope]
+    """
     root = Path(__file__).resolve().parent.parent.parent
     payloadenvelope: list[PayloadEnvelope] = []
     for file in files:
@@ -18,6 +26,12 @@ def get_data_from_demos(files: list[str]) -> list[PayloadEnvelope]:
     return payloadenvelope
 
 def get_config() -> Config:
+    """
+    Loads config file
+    
+    :return: Description
+    :rtype: Config
+    """
     base = Path(__file__).resolve().parent.parent
     config_path = Path(f"{base}/config.simulator.json")
     with open(config_path, "r") as f:
