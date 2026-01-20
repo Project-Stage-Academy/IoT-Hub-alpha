@@ -39,7 +39,6 @@ cd iot-catalog-hub
 The application relies on environment variables defined in a `.env` file. Create your local version from the provided template:
 
 ```bash
-cd backend
 cp .env.example .env
 ```
 
@@ -53,6 +52,7 @@ cp .env.example .env
 Build the images and start the services. The setup includes a healthcheck mechanism to ensure the database is ready before the backend starts:
 
 ```bash
+docker compose down --remove-orphans
 docker compose up -d --build
 ```
 
@@ -63,10 +63,20 @@ Run migrations and create an administrative account to access the dashboard:
 
 ```bash
 # Apply database migrations
-docker compose exec backend python manage.py migrate
+docker compose exec web python manage.py migrate
 
 # Create a superuser
-docker compose exec backend python manage.py createsuperuser
+docker compose exec web python manage.py createsuperuser
+```
+
+## Docker Skeleton (Current)
+
+The compose file includes placeholders for `redis`, `worker`, `prometheus`, and `grafana`. These services are intentionally minimal and marked with TODOs for teammates to complete.
+
+Basic local build (Dockerfile only):
+
+```bash
+docker build -t iot-hub-web -f backend/Dockerfile backend
 ```
 
 ## 🔗 Access Points
