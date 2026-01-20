@@ -117,10 +117,7 @@ The system supports the following user roles:
 - Database: PostgreSQL 15
 - Time-series optimization: TimescaleDB extension
 - UUID generation: UUID-OSSP extension
-- ORM: Django ORM
-- Connection pooling: psycopg2-binary with pooling enabled
 - Orchestration: Docker and Docker Compose
-- Deployment targets: local and staging environments only
 - Documentation format: Markdown and DBML
 
 ---
