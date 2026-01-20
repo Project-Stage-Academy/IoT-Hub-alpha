@@ -2,7 +2,7 @@ from typing import Sequence
 from time import sleep
 from .senders import Sender
 from .reporting import Reporter
-from .pydantic_types import PayloadEnvelope, RunStats
+from .data_structures import PayloadEnvelope, RunStats
 
 def run_loop(
         tasks: Sequence[PayloadEnvelope],

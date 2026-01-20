@@ -1,5 +1,5 @@
 import argparse
-from assets.pydantic_types import PayloadEnvelope
+from assets.data_structures import PayloadEnvelope
 from assets.main import main_sim
 from assets.helpers import get_config
 

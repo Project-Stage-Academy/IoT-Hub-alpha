@@ -1,7 +1,7 @@
 import argparse
 import json
 from pathlib import Path
-from .pydantic_types import Config, PayloadEnvelope
+from .data_structures import Config, PayloadEnvelope
 
 def get_data_from_demos(files: list[str]) -> list[PayloadEnvelope]:
     root = Path(__file__).resolve().parent.parent.parent

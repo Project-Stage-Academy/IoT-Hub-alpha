@@ -1,7 +1,7 @@
 import time
 import requests
 from typing import Protocol
-from .pydantic_types import PayloadEnvelope, SendResult
+from .data_structures import PayloadEnvelope, SendResult
 
 
 class Sender(Protocol):
@@ -24,7 +24,7 @@ class HttpSender(Sender):
                 json=item.data.model_dump(),
                 timeout=5.0
             )
-            latency = round((time.perf_counter() - start) * 1000)
+            latency = int((time.perf_counter() - start) * 1000)
             return SendResult(code_got = response.status_code,
                               code_expected = item.expected,
                               status="Pass" if response.status_code == item.expected else "False",

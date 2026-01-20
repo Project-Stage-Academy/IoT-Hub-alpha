@@ -2,7 +2,7 @@ import requests
 from pathlib import Path
 from typing import Any
 from time import perf_counter
-from .pydantic_types import PayloadEnvelope, ParsedArgs
+from .data_structures import PayloadEnvelope, ParsedArgs
 from .helpers import get_data_from_demos
 from .senders import HttpSender, MqttSender
 from .runner import run_loop

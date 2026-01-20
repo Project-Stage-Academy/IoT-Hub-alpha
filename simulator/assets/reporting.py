@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 from datetime import datetime, timezone
-from .pydantic_types import SendResult, PayloadEnvelope, RunStats
+from .data_structures import SendResult, PayloadEnvelope, RunStats
 
 class Reporter:
     def __init__(self, verbose: bool, log_path: Path | None) -> None:

@@ -24,7 +24,7 @@ class SendResult(BaseModel):
     code_got : int | None
     code_expected: int | None
     status: str
-    latency: float 
+    latency: int 
 
 class ParsedArgs(BaseModel):
     files: list[str] | None
