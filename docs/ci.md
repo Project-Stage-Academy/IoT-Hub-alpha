@@ -44,3 +44,28 @@ cd -
 
 docker build -f backend/Dockerfile -t iot-hub-backend:ci backend
 ```
+
+## Future Extensions
+
+### Debian Package Building
+To add . deb packaging: 
+1. Add a new job `package:` after the `build:` job with `needs: build`
+2. Install `dpkg-dev`, `debhelper`, and other packaging tools
+3. Run package build commands and upload . deb as artifact
+
+### Required Secrets for Future Jobs
+Configure the following secrets in GitHub Settings → Secrets and variables → Actions: 
+
+- `DOCKER_REGISTRY_USER`: Docker Hub username for pushing images
+- `DOCKER_REGISTRY_TOKEN`: Docker Hub access token or password
+- `APT_REPO_DEPLOY_KEY`: SSH private key for deploying . deb packages to apt repository
+- `APT_REPO_URL`: URL of the apt repository server
+
+Example usage in workflow:
+```
+- name: Login to Docker Hub
+   uses: docker/login-action@v3
+   with:
+      username: ${{ secrets.DOCKER_REGISTRY_USER }}
+      password: ${{ secrets.DOCKER_REGISTRY_TOKEN }}
+```
