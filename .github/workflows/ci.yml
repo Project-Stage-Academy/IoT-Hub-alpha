@@ -49,7 +49,6 @@ jobs:
           file_glob: "docs/api.yaml"         
 
       - name: Upload OpenAPI artifact
-        if: matrix.python-version == '3.13'
         uses: actions/upload-artifact@v4
         with:
           name: openapi-spec
