@@ -7,7 +7,9 @@ load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
-SECRET_KEY = os.getenv("SECRET_KEY", "django-insecure-default-key")
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY or "insecure" in SECRET_KEY.lower():
+    raise ValueError("SECRET_KEY must be set to a secure value")
 
 DEBUG = os.getenv("DEBUG", "False").lower() in ("true", "1", "yes")
 
@@ -69,10 +71,13 @@ DATABASES = {
         "PORT": os.getenv("DB_PORT", "5432"),
         "CONN_MAX_AGE": int(os.getenv("DB_CONN_MAX_AGE", "60")),
         "OPTIONS": {
-            "connect_timeout": 10,
+            "connect_timeout": int(os.getenv("DB_CONNECT_TIMEOUT", "10")),
         },
     }
 }
+
+if os.getenv("DB_CONN_HEALTH_CHECKS", "False").lower() == "true":
+    DATABASES["default"]["CONN_HEALTH_CHECKS"] = True
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -105,4 +110,28 @@ MEDIA_ROOT = BASE_DIR / "media"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-TELEMETRY_RETENTION_DAYS = int(os.getenv("TELEMETRY_RETENTION_DAYS", "90"))
+from .telemetry import TELEMETRY_RETENTION_DAYS  # noqa: E402
+
+LOGGING_BASE = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {
+            "format": "{levelname} {asctime} {module} {message}",
+            "style": "{",
+        },
+        "json": {
+            "format": "%(asctime)s %(levelname)s %(name)s %(message)s",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "verbose",
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": "INFO",
+    },
+}

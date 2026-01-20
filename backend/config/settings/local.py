@@ -1,30 +1,18 @@
-from .base import *
+from .base import *  # noqa: F403, F401
+
+# Overrides: DEBUG, ALLOWED_HOSTS, DATABASES["default"]["CONN_MAX_AGE"], LOGGING
 
 DEBUG = True
 
 ALLOWED_HOSTS = ["localhost", "127.0.0.1", "0.0.0.0"]
 
-DATABASES["default"]["CONN_MAX_AGE"] = 0
+if "default" in DATABASES:  # noqa: F405
+    DATABASES["default"]["CONN_MAX_AGE"] = 0  # noqa: F405
+else:
+    raise ValueError("DATABASES['default'] not configured in base settings")
 
 LOGGING = {
-    "version": 1,
-    "disable_existing_loggers": False,
-    "formatters": {
-        "verbose": {
-            "format": "{levelname} {asctime} {module} {message}",
-            "style": "{",
-        },
-    },
-    "handlers": {
-        "console": {
-            "class": "logging.StreamHandler",
-            "formatter": "verbose",
-        },
-    },
-    "root": {
-        "handlers": ["console"],
-        "level": "INFO",
-    },
+    **LOGGING_BASE,  # noqa: F405
     "loggers": {
         "django.db.backends": {
             "handlers": ["console"],

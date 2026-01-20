@@ -1,36 +1,33 @@
-from .base import *
+from .base import *  # noqa: F403, F401
+
+# Overrides: DEBUG, ALLOWED_HOSTS, DATABASES config, security headers, LOGGING
 
 DEBUG = False
 
-ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "").split(",")
+ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "").split(",")  # noqa: F405
+if not ALLOWED_HOSTS or ALLOWED_HOSTS == [""]:
+    raise ValueError("ALLOWED_HOSTS must be set for staging/production")
 
-DATABASES["default"]["CONN_MAX_AGE"] = 600
-DATABASES["default"]["CONN_HEALTH_CHECKS"] = True
+if "default" in DATABASES:  # noqa: F405
+    DATABASES["default"]["CONN_MAX_AGE"] = 600  # noqa: F405
+    DATABASES["default"]["CONN_HEALTH_CHECKS"] = True  # noqa: F405
+else:
+    raise ValueError("DATABASES['default'] not configured in base settings")
 
-SECURE_SSL_REDIRECT = True
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = True
-SECURE_BROWSER_XSS_FILTER = True
-SECURE_CONTENT_TYPE_NOSNIFF = True
-X_FRAME_OPTIONS = "DENY"
+SECURE_SSL_REDIRECT = os.getenv("SECURE_SSL_REDIRECT", "True").lower() == "true"  # noqa: F405
+SESSION_COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", "True").lower() == "true"  # noqa: F405
+CSRF_COOKIE_SECURE = os.getenv("CSRF_COOKIE_SECURE", "True").lower() == "true"  # noqa: F405
+SECURE_BROWSER_XSS_FILTER = os.getenv("SECURE_BROWSER_XSS_FILTER", "True").lower() == "true"  # noqa: F405
+SECURE_CONTENT_TYPE_NOSNIFF = os.getenv("SECURE_CONTENT_TYPE_NOSNIFF", "True").lower() == "true"  # noqa: F405
+X_FRAME_OPTIONS = os.getenv("X_FRAME_OPTIONS", "DENY")  # noqa: F405
 
 LOGGING = {
-    "version": 1,
-    "disable_existing_loggers": False,
-    "formatters": {
-        "json": {
-            "format": "%(asctime)s %(levelname)s %(name)s %(message)s",
-        },
-    },
+    **LOGGING_BASE,  # noqa: F405
     "handlers": {
         "console": {
             "class": "logging.StreamHandler",
             "formatter": "json",
         },
-    },
-    "root": {
-        "handlers": ["console"],
-        "level": "INFO",
     },
     "loggers": {
         "django": {
