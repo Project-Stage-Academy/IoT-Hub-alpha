@@ -31,7 +31,7 @@ class HttpSender(Sender):
                               latency = latency)
             
         except requests.RequestException as exc:
-            latency = time.perf_counter() - start
+            latency = int((time.perf_counter() - start) * 1000)
             print(f"[ERROR] Request failed: {exc}")
             return SendResult(code_got = None,
                               status="Fail",
