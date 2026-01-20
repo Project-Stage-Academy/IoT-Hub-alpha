@@ -1,0 +1,3 @@
+import os
+
+TELEMETRY_RETENTION_DAYS = int(os.getenv("TELEMETRY_RETENTION_DAYS", "90"))
