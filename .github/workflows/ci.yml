@@ -44,7 +44,7 @@ jobs:
         run: flake8 backend
       
       - name: Lint OpenAPI
-        uses: stoplightio/spectral-action@6416fd018ae38e60136775066eb3e98172143141
+        uses: stoplightio/spectral-action@v0.8.11
         with:
           file_glob: "docs/api.yaml"         
 
