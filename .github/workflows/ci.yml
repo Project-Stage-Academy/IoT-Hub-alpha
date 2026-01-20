@@ -2,18 +2,13 @@ name: CI
 
 on:
   push:
-    branches: ["task-10-CI-pipeline"]
-  
+    branches: ["main", "develop"]
   pull_request: 
-    branches: ["task-10-CI-pipeline"]
-
-# Uncomment to enable PR triggers on all branches after aproved
-# on:
-#   push:
-#     branches: ["main"]
-#   pull_request: 
-#     branches:
-#       - '*' 
+    branches: 
+      - 'main'
+      - 'develop'
+      - 'feature/**'
+      - 'task-**'
 
 jobs:
   lint:
