@@ -1,7 +1,7 @@
 import argparse
 import json
 from pathlib import Path
-from .pydantic_types import PayloadEnvelope
+from .pydantic_types import Config, PayloadEnvelope
 
 def get_data_from_demos(files: list[str]) -> list[PayloadEnvelope]:
     root = Path(__file__).resolve().parent.parent.parent
@@ -16,3 +16,11 @@ def get_data_from_demos(files: list[str]) -> list[PayloadEnvelope]:
             payload = PayloadEnvelope.model_validate(item)
             payloadenvelope.append(payload)
     return payloadenvelope
+
+def get_config() -> Config:
+    base = Path(__file__).resolve().parent.parent
+    config_path = Path(f"{base}/config.simulator.json")
+    with open(config_path, "r") as f:
+        raw = json.load(f)
+    config = Config.model_validate(raw)
+    return config

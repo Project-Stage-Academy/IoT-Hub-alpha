@@ -5,7 +5,7 @@
         "Demo2.json",
         "Demo3.json"
     ],
-
+    "log_file": "sim_log.jsonl",
     "devices": [
         {
             "name": "device1",

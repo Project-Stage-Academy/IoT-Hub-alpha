@@ -212,4 +212,4 @@ media/
 .spectral.yaml
 
 #data simulator log file
-sim_log.txt
+sim_log.jsonl

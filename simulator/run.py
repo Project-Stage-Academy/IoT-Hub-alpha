@@ -1,16 +1,12 @@
 import argparse
-import json
-from pathlib import Path
-from assets.pydantic_types import Config, PayloadEnvelope
-from assets.main import MainSim
+from assets.pydantic_types import PayloadEnvelope
+from assets.main import main_sim
+from assets.helpers import get_config
 
 
 def main() -> None:
-    base = Path(__file__).resolve().parent
-    config_path = Path(f"{base}/config.simulator.json")
-    with open(config_path, "r") as f:
-        raw = json.load(f)
-    config = Config.model_validate(raw)
+    config = get_config()
+    device_names = ", ".join(d.name for d in config.devices)
 
     def device_lookup(name: str) -> PayloadEnvelope:
         for device in config.devices:
@@ -19,10 +15,6 @@ def main() -> None:
         raise argparse.ArgumentTypeError(
             f"Unknown device '{name}', Avalible Choices: {[d.name for d in config.devices]}"
         )
-
-    def requests_amount(count: str) -> int | None:
-        if int(count) == 0: return None
-        return int(count)
     
     parser = argparse.ArgumentParser(
         prog="Data Sending Simulator",
@@ -59,7 +51,7 @@ def main() -> None:
         "-c",
         "--count",
         help="Amount of requests, 0 for infinite untill manually cancelled(or reaches 1000 calls)",
-        type=requests_amount,
+        type=int,
         default=1,
     )
     parser.add_argument(
@@ -72,7 +64,7 @@ def main() -> None:
     parser.add_argument(
         "-d",
         "--devices",
-        help=f"List of avalible devices: {", ".join(d.name for d in config.devices)}",
+        help=f"List of avalible devices: {device_names}",
         type=device_lookup,
         nargs="+",
         default=None,
@@ -92,7 +84,8 @@ def main() -> None:
 
     
     raw = parser.parse_args()
-    MainSim.create_tasks(raw)
+    raw.log_file = config.log_file
+    main_sim(raw)
 
     
 
