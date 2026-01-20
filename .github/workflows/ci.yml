@@ -80,7 +80,7 @@ jobs:
         working-directory: backend
         env:
           DJANGO_SETTINGS_MODULE: config.settings
-        run: pytest -q --cov=. --cov-report=xml:../coverage.xml --cov-report=html:../htmlcov
+        run:  pytest -q --cov=. --cov-report=xml:coverage.xml --cov-report=html:htmlcov
 
       - name: Upload coverage XML artifact
         if: matrix.python-version == '3.13'
