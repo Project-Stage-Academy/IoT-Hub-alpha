@@ -6,7 +6,7 @@ IoT Catalog Hub is a modular platform designed for IoT device management, teleme
 
 ## 🛠 Tech Stack
 
-- **Backend:** Python 3.13, Django 6.0.1  
+- **Backend:** Python 3.13, Django 5.2.10  
 - **Database:** PostgreSQL 15  
 - **Orchestration:** Docker, Docker Compose  
 - **Documentation:** DBML for schema design  
@@ -39,7 +39,6 @@ cd iot-catalog-hub
 The application relies on environment variables defined in a `.env` file. Create your local version from the provided template:
 
 ```bash
-cd backend
 cp .env.example .env
 ```
 
@@ -50,9 +49,10 @@ cp .env.example .env
 
 ### 4. Launch with Docker Compose
 
-Build the images and start the services. The setup includes a healthcheck mechanism to ensure the database is ready before the backend starts:
+Build the images and start the services. The setup includes a healthcheck on `http://localhost:8000/health/` to verify the web service is responsive:
 
 ```bash
+docker compose down --remove-orphans
 docker compose up -d --build
 ```
 
@@ -63,10 +63,20 @@ Run migrations and create an administrative account to access the dashboard:
 
 ```bash
 # Apply database migrations
-docker compose exec backend python manage.py migrate
+docker compose run --rm migrate
 
 # Create a superuser
-docker compose exec backend python manage.py createsuperuser
+docker compose exec web python manage.py createsuperuser
+```
+
+## Docker Skeleton (Current)
+
+The compose file includes placeholders for `redis`, `worker`, `prometheus`, and `grafana`. These services are intentionally minimal and marked with TODOs for teammates to complete.
+
+Basic local build (Dockerfile only):
+
+```bash
+docker build -t iot-hub-web -f backend/Dockerfile backend
 ```
 
 ## 🔗 Access Points
@@ -75,6 +85,7 @@ docker compose exec backend python manage.py createsuperuser
 |-------------|----------------------------|
 | Web API      | http://localhost:8000/     |
 | Admin Panel  | http://localhost:8000/admin/ |
+| Health Check | http://localhost:8000/health/ |
 
 ---
 
