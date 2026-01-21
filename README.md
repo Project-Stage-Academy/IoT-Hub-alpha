@@ -1,5 +1,7 @@
 # IoT Catalog Hub
 
+[![CI](https://github.com/Project-Stage-Academy/IoT-Hub-alpha/actions/workflows/ci.yml/badge.svg?branch=task-10-CI-pipeline)](https://github.com/Project-Stage-Academy/IoT-Hub-alpha/actions/workflows/ci.yml)
+
 IoT Catalog Hub is a modular platform designed for IoT device management, telemetry ingestion, and event-driven automation. This repository contains the MVP monolith built with Django and PostgreSQL, containerized for a seamless developer experience.
 
 ---
