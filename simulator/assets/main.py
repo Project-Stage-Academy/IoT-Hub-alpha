@@ -2,17 +2,11 @@ import requests
 from pathlib import Path
 from typing import Any
 from time import perf_counter
-from .data_structures import PayloadEnvelope, ParsedArgs
+from .data_structures import ParsedArgs
 from .helpers import get_data_from_demos
 from .senders import HttpSender, MqttSender
 from .runner import run_loop
 from .reporting import Reporter
-
-def build_tasks(data: list[PayloadEnvelope]) -> list[PayloadEnvelope]:
-    return [
-        PayloadEnvelope(name=d.name, data=d.data, expected=d.expected) for d in data
-    ]
-
 
 def main_sim(raw: Any):
     """

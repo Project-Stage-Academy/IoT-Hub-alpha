@@ -33,7 +33,7 @@ class HttpSender(Sender):
             latency = int((time.perf_counter() - start) * 1000)
             return SendResult(code_got = response.status_code,
                               code_expected = item.expected,
-                              status="Pass" if response.status_code == item.expected else "False",
+                              status="Pass" if response.status_code == item.expected else "Fail",
                               latency = latency)
             
         except requests.RequestException as exc:

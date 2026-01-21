@@ -17,7 +17,7 @@ def get_data_from_demos(files: list[str]) -> list[PayloadEnvelope]:
     for file in files:
         path = Path(f"{root}/{file}")
         if not path.exists():
-            raise argparse.ArgumentTypeError("Atleast one valid device should be present in sim_config.json")
+            raise argparse.ArgumentTypeError(f"{file} in config.simulator but does not exist")
         with open(path, "r") as f:
             raw = json.load(f)
         for item in raw:
