@@ -9,7 +9,12 @@
 9. [Limitations](#9-limitations)
 
 
+
+
 ## `1) Overview`
+
+### [Video Guide](https://youtu.be/2D-JnWzfibI)
+
 The Telemetry Ingest Simulator is a CLI tool used to send telemetry payloads to an ingest API.
 
 It is intended for:
