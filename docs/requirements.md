@@ -113,7 +113,7 @@ The system supports the following user roles:
 
 ## 5. Technical Constraints
 
-- Backend: Python 3.13, Django 6.0.1
+- Backend: Python 3.13, Django 5.2
 - Database: PostgreSQL 15
 - Time-series optimization: TimescaleDB extension
 - UUID generation: UUID-OSSP extension
