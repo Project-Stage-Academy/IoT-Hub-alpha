@@ -16,7 +16,7 @@ def main() -> None:
             if device.name == name:
                 return device
         raise argparse.ArgumentTypeError(
-            f"Unknown device '{name}', Avalible Choices: {[d.name for d in config.devices]}"
+            f"Unknown device '{name}', Avalible Choices: {device_names}"
         )
     
     parser = argparse.ArgumentParser(
