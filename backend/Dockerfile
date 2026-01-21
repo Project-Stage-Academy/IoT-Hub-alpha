@@ -16,11 +16,6 @@ RUN python -m venv $VENV_PATH \
     && $VENV_PATH/bin/pip install --no-cache-dir -r requirements.txt
 
 COPY . .
-RUN DJANGO_SETTINGS_MODULE=config.settings \
-    SECRET_KEY=django-insecure-docker-build \
-    DEBUG=False \
-    ALLOWED_HOSTS=localhost \
-    $VENV_PATH/bin/python manage.py collectstatic --noinput
 
 FROM python:3.13-slim AS runtime
 
@@ -38,7 +33,7 @@ LABEL org.opencontainers.image.title="IoT Hub Alpha" \
       org.opencontainers.image.source="repo"
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends libpq-dev \
+    && apt-get install -y --no-install-recommends libpq-dev curl \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

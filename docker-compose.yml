@@ -23,7 +23,7 @@ services:
     container_name: iot_hub_web
     entrypoint: ["/app/scripts/entrypoint.sh"]
     command: >
-      sh -c "python manage.py migrate &&
+      sh -c "python manage.py collectstatic --noinput &&
              python manage.py runserver 0.0.0.0:8000"
     env_file:
       - .env
@@ -33,19 +33,27 @@ services:
       db:
         condition: service_healthy
     healthcheck:
-      test:
-        [
-          "CMD",
-          "python",
-          "-c",
-          "import urllib.request as u; u.urlopen('http://localhost:8000/').read()",
-        ]
+      test: ["CMD", "curl", "--fail", "http://localhost:8000/health/"]
       interval: 10s
       timeout: 3s
       retries: 5
     networks:
       - iot_hub_net
     # TODO: add production server (gunicorn) and static/media handling
+
+  migrate:
+    build: ./backend
+    container_name: iot_hub_migrate
+    entrypoint: ["/app/scripts/entrypoint.sh"]
+    command: python manage.py migrate
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - iot_hub_net
+    # Run once: docker compose run --rm migrate
 
   redis:
     image: redis:7-alpine
@@ -61,7 +69,8 @@ services:
     build: ./backend
     container_name: iot_hub_worker
     entrypoint: ["/app/scripts/entrypoint.sh"]
-    command: celery -A config worker -l info
+    # Use --pool=gevent for I/O-bound tasks or --pool=prefork for CPU-bound tasks.
+    command: celery -A config worker -l info --pool=solo --concurrency=4
     env_file:
       - .env
     depends_on:
