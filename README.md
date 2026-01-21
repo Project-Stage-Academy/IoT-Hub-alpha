@@ -6,7 +6,7 @@ IoT Catalog Hub is a modular platform designed for IoT device management, teleme
 
 ## 🛠 Tech Stack
 
-- **Backend:** Python 3.13, Django 5.2  
+- **Backend:** Python 3.13, Django 5.2.10  
 - **Database:** PostgreSQL 15  
 - **Orchestration:** Docker, Docker Compose  
 - **Documentation:** DBML for schema design  
