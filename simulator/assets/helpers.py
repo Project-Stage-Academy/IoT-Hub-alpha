@@ -12,10 +12,10 @@ def get_data_from_demos(files: list[str]) -> list[PayloadEnvelope]:
     :return: Description
     :rtype: list[PayloadEnvelope]
     """
-    root = Path(__file__).resolve().parent.parent.parent
+    root = Path(__file__).resolve().parent.parent
     payloadenvelope: list[PayloadEnvelope] = []
     for file in files:
-        path = Path(f"{root}/docs/demos/{file}")
+        path = Path(f"{root}/{file}")
         if not path.exists():
             raise argparse.ArgumentTypeError("Atleast one valid device should be present in sim_config.json")
         with open(path, "r") as f:

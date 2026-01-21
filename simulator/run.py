@@ -32,7 +32,6 @@ def main() -> None:
         help="Specify custom data file/s",
         type=str,
         nargs="+",
-        choices = config.default_data_file,
         default = [file for file in config.default_data_file]
     )
     parser.add_argument(

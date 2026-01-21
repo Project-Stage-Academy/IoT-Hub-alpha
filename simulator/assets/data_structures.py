@@ -4,7 +4,7 @@ from dataclasses import dataclass
 class PayloadBase(BaseModel):
     schema_version: str | None = None
     ssn: str | None = None
-    value: int | None = None
+    value: int | float | None = None
 
 class PayloadExtended(PayloadBase):
     model_config = ConfigDict(extra="allow")

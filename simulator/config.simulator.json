@@ -1,9 +1,7 @@
 {
     "default_url": "https://iot-industry.redocly.app/_mock/openapi/telemetry",
     "default_data_file": [
-        "Demo1.json",
-        "Demo2.json",
-        "Demo3.json"
+        "test_send.json"
     ],
     "log_file": "sim_log.jsonl",
     "devices": [
