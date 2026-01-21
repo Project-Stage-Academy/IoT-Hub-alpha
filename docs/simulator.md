@@ -117,7 +117,7 @@ This describes the minimal payload structure for `schema_version` 1.0.0.
 any further schema will have additional fields
 |Field            | Usage                  | Example |
 |-----------------|------------------------|-------------|
-|schema_version | Schema version of the sent data, used for validation on backend (Sent as string)| "1.0.0" |
+|schema_version | Schema version of the sent data, used for validation on backend (Sent as string)| "1.0" |
 |ssn | Serial number of the device (str)| SN-222111|
 |value| Actual value sent by device (Could be int/float depending on schema)| 3452 |
 
