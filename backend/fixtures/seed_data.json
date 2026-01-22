@@ -1,0 +1,112 @@
+{
+  "device_types": [
+    {
+      "name": "vibration_sensor",
+      "description": "Industrial vibration monitoring sensor for rotating equipment",
+      "metric_name": "vibration",
+      "metric_unit": "mm_s",
+      "metric_min": "0.0000",
+      "metric_max": "20.0000"
+    },
+    {
+      "name": "temperature_sensor",
+      "description": "High-precision temperature sensor for industrial equipment",
+      "metric_name": "temperature",
+      "metric_unit": "celsius",
+      "metric_min": "-40.0000",
+      "metric_max": "120.0000"
+    },
+    {
+      "name": "power_meter",
+      "description": "3-phase power consumption meter for industrial machinery",
+      "metric_name": "pressure",
+      "metric_unit": "kwh",
+      "metric_min": "0.0000",
+      "metric_max": "100.0000"
+    }
+  ],
+  "devices": [
+    {
+      "device_type": "vibration_sensor",
+      "name": "Lathe Machine #1 Vibration Sensor",
+      "serial_number": "VIB-SN-001",
+      "location": "Workshop A, Machine ID: LATHE-001",
+      "status": "active"
+    },
+    {
+      "device_type": "temperature_sensor",
+      "name": "CNC Mill #2 Temperature Sensor",
+      "serial_number": "TEMP-SN-002",
+      "location": "Workshop B, Machine ID: CNC-002",
+      "status": "active"
+    },
+    {
+      "device_type": "power_meter",
+      "name": "Press Machine Power Meter",
+      "serial_number": "PWR-SN-003",
+      "location": "Workshop A, Machine ID: PRESS-003",
+      "status": "active"
+    },
+    {
+      "device_type": "vibration_sensor",
+      "name": "Grinder #4 Vibration Sensor",
+      "serial_number": "VIB-SN-004",
+      "location": "Workshop C, Machine ID: GRIND-004",
+      "status": "inactive"
+    }
+  ],
+  "rules": [
+    {
+      "device": "Lathe Machine #1 Vibration Sensor",
+      "name": "High Vibration Alert - Lathe #1",
+      "description": "Detects dangerously high vibration levels",
+      "operator": "gte",
+      "threshold": 15.3,
+      "action_config": [
+        {
+          "type": "notification",
+          "template_id": 1,
+          "recipients": ["maintenance@factory.com", "supervisor@factory.com"]
+        }
+      ],
+      "cooldown_minutes": 30,
+      "is_enabled": true
+    },
+    {
+      "device": "CNC Mill #2 Temperature Sensor",
+      "name": "Critical Temperature - CNC Mill #2",
+      "description": "Shuts down machine if temperature exceeds critical threshold",
+      "operator": "gt",
+      "threshold": 100.8,
+      "action_config": [
+        {
+          "type": "stop_machine",
+          "machine_id": "CNC-002"
+        },
+        {
+          "type": "notification",
+          "template_id": 2,
+          "recipients": ["emergency@factory.com"]
+        }
+      ],
+      "cooldown_minutes": 60,
+      "is_enabled": true
+    },
+    {
+      "device": "Press Machine Power Meter",
+      "name": "High Power Consumption Warning",
+      "description": "Alerts energy management when power consumption is high",
+      "operator": "gte",
+      "threshold": 80.5,
+      "action_config": [
+        {
+          "type": "notification",
+          "template_id": 3,
+          "recipients": ["energy@factory.com"]
+        }
+      ],
+      "cooldown_minutes": 15,
+      "is_enabled": true
+    }
+  ]
+}
