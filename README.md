@@ -68,10 +68,9 @@ Run migrations and create an administrative account to access the dashboard:
 ```bash
 # Apply database migrations
 docker compose run --rm migrate
-
-# Create a superuser
-docker compose exec web python manage.py createsuperuser
 ```
+
+Initialize roles and users with the management commands, please refer to the [Role capabilities](docs/admin.md).
 
 ## Docker Skeleton (Current)
 
