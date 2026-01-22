@@ -1,0 +1,34 @@
+[
+    {
+      "name": "malformed payload 1",
+      "data": {
+        "schema_version": "1.0",
+        "ssn": "SN2221144"
+      },
+      "expected": 400
+    },
+        {
+      "name": "mailformed payload 2",
+      "data": {
+        "ssn": "SN2221144",
+        "value": 4442
+      },
+      "expected": 400
+    },
+        {
+      "name": "malformed payload 3",
+      "data": {
+        "value": 4442
+      },
+      "expected": 400
+    },
+      {
+      "name": "pass",
+      "data": {
+        "schema_version": "1.0",
+        "SN": "SN555111",
+        "value": 4442
+      },
+      "expected": 202
+    }
+  ]

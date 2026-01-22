@@ -208,5 +208,10 @@ __marimo__/
 
 staticfiles/
 media/
+# spectral linter
+.spectral.yaml
+
+#data simulator log file
+sim_log.jsonl
 
 .vscode/settings.json
