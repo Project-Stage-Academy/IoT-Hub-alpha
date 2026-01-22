@@ -53,6 +53,7 @@ The system supports the following user roles:
 - Telemetry data MUST be stored in PostgreSQL using time-series optimized structures
 - The system MUST support querying telemetry by device and time range
 - Telemetry metrics MUST support flexible schemas using JSONB
+- Telemetry data MUST contain schema_version
 
 ### 3.4 Rules and Events
 - The system MUST support defining rules based on telemetry metrics
