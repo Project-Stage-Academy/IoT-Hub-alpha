@@ -12,8 +12,12 @@ This document records the initial security decisions for the monolithic MVP.
   - Authorization: `Bearer <token>`
   - Access token: **60 min**
   - Refresh token: **10 days**
-- Telemetry post ingest endpoint does NOT use auth and is open, validation will be done using the ssn provided
-How to send(Header):
+
+## Telemetry Ingest Endpoint
+- The telemetry ingest endpoint does NOT require authentication.
+- Device identity is validated using the **serial number (SSN)** provided as part of the request body,
+  according to the telemetry schema and `schema_version`.
+- The backend MUST verify that the provided SSN exists in the `devices` table before accepting telemetry data.
 
 ## Secrets Handling
 
