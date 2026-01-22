@@ -120,4 +120,6 @@ class DBSmokeTest(TestCase):
         self.assertEqual(delivery.event_id, event.id)
 
         # Metadata JSON query
-        self.assertEqual(Event.objects.filter(metadata__has_key="telemetry_snapshot").count(), 1)
+        self.assertEqual(
+            Event.objects.filter(metadata__has_key="telemetry_snapshot").count(), 1
+        )
