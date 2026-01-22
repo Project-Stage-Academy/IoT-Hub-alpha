@@ -15,7 +15,7 @@ Before extracting any service, API contracts MUST be stable and explicit.
 - [x] Request/response schemas are explicit and validated
 - [x] Error formats are standardized across endpoints
 - [x] Pagination, filtering, and sorting rules are consistent
-- [x] Breaking changes policy is defined
+- [ ] Breaking changes policy is defined
 
 ### Notes
 The API contract becomes the primary integration boundary between services.
@@ -29,9 +29,9 @@ Clear ownership boundaries MUST be defined before extraction.
 
 ### Criteria
 - [x] Candidate services are identified (e.g. devices, telemetry ingest, rules, notifications)
-- [x] Each service has a single, well-defined responsibility
-- [x] Data ownership per service is clearly defined
-- [x] Cross-service communication paths are documented
+- [ ] Each service has a single, well-defined responsibility
+- [ ] Data ownership per service is clearly defined
+- [ ] Cross-service communication paths are documented
 
 ### Notes
 The message broker is the preferred boundary for decoupling producers and consumers.
@@ -87,9 +87,9 @@ Configuration MUST be externalized and service-specific.
 
 ### Criteria
 - [ ] Environment-based configuration for each service
-- [ ] Secrets are managed via CI/CD secret stores
-- [ ] No secrets are committed to repositories
-- [ ] Configuration defaults are documented
+- [x] Secrets are managed via CI/CD secret stores
+- [x] No secrets are committed to repositories
+- [x] Configuration defaults are documented
 
 ---
 
