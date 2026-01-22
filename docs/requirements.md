@@ -93,11 +93,9 @@ The system supports the following user roles:
 ## 4. Non-Functional Requirements
 
 ### 4.1 Performance
-- The system is designed for low to moderate load suitable for an internship MVP
-- Expected scale:
-  - Up to 100 registered devices
-  - Telemetry ingestion up to ~1 message per second per device
-- API responses for standard read operations SHOULD complete within 500 ms under nominal load
+- The system MUST handle 100 concurrent telemetry POST requests
+- API read endpoints MUST respond within 500ms at p95 (100 req/s load)
+- Expected scale: 100 devices, 1 msg/sec/device = 100 msg/sec total
 
 ### 4.2 Data Retention
 - Telemetry data MUST be retained for a configurable period
@@ -143,3 +141,31 @@ The following features are explicitly excluded from the monolithic MVP:
 - External alert delivery (email, SMS, third-party services)
 - Full RBAC permission matrix enforcement
 - Multi-region or cloud-native deployments
+
+---
+  ## 7. Acceptance Criteria
+The monolithic MVP is considered complete when:
+
+  ### 7.1 Core Functionality
+ - At least 3 device types can be created via Django Admin
+ - 10+ devices can be registered and managed through the API
+ - Telemetry ingestion endpoint accepts and persists JSON payloads
+ - At least 5 rules can be defined and trigger events correctly
+ - Events are generated within 5 seconds of rule condition being met
+ ### 7.2 API Completeness
+ - All CRUD endpoints for devices, device types, and rules are implemented
+ - API documentation is available at /api/v1/docs/
+ - All endpoints return proper HTTP status codes
+ - Pagination works on collection endpoints
+ ### 7.3 Data Persistence
+ - Telemetry queries return results within 500ms for 1000+ records
+ -  Database migrations run without errors
+ - Foreign key constraints are enforced
+ ### 7.4 Documentation
+ - All runbooks are validated by fresh environment setup
+ - Architecture diagram matches implemented components
+ - API examples are tested and working
+ ### 7.5 Quality
+ - Test coverage ≥ 70% for core modules
+ - CI pipeline passes all checks
+ - No critical security vulnerabilities in dependencies
