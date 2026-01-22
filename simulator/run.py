@@ -52,7 +52,7 @@ def main() -> None:
     parser.add_argument(
         "-c",
         "--count",
-        help="Amount of requests, 0 for infinite untill manually cancelled(or reaches 1000 calls)",
+        help="Amount of requests, 0 for infinite untill manually cancelled",
         type=int,
         default=1,
     )
