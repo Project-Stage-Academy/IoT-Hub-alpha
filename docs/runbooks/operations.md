@@ -1,14 +1,17 @@
-## Backup and Restore
+# Backup and Restore
 
-### Backup Strategies
+## Backup Strategies
 
-#### 1. Full Database Backup (pg_dump)
+### 1. Full Database Backup (pg_dump)
 
 **Create Backup:**
 
 ```bash
-# Backup to file in backups/ directory
-docker compose exec db pg_dump -U postgres iot_hub_alpha_db > backups/iot_hub_$(date +%Y%m%d_%H%M%S).sql
+# Create backup directory
+mkdir -p backups/
+
+# Backup to file with error handling
+docker compose exec db pg_dump -U postgres iot_hub_alpha_db > backups/iot_hub_$(date +%Y%m%d_%H%M%S).sql || echo "Backup failed"
 
 # Compressed backup
 docker compose exec db pg_dump -U postgres iot_hub_alpha_db | gzip > backups/iot_hub_$(date +%Y%m%d_%H%M%S).sql.gz
