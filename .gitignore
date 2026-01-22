@@ -213,3 +213,5 @@ media/
 
 #data simulator log file
 sim_log.jsonl
+
+.vscode/settings.json

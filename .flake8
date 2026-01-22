@@ -1,0 +1,12 @@
+[flake8]
+inline-quotes = double
+ignore = E203, E266, N807, N818, F401
+max-line-length = 88
+max-complexity = 18
+select = B,C,E,F,W,T4,B9,Q0,N8,VNE
+exclude =
+    .git,
+    backend/config/,
+    **/migrations/**,
+    venv,
+    tests
