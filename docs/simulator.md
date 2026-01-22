@@ -74,6 +74,7 @@ config.simulator.json example:
         "Demo2.json",
         "Demo3.json"
     ],
+    "default_timeout": 5,
     "log_file": "sim_log.jsonl",
     "devices": [
         {
@@ -102,6 +103,7 @@ config.simulator.json example:
 |-----------------|------------------------|---------|
 |default_url | Full ingest Api endpoint | http://127.0.0.1:8000/api/v1/telemetry |
 |default_data_file| full name(case sensitive) or demo files located in /docs/demos, must be a list | [Demo1.json, Demo2.json] |
+|default_timeout | timeout time in seconds (can accept floats) | 2.5 |
 |log_file| logfile name in jsonl format to which logging will be written (if enabled in CLI) | sim_log.jsonl |
 |devices| a list of device objects (breakdown below) | |
 
