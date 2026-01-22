@@ -59,13 +59,22 @@ The system supports the following user roles:
 - The system MUST support defining rules based on telemetry metrics
 - Rules MUST support comparison operators (gt, lt, gte, lte, eq, neq)
 - When a rule condition is met, the system MUST generate an event
-- Events MUST include severity, message, timestamp, and triggering values
-- Events MUST be persisted in the database
+- Events MUST include:
+  - severity
+  - timestamp
+  - triggering values (e.g. current value and threshold)
+- Events MUST reference the rule and device that caused the trigger.
+
 
 ### 3.5 Notifications
-- The system MUST record notification attempts linked to events
-- Notification delivery MAY be simulated or stored without external integrations
-- Real external notification delivery (email/SMS/webhooks) is not required for MVP
+- Notifications MUST be triggered by events.
+- Notification messages MUST be stored in the Notifications table.
+- Notifications MUST include:
+  - recipient information
+  - message content
+  - delivery status
+  - timestamp
+- A single event MAY result in one or more notifications.
 
 ### 3.6 API Standards
 - The API MUST follow REST and JSON conventions
