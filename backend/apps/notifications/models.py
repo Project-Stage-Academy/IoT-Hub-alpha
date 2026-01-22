@@ -1,24 +1,70 @@
 from django.db import models
 from django.contrib.postgres.indexes import GinIndex
+from django.core.exceptions import ValidationError
+from django.core.validators import MinValueValidator
 
 from apps.events.models import Event
 
 
+def validate_recipients(value):
+    """Validates recipients JSON structure."""
+    if not isinstance(value, list):
+        raise ValidationError("recipients must be a list of recipient items")
+
+    if len(value) == 0:
+        raise ValidationError("recipients list cannot be empty")
+
+    for item in value:
+        if not isinstance(item, dict):
+            raise ValidationError("Each recipient must be a dictionary")
+
+        if "type" not in item:
+            raise ValidationError("Each recipient must have a 'type' field")
+
+        recipient_type = item.get("type")
+
+        # Type-specific validation
+        if recipient_type == "email":
+            if "address" not in item:
+                raise ValidationError("Email recipient must have an 'address' field")
+        elif recipient_type == "sms":
+            if "phone" not in item:
+                raise ValidationError("SMS recipient must have a 'phone' field")
+        elif recipient_type == "webhook":
+            if "url" not in item:
+                raise ValidationError("Webhook recipient must have a 'url' field")
+        else:
+            raise ValidationError(f"Unknown recipient type: {recipient_type}")
+
+
 class NotificationTemplate(models.Model):
+    class Priority(models.IntegerChoices):
+        LOW = 1, "Low Priority"
+        MEDIUM = 2, "Medium Priority"
+        HIGH = 3, "High Priority"
+        CRITICAL = 4, "Critical Priority"
+
     id = models.BigAutoField(primary_key=True)
     name = models.CharField(max_length=100, unique=True)
     message_template = models.TextField(
         help_text='Template with placeholders: "Alert {severity}: {message}"'
     )
     recipients = models.JSONField(
+        validators=[validate_recipients],
         help_text=(
             'Schema: [{"type": "email", "address": "admin@company.com"}, '
             '{"type": "sms", "phone": "+380501234567"}]'
-        )
+        ),
     )
-    priority = models.IntegerField(default=1)
-    retry_count = models.IntegerField(default=3)
-    retry_delay_minutes = models.IntegerField(default=5)
+    priority = models.IntegerField(
+        choices=Priority.choices,
+        default=Priority.MEDIUM,
+        validators=[MinValueValidator(1)],
+    )
+    retry_count = models.IntegerField(default=3, validators=[MinValueValidator(1)])
+    retry_delay_minutes = models.IntegerField(
+        default=5, validators=[MinValueValidator(1)]
+    )
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -38,6 +84,8 @@ class NotificationTemplate(models.Model):
 
 
 class NotificationDelivery(models.Model):
+    Priority = NotificationTemplate.Priority
+
     class NotificationType(models.TextChoices):
         EMAIL = "email", "Email"
         SMS = "sms", "SMS"
@@ -71,7 +119,16 @@ class NotificationDelivery(models.Model):
         choices=NotificationStatus.choices,
         default=NotificationStatus.PENDING,
     )
-    priority = models.IntegerField(default=1)
+    priority = models.IntegerField(
+        choices=Priority.choices,
+        default=Priority.MEDIUM,
+        db_index=True,
+        validators=[MinValueValidator(1)],
+        help_text=(
+            "Priority snapshot from template (can be overridden). "
+            "Higher = more urgent."
+        ),
+    )
     attempt_count = models.IntegerField(default=0)
     last_attempt_at = models.DateTimeField(null=True, blank=True)
     error_message = models.TextField(
