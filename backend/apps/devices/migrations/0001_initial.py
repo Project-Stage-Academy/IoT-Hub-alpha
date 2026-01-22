@@ -9,45 +9,135 @@ class Migration(migrations.Migration):
 
     initial = True
 
-    dependencies = [
-    ]
+    dependencies = []
 
     operations = [
         migrations.CreateModel(
-            name='DeviceType',
+            name="DeviceType",
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ('name', models.CharField(max_length=100, unique=True)),
-                ('description', models.TextField(blank=True, null=True)),
-                ('metric_name', models.CharField(choices=[('vibration', 'Vibration'), ('temperature', 'Temperature'), ('pressure', 'Pressure')], help_text='Primary metric this device type measures', max_length=20)),
-                ('metric_unit', models.CharField(help_text='Unit of measurement', max_length=50)),
-                ('metric_min', models.DecimalField(blank=True, decimal_places=4, help_text='Minimum expected value', max_digits=15, null=True)),
-                ('metric_max', models.DecimalField(blank=True, decimal_places=4, help_text='Maximum expected value', max_digits=15, null=True)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid4,
+                        editable=False,
+                        primary_key=True,
+                        serialize=False,
+                    ),
+                ),
+                ("name", models.CharField(max_length=100, unique=True)),
+                ("description", models.TextField(blank=True, null=True)),
+                (
+                    "metric_name",
+                    models.CharField(
+                        choices=[
+                            ("vibration", "Vibration"),
+                            ("temperature", "Temperature"),
+                            ("pressure", "Pressure"),
+                        ],
+                        help_text="Primary metric this device type measures",
+                        max_length=20,
+                    ),
+                ),
+                (
+                    "metric_unit",
+                    models.CharField(help_text="Unit of measurement", max_length=50),
+                ),
+                (
+                    "metric_min",
+                    models.DecimalField(
+                        blank=True,
+                        decimal_places=4,
+                        help_text="Minimum expected value",
+                        max_digits=15,
+                        null=True,
+                    ),
+                ),
+                (
+                    "metric_max",
+                    models.DecimalField(
+                        blank=True,
+                        decimal_places=4,
+                        help_text="Maximum expected value",
+                        max_digits=15,
+                        null=True,
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
             ],
             options={
-                'db_table': 'device_types',
-                'ordering': ['name'],
-                'indexes': [models.Index(fields=['name'], name='idx_device_type_name'), models.Index(fields=['metric_name'], name='idx_device_type_metric')],
+                "db_table": "device_types",
+                "ordering": ["name"],
+                "indexes": [
+                    models.Index(fields=["name"], name="idx_device_type_name"),
+                    models.Index(fields=["metric_name"], name="idx_device_type_metric"),
+                ],
             },
         ),
         migrations.CreateModel(
-            name='Device',
+            name="Device",
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ('name', models.CharField(max_length=255)),
-                ('serial_number', models.CharField(max_length=100, unique=True)),
-                ('location', models.TextField(blank=True, help_text='Machine ID, Industrial workshop number', null=True)),
-                ('status', models.CharField(choices=[('active', 'Active'), ('inactive', 'Inactive'), ('error', 'Error')], default='active', max_length=20)),
-                ('last_seen', models.DateTimeField(blank=True, help_text='Last telemetry received timestamp', null=True)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('device_type', models.ForeignKey(help_text='Device type reference', on_delete=django.db.models.deletion.PROTECT, related_name='devices', to='devices.devicetype')),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid4,
+                        editable=False,
+                        primary_key=True,
+                        serialize=False,
+                    ),
+                ),
+                ("name", models.CharField(max_length=255)),
+                ("serial_number", models.CharField(max_length=100, unique=True)),
+                (
+                    "location",
+                    models.TextField(
+                        blank=True,
+                        help_text="Machine ID, Industrial workshop number",
+                        null=True,
+                    ),
+                ),
+                (
+                    "status",
+                    models.CharField(
+                        choices=[
+                            ("active", "Active"),
+                            ("inactive", "Inactive"),
+                            ("error", "Error"),
+                        ],
+                        default="active",
+                        max_length=20,
+                    ),
+                ),
+                (
+                    "last_seen",
+                    models.DateTimeField(
+                        blank=True,
+                        help_text="Last telemetry received timestamp",
+                        null=True,
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                (
+                    "device_type",
+                    models.ForeignKey(
+                        help_text="Device type reference",
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="devices",
+                        to="devices.devicetype",
+                    ),
+                ),
             ],
             options={
-                'db_table': 'devices',
-                'ordering': ['-created_at'],
-                'indexes': [models.Index(fields=['serial_number'], name='idx_device_serial'), models.Index(fields=['device_type'], name='idx_device_type'), models.Index(fields=['status', 'last_seen'], name='idx_device_status_last_seen')],
+                "db_table": "devices",
+                "ordering": ["-created_at"],
+                "indexes": [
+                    models.Index(fields=["serial_number"], name="idx_device_serial"),
+                    models.Index(fields=["device_type"], name="idx_device_type"),
+                    models.Index(
+                        fields=["status", "last_seen"],
+                        name="idx_device_status_last_seen",
+                    ),
+                ],
             },
         ),
     ]

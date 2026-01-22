@@ -10,27 +10,91 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('rules', '0001_initial'),
+        ("rules", "0001_initial"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Event',
+            name="Event",
             fields=[
-                ('id', models.BigAutoField(primary_key=True, serialize=False)),
-                ('telemetry_id', models.BigIntegerField(blank=True, db_index=True, help_text='Reference to telemetry (nullable, no FK due to retention policy)', null=True)),
-                ('timestamp', models.DateTimeField(auto_now_add=True)),
-                ('severity', models.CharField(choices=[('critical', 'Critical'), ('warning', 'Warning'), ('info', 'Info')], max_length=20)),
-                ('message', models.TextField(help_text='Human-readable event description')),
-                ('execution_results', models.JSONField(help_text='Schema: [{"type": "notification", "template_id": 5, "status": "completed", "sent_count": 3, "completed_at": "2025-01-21T10:00:08Z"}, {"type": "stop_machine", "machine_id": "M-123","status": "failed","error": "API timeout""}]')),
-                ('metadata', models.JSONField(blank=True, help_text='Telemetry snapshot: store a copy of the telemetry data that triggered this event', null=True)),
-                ('status', models.CharField(choices=[('new', 'New'), ('acknowledged', 'Acknowledged'), ('resolved', 'Resolved')], default='new', max_length=20)),
-                ('rule', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='events', to='rules.rule')),
+                ("id", models.BigAutoField(primary_key=True, serialize=False)),
+                (
+                    "telemetry_id",
+                    models.BigIntegerField(
+                        blank=True,
+                        db_index=True,
+                        help_text="Reference to telemetry (nullable, no FK due to retention policy)",
+                        null=True,
+                    ),
+                ),
+                ("timestamp", models.DateTimeField(auto_now_add=True)),
+                (
+                    "severity",
+                    models.CharField(
+                        choices=[
+                            ("critical", "Critical"),
+                            ("warning", "Warning"),
+                            ("info", "Info"),
+                        ],
+                        max_length=20,
+                    ),
+                ),
+                (
+                    "message",
+                    models.TextField(help_text="Human-readable event description"),
+                ),
+                (
+                    "execution_results",
+                    models.JSONField(
+                        help_text='Schema: [{"type": "notification", "template_id": 5, "status": "completed", "sent_count": 3, "completed_at": "2025-01-21T10:00:08Z"}, {"type": "stop_machine", "machine_id": "M-123","status": "failed","error": "API timeout""}]'
+                    ),
+                ),
+                (
+                    "metadata",
+                    models.JSONField(
+                        blank=True,
+                        help_text="Telemetry snapshot: store a copy of the telemetry data that triggered this event",
+                        null=True,
+                    ),
+                ),
+                (
+                    "status",
+                    models.CharField(
+                        choices=[
+                            ("new", "New"),
+                            ("acknowledged", "Acknowledged"),
+                            ("resolved", "Resolved"),
+                        ],
+                        default="new",
+                        max_length=20,
+                    ),
+                ),
+                (
+                    "rule",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="events",
+                        to="rules.rule",
+                    ),
+                ),
             ],
             options={
-                'db_table': 'events',
-                'ordering': ['-timestamp'],
-                'indexes': [models.Index(fields=['rule'], name='idx_event_rule'), models.Index(fields=['telemetry_id'], name='idx_event_telemetry'), models.Index(fields=['status', 'timestamp'], name='idx_event_status_time'), models.Index(fields=['timestamp', 'severity', 'status'], name='idx_event_time_sev_status'), django.contrib.postgres.indexes.GinIndex(fields=['execution_results'], name='idx_event_exec_results_gin')],
+                "db_table": "events",
+                "ordering": ["-timestamp"],
+                "indexes": [
+                    models.Index(fields=["rule"], name="idx_event_rule"),
+                    models.Index(fields=["telemetry_id"], name="idx_event_telemetry"),
+                    models.Index(
+                        fields=["status", "timestamp"], name="idx_event_status_time"
+                    ),
+                    models.Index(
+                        fields=["timestamp", "severity", "status"],
+                        name="idx_event_time_sev_status",
+                    ),
+                    django.contrib.postgres.indexes.GinIndex(
+                        fields=["execution_results"], name="idx_event_exec_results_gin"
+                    ),
+                ],
             },
         ),
     ]
