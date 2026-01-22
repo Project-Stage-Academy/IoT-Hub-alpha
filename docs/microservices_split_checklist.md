@@ -43,10 +43,10 @@ The message broker is the preferred boundary for decoupling producers and consum
 Database coupling is one of the highest risks during a split.
 
 ### Criteria
-- [ ] Ownership of each table is assigned to a single service
-- [ ] Decision made: shared database (temporary) vs database-per-service
-- [ ] Cross-service data access is prohibited or explicitly documented
-- [ ] Read-only replicas or API-based access planned where needed
+- [ ] **BLOCKER**:  Ownership of each table is assigned to a single service
+- [ ] **BLOCKER**: Decision made:  shared database (temporary) vs database-per-service
+- [ ] **BLOCKER**:  Cross-service data access is prohibited or explicitly documented
+- [ ] **BLOCKER**: Read-only replicas or API-based access planned where needed
 
 ### Migration Strategy
 - [ ] Schema changes are backward-compatible
@@ -150,6 +150,20 @@ The monolith can be split only if:
 - [ ] Rollback plan exists if the split introduces instability
 
 ---
+
+## 12. Testing Strategy
+### Criteria
+- [ ] Unit test coverage ≥80% for business logic in each candidate service
+- [ ] Integration tests exist for all cross-service interactions
+- [ ] Contract tests (Pact, Spring Cloud Contract) implemented between services
+- [ ] End-to-end tests cover critical user journeys
+- [ ] Performance tests establish baseline metrics before split
+- [ ] Load testing confirms each service can handle expected traffic independently
+### Validation
+- [ ] Test suite runs in <5 minutes for fast feedback
+- [ ] Tests can run in isolation per service
+- [ ] Test data fixtures are reproducible
+- [ ] Smoke tests exist for post-deployment validation
 
 ## Summary
 
