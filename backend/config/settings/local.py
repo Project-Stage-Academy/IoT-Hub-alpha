@@ -14,10 +14,14 @@ else:
 LOGGING = {
     **LOGGING_BASE,  # noqa: F405
     "loggers": {
+        **LOGGING_BASE.get("loggers", {}),  # noqa: F405
         "django.db.backends": {
-            "handlers": ["console"],
-            "level": "DEBUG",
-            "propagate": False,
+            "level": "WARNING",
+            "propagate": True,
+        },
+        "django.db.backends.schema": {
+            "level": "WARNING",
+            "propagate": True,
         },
     },
 }

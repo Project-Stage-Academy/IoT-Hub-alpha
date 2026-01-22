@@ -23,22 +23,11 @@ X_FRAME_OPTIONS = os.getenv("X_FRAME_OPTIONS", "DENY")  # noqa: F405
 
 LOGGING = {
     **LOGGING_BASE,  # noqa: F405
-    "handlers": {
-        "console": {
-            "class": "logging.StreamHandler",
-            "formatter": "json",
-        },
-    },
     "loggers": {
+        **LOGGING_BASE.get("loggers", {}),  # noqa: F405
         "django": {
-            "handlers": ["console"],
             "level": "INFO",
-            "propagate": False,
-        },
-        "django.request": {
-            "handlers": ["console"],
-            "level": "ERROR",
-            "propagate": False,
+            "propagate": True,
         },
     },
 }
