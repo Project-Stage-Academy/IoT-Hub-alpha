@@ -2,8 +2,32 @@ import uuid
 
 from django.db import models
 from django.contrib.postgres.indexes import GinIndex
+from django.core.exceptions import ValidationError
 
 from apps.devices.models import Device
+
+
+def validate_action_config(value):
+    """Validates action_config JSON structure."""
+    if not isinstance(value, list):
+        raise ValidationError("action_config must be a list of action items")
+
+    for item in value:
+        if not isinstance(item, dict):
+            raise ValidationError("Each action item must be a dictionary")
+
+        if "type" not in item:
+            raise ValidationError("Each action item must have a 'type' field")
+
+        action_type = item.get("type")
+
+        # Type-specific validation
+        if action_type == "notification":
+            if "template_id" not in item:
+                raise ValidationError("Notification action must include template_id")
+        elif action_type == "stop_machine":
+            if "machine_id" not in item:
+                raise ValidationError("stop_machine action must include machine_id")
 
 
 class Rule(models.Model):
@@ -19,13 +43,14 @@ class Rule(models.Model):
     device = models.ForeignKey(Device, on_delete=models.CASCADE, related_name="rules")
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
-    operator = models.CharField(max_length=10, choices=RuleOperator.choices)
+    comparison_operator = models.CharField(max_length=10, choices=RuleOperator.choices)
     threshold = models.DecimalField(max_digits=15, decimal_places=4)
     action_config = models.JSONField(
+        validators=[validate_action_config],
         help_text=(
             'Schema: [{"type": "notification", "template_id": 5}, '
             '{"type": "stop_machine", "machine_id": "M-123"}]'
-        )
+        ),
     )
     cooldown_minutes = models.IntegerField(default=15)
     last_triggered_at = models.DateTimeField(null=True, blank=True)

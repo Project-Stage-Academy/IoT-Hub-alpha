@@ -1,6 +1,7 @@
 import uuid
 
 from django.db import models
+from django.core.exceptions import ValidationError
 
 
 class DeviceType(models.Model):
@@ -41,6 +42,19 @@ class DeviceType(models.Model):
             models.Index(fields=["name"], name="idx_device_type_name"),
             models.Index(fields=["metric_name"], name="idx_device_type_metric"),
         ]
+
+    def clean(self):
+        """Validate that metric_min < metric_max when both are provided."""
+        super().clean()
+        min_exists = self.metric_min is not None
+        max_exists = self.metric_max is not None
+        if min_exists and max_exists and self.metric_min >= self.metric_max:
+            raise ValidationError(
+                {
+                    "metric_min": "Minimum value must be less than maximum value",
+                    "metric_max": "Maximum value must be greater than minimum value",
+                }
+            )
 
     def __str__(self):
         return f"{self.name} ({self.metric_name})"
