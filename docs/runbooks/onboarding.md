@@ -20,12 +20,12 @@ docker compose version
 
 Clone the repository and navigate to the project directory:
 ```bash
-git clone <your-repository-url>
-cd iot-catalog-hub
+git clone `https://github.com/Project-Stage-Academy/IoT-Hub-alpha.git`
+cd IoT-Hub-alpha
 ```
 Switch to the required branch:
 ```bash
-`git checkout <your-branch>`
+git checkout `task-8-project-skeleton`
 ```
 ![example-clone](../images/onboarding-01-clone.png)
 
@@ -61,6 +61,7 @@ This will:
 ![example-up](../images/onboarding-03-up.png)
 
 ## 4) Create a Django superuser
+Use a strong password (min 12 chars, mixed case, numbers, symbols).
 To access the Django Admin UI, create a superuser():
 ```bash
 docker compose exec backend python manage.py createsuperuser
