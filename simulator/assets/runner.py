@@ -1,5 +1,6 @@
 from typing import Sequence
 from time import sleep
+import requests
 from .senders import Sender
 from .reporting import Reporter
 from .data_structures import PayloadEnvelope, RunStats
@@ -29,29 +30,28 @@ def run_loop(
     """
     stats = RunStats()
     total_tasks = len(tasks) * count
-    if not tasks:
-        raise ValueError("No Tasks provided!")
     
     reporter.start_report(total_tasks)
     i = 0
-    while True:
-        item = tasks[i % len(tasks)]
-        result = sender.send(item)
+    with requests.Session() as session:
+        while True:
+            item = tasks[i % len(tasks)]
+            result = sender.send(item, session)
 
-        stats.sent += 1
-        if result.code_expected == result.code_got:
-            stats.passed += 1
-        else:
-            stats.failed += 1
-        
-        reporter.report(item, result)
+            stats.sent += 1
+            if result.code_expected == result.code_got:
+                stats.passed += 1
+            else:
+                stats.failed += 1
+            
+            reporter.report(item, result)
 
-        if count != 0 and stats.sent >= total_tasks:
-            break
+            if count != 0 and stats.sent >= total_tasks:
+                break
 
-        if rate > 0:
-            sleep(rate)
+            if rate > 0:
+                sleep(rate)
 
-        i += 1
+            i += 1
     
     return stats

@@ -18,6 +18,7 @@ class Config(BaseModel):
     default_url: str
     default_data_file: list[str]
     log_file: str
+    default_timeout: float
     devices: list[PayloadEnvelope]
 
 class SendResult(BaseModel):
@@ -25,6 +26,7 @@ class SendResult(BaseModel):
     code_expected: int | None
     status: str
     latency: int 
+    error: str | None
 
 class ParsedArgs(BaseModel):
     files: list[str] | None

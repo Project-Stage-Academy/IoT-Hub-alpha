@@ -3,6 +3,7 @@
     "default_data_file": [
         "test_send.json"
     ],
+    "default_timeout": 5,
     "log_file": "sim_log.jsonl",
     "devices": [
         {

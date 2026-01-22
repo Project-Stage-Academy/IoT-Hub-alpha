@@ -87,6 +87,7 @@ def main() -> None:
     
     raw = parser.parse_args()
     raw.log_file = config.log_file
+    raw.default_timeout = config.default_timeout
     main_sim(raw)
 
     
