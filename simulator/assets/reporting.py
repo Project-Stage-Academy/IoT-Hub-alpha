@@ -42,7 +42,8 @@ class Reporter:
         :type result: SendResult
         """
         if self.verbose:
-            print(f"{item.name}: code={result.code_got}, expected={result.code_expected} latency={result.latency} ms")
+            error = f", Error: {result.error}" if result.error else None
+            print(f"{item.name}: code={result.code_got}, expected={result.code_expected} latency={result.latency} ms {error if error else ''}")
 
         if self.log_path:
             record: dict[str, int | float | str | datetime | None] = {
@@ -51,7 +52,8 @@ class Reporter:
                 "status": result.status,
                 "expected": item.expected,
                 "got": result.code_got,
-                "latency": result.latency
+                "latency": result.latency,
+                "error": result.error
             }
             with self.log_path.open("a", encoding="utf-8") as f:
                 f.write(json.dumps(record, ensure_ascii=False) + "\n")
@@ -68,7 +70,7 @@ class Reporter:
         """
         pass_rate = (stats.passed / stats.sent) * 100 if stats.sent else 0.0
         print(f"Run ended \n"
-              f"Sent: {stats.sent}, passed: {stats.passed}, failed: {stats.failed}\n"
+              f"Sent: {stats.sent}, passed: {stats.passed}, failed: {stats.failed}, errors: {stats.errors}\n"
               f"Pass rate = {round(pass_rate, 1)}%, Ran for: {round(total_run_time, 2)} s"
               )
         
@@ -77,6 +79,7 @@ class Reporter:
                 "msg": "Run ended",
                 "passed": stats.passed,
                 "failed": stats.failed,
+                "errors": stats.errors,
                 "total": stats.sent
             }
             with self.log_path.open("a", encoding="utf-8") as f:

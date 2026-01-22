@@ -44,3 +44,4 @@ class RunStats:
     sent: int = 0
     failed: int = 0
     passed: int = 0
+    errors: int = 0

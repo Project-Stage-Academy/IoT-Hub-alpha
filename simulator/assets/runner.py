@@ -43,7 +43,9 @@ def run_loop(
                 stats.passed += 1
             else:
                 stats.failed += 1
-            
+            if result.error:
+                stats.errors += 1
+                
             reporter.report(item, result)
 
             if count != 0 and stats.sent >= total_tasks:
