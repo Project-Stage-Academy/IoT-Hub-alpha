@@ -10,23 +10,42 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('devices', '0001_initial'),
+        ("devices", "0001_initial"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Telemetry',
+            name="Telemetry",
             fields=[
-                ('id', models.BigAutoField(primary_key=True, serialize=False)),
-                ('timestamp', models.DateTimeField(auto_now_add=True)),
-                ('payload', models.JSONField(help_text='Schema: {"version": "0.0.1", "serial_number": "SN123456", "value": 5.2}')),
-                ('device', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='telemetry_data', to='devices.device')),
+                ("id", models.BigAutoField(primary_key=True, serialize=False)),
+                ("timestamp", models.DateTimeField(auto_now_add=True)),
+                (
+                    "payload",
+                    models.JSONField(
+                        help_text='Schema: {"version": "0.0.1", "serial_number": "SN123456", "value": 5.2}'
+                    ),
+                ),
+                (
+                    "device",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="telemetry_data",
+                        to="devices.device",
+                    ),
+                ),
             ],
             options={
-                'verbose_name_plural': 'Telemetry',
-                'db_table': 'telemetry',
-                'ordering': ['-timestamp'],
-                'indexes': [models.Index(fields=['device', 'timestamp'], name='idx_telemetry_device_time'), django.contrib.postgres.indexes.GinIndex(fields=['payload'], name='idx_telemetry_payload_gin')],
+                "verbose_name_plural": "Telemetry",
+                "db_table": "telemetry",
+                "ordering": ["-timestamp"],
+                "indexes": [
+                    models.Index(
+                        fields=["device", "timestamp"], name="idx_telemetry_device_time"
+                    ),
+                    django.contrib.postgres.indexes.GinIndex(
+                        fields=["payload"], name="idx_telemetry_payload_gin"
+                    ),
+                ],
             },
         ),
     ]
