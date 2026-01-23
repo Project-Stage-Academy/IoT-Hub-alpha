@@ -61,6 +61,8 @@ class Event(models.Model):
     message = models.TextField(help_text="Human-readable event description")
     execution_results = models.JSONField(
         validators=[validate_execution_results],
+        default=list,
+        blank=True,
         help_text=(
             'Schema: [{"type": "notification", "template_id": 5, '
             '"status": "completed", "sent_count": 3, '
