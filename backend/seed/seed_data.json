@@ -59,8 +59,8 @@
     {
       "device": "VIB-SN-001",
       "name": "High Vibration Alert - Lathe #1",
-      "description": "Detects dangerously high vibration levels",
-      "operator": "gte",
+      "description": "Low vibration levels, machine might be malfunctioning",
+      "operator": "lt",
       "threshold": 15.3,
       "action_config": [
         {
@@ -96,7 +96,7 @@
       "device": "PWR-SN-003",
       "name": "High Power Consumption Warning",
       "description": "Alerts energy management when power consumption is high",
-      "operator": "gte",
+      "operator": "gt",
       "threshold": 80.5,
       "action_config": [
         {
