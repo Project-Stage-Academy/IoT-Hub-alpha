@@ -93,12 +93,11 @@ This document describes the PostgreSQL database schema for the IoT Hub Alpha MVP
                      │PK id (BIGSERIAL)   │◄──┘
                      │FK event_id         │
                      │FK template_id      │
-                     │   recipient_type   │
+                     │ notification_type  │
                      │   recipient_address│
                      │   recipient_name   │
                      │   rendered_message │
                      │   status           │
-                     │   priority         │
                      │   attempt_count    │
                      │   last_attempt_at  │
                      │   error_message    │
@@ -331,12 +330,11 @@ Records of notification delivery attempts.
 | id                 | BIGSERIAL      | PRIMARY KEY               | Auto-incrementing identifier                   |
 | event_id           | BIGINT        | FK → events.id, NOT NULL (CASCADE) | Associated event                      |
 | template_id        | BIGINT        | FK → notification_templates.id, NOT NULL | Template used                  |
-| recipient_type     | VARCHAR(20)   | NOT NULL                  | email, sms, webhook                            |
+| notification_type  | VARCHAR(20)   | NOT NULL                  | email, sms, webhook                            |
 | recipient_address  | TEXT          | NOT NULL                  | Email address, phone, webhook URL              |
 | recipient_name     | VARCHAR(255)  | NULL                      | Human-readable recipient name                  |
 | rendered_message   | TEXT          | NOT NULL                  | Final message with placeholders filled         |
 | status             | VARCHAR(20)   | NOT NULL, DEFAULT 'pending' | pending, sent, failed                       |
-| priority           | INTEGER       | DEFAULT 1                 | Delivery priority (lower = higher priority)    |
 | attempt_count      | INTEGER       | DEFAULT 0                 | Number of delivery attempts                    |
 | last_attempt_at    | TIMESTAMPTZ   | NULL                      | Last attempt timestamp                         |
 | error_message      | TEXT          | NULL                      | Error details if failed                        |
@@ -345,7 +343,7 @@ Records of notification delivery attempts.
 
 **Indexes:**
 - `idx_notif_deliv_event` on `event_id`
-- `idx_notif_deliv_queue` on `(status, priority, created_at)` 
+- `idx_notif_deliv_queue` on `(status, created_at)` 
 - `idx_notif_deliv_retry` on `(status, attempt_count, last_attempt_at)`
 
 ## TimescaleDB Integration
