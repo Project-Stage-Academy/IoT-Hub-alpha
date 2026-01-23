@@ -10,6 +10,20 @@
 6. The JSON formatter renders each log record as one JSON line with `timestamp`, `level`, and `logger`.
 7. Docker `json-file` log driver rotates files locally.
 
+## Step-by-step logging flow
+1. `RequestIdMiddleware` assigns or reads the request id into `request.request_id`.
+2. `RequestContextMiddleware` reads or generates a request id and binds it to the logging context.
+3. Your code logs using a logger (module logger or event logger).
+4. Logging filters attach request and task context to the record.
+5. The JSON formatter outputs one JSON line per record.
+6. Docker handles rotation for local logs.
+
+## Logger naming conventions
+| Intent | Example logger | When to use |
+| --- | --- | --- |
+| Event-focused | `logging.getLogger("request.lifecycle")` | Consistent, filterable event categories. |
+| Module-focused | `logging.getLogger(__name__)` | Show the exact module where the log originates. |
+
 ## Required dependencies
 - `python-json-logger`
 - `django-request-id`
@@ -99,5 +113,5 @@ Each log line is JSON. Recommended field mapping:
 
 If a pre-filter regex is needed before JSON parsing:
 ```
-^\{.*\}$
+"^\{.*\}$"
 ```
