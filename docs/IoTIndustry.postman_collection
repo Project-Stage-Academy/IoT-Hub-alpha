@@ -1,0 +1,238 @@
+{
+  "info": {
+    "_postman_id": "bad4d0df-a5ef-4b8e-bfdd-4c4aa8ab9f2b",
+    "name": "IoT Industry",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "50199810",
+    "_collection_link": "https://go.postman.co/collection/50199810-bad4d0df-a5ef-4b8e-bfdd-4c4aa8ab9f2b?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Get FAKE JWT",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://iot-industry.redocly.app/_mock/openapi/auth/fake",
+              "protocol": "https",
+              "host": [
+                "iot-industry",
+                "redocly",
+                "app"
+              ],
+              "path": [
+                "_mock",
+                "openapi",
+                "auth",
+                "fake"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Devices",
+      "item": [
+        {
+          "name": "Device List",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{vault:json-web-token}}",
+                "type": "text",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "https://iot-industry.redocly.app/_mock/openapi/devices",
+              "protocol": "https",
+              "host": [
+                "iot-industry",
+                "redocly",
+                "app"
+              ],
+              "path": [
+                "_mock",
+                "openapi",
+                "devices"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Device by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{vault:json-web-token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "https://iot-industry.redocly.app/_mock/openapi/devices/a1b2c3d4-e5f6-7890-1234-567890abcdef23",
+              "protocol": "https",
+              "host": [
+                "iot-industry",
+                "redocly",
+                "app"
+              ],
+              "path": [
+                "_mock",
+                "openapi",
+                "devices",
+                "a1b2c3d4-e5f6-7890-1234-567890abcdef23"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Add Device",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{vault:json-web-token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"name\": \"Themometer lower level 5\",\r\n  \"ssn\": \"SN2224412\",\r\n  \"location\": \"Industrial park 15\",\r\n  \"status\": \"Paused\",\r\n  \"description\": \"Gen 2 Themometer\",\r\n  \"default_metrics\": \"C\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://iot-industry.redocly.app/_mock/openapi/devices",
+              "protocol": "https",
+              "host": [
+                "iot-industry",
+                "redocly",
+                "app"
+              ],
+              "path": [
+                "_mock",
+                "openapi",
+                "devices"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Telemetry",
+      "item": [
+        {
+          "name": "All Paginated Telemetry",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{vault:json-web-token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "https://iot-industry.redocly.app/_mock/openapi/telemetry",
+              "protocol": "https",
+              "host": [
+                "iot-industry",
+                "redocly",
+                "app"
+              ],
+              "path": [
+                "_mock",
+                "openapi",
+                "telemetry"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Ingest Telemetry",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{vault:json-web-token}}",
+                "type": "text",
+                "disabled": true
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"schema_version\": \"1.0\",\r\n  \"ssn\": \"SN222443\",\r\n  \"value\": 2443\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://iot-industry.redocly.app/_mock/openapi/telemetry",
+              "protocol": "https",
+              "host": [
+                "iot-industry",
+                "redocly",
+                "app"
+              ],
+              "path": [
+                "_mock",
+                "openapi",
+                "telemetry"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Filter by device id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://iot-industry.redocly.app/_mock/openapi/telemetry?device_id=a1b2c3d4-e5f6-7890-1234-567890abcdef",
+              "protocol": "https",
+              "host": [
+                "iot-industry",
+                "redocly",
+                "app"
+              ],
+              "path": [
+                "_mock",
+                "openapi",
+                "telemetry"
+              ],
+              "query": [
+                {
+                  "key": "device_id",
+                  "value": "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

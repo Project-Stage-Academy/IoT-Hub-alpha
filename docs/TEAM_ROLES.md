@@ -1,0 +1,61 @@
+# Team Roles and Responsibilities — IoT Catalog Hub Internship
+
+This document describes the roles and responsibilities within the internship team
+working on the IoT Catalog Hub project.
+
+---
+
+## 1. Project Owner
+
+**Responsibilities:**
+- Owns the product vision and requirements
+- Prioritizes features and tasks
+- Reviews progress and provides feedback
+- Acts as the main stakeholder
+
+---
+
+## 2. Backend Developer (Python / Django)
+
+**Responsibilities:**
+- Implements API endpoints and business logic
+- Designs and maintains database models
+- Handles telemetry ingestion and rule evaluation logic
+- Writes unit tests and maintains code quality
+
+---
+
+## 3. DevOps / Infrastructure Engineer
+
+**Responsibilities:**
+- Maintains Docker and Docker Compose configuration
+- Sets up CI/CD pipelines
+- Manages environment variables and secrets
+- Prepares deployment and demo environments
+
+---
+
+## 4. QA / Testing Engineer
+
+**Responsibilities:**
+- Writes and executes test cases
+- Verifies API functionality and integrations
+- Performs basic performance and smoke testing
+- Reports bugs and verifies fixes
+
+---
+
+## 5. Documentation Engineer
+
+**Responsibilities:**
+- Maintains project documentation
+- Updates README and technical docs
+- Documents API specifications and architecture
+- Ensures onboarding documentation is clear and up to date
+
+---
+
+## Notes
+
+In the internship phase, one person may perform multiple roles.
+Responsibilities may overlap depending on project needs.

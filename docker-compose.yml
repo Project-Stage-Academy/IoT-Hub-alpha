@@ -1,0 +1,121 @@
+services:
+  db:
+    image: timescale/timescaledb:latest-pg15
+    container_name: iot_hub_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-iot_hub_alpha_db}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_INITDB_ARGS: "-E UTF8 --locale=en_US.UTF-8"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - iot_hub_net
+    # TODO: add backup/restore strategy for postgres_data
+
+  web:
+    build: ./backend
+    container_name: iot_hub_web
+    entrypoint: ["/app/scripts/entrypoint.sh"]
+    command: >
+      sh -c "python manage.py collectstatic --noinput &&
+             python manage.py runserver 0.0.0.0:8000"
+    env_file:
+      - .env
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8000/health/"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - iot_hub_net
+    # TODO: add production server (gunicorn) and static/media handling
+
+  migrate:
+    build: ./backend
+    container_name: iot_hub_migrate
+    entrypoint: ["/app/scripts/entrypoint.sh"]
+    command: python manage.py migrate
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - iot_hub_net
+    # Run once: docker compose run --rm migrate
+
+  redis:
+    image: redis:7-alpine
+    container_name: iot_hub_redis
+    restart: unless-stopped
+    # TODO: configure redis auth, persistence, and memory policy
+    volumes:
+      - redis_data:/data
+    networks:
+      - iot_hub_net
+
+  worker:
+    build: ./backend
+    container_name: iot_hub_worker
+    entrypoint: ["/app/scripts/entrypoint.sh"]
+    # Use --pool=gevent for I/O-bound tasks or --pool=prefork for CPU-bound tasks.
+    command: celery -A config worker -l info --pool=solo --concurrency=4
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - iot_hub_net
+    # TODO: add celery config and queues
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    container_name: iot_hub_prometheus
+    profiles: ["monitoring"]
+    # TODO: add prometheus.yml and scrape targets
+    volumes:
+      - prometheus_data:/prometheus
+    networks:
+      - iot_hub_net
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    container_name: iot_hub_grafana
+    profiles: ["monitoring"]
+    # TODO: provision datasources and dashboards
+    volumes:
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    networks:
+      - iot_hub_net
+
+networks:
+  iot_hub_net:
+    name: iot_hub_net
+
+volumes:
+  postgres_data:
+  redis_data:
+  prometheus_data:
+  grafana_data:
