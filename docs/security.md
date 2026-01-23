@@ -14,10 +14,16 @@ This document records the initial security decisions for the monolithic MVP.
   - Refresh token: **10 days**
 
 ## Telemetry Ingest Endpoint
+
 - The telemetry ingest endpoint does NOT require authentication.
-- Device identity is validated using the **serial number (SSN)** provided as part of the request body,
-  according to the telemetry schema and `schema_version`.
-- The backend MUST verify that the provided SSN exists in the `devices` table before accepting telemetry data.
+- Device identity is validated using a dedicated HTTP header:
+  `X-Device-SSN`.
+- The backend MUST validate that the provided SSN exists in the `devices`
+  table before processing the request body.
+- Requests with a missing or unknown `X-Device-SSN` MUST be rejected
+  before telemetry parsing or persistence.
+- The SSN is NOT required to be present in the request body and MUST NOT
+  be used as a source of device identity.
 
 ## Secrets Handling
 
