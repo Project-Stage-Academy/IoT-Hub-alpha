@@ -101,16 +101,16 @@
       "device": "d4e5f6a7-b8c9-4012-d345-456789012def",
       "name": "High Vibration Alert - Lathe #1",
       "description": "Detects dangerously high vibration levels",
-      "operator": "gte",
+      "comparison_operator": "gte",
       "threshold": "15.0000",
       "action_config": [
         {
           "type": "notification",
           "template_id": 1,
-          "recipients": ["maintenance@factory.com", "supervisor@factory.com"]
+          "recipients": ["maintenance@factory.com", "supervisor@factory.com"],
+          "cooldown_minutes": 30
         }
       ],
-      "cooldown_minutes": 30,
       "last_triggered_at": null,
       "is_enabled": true,
       "created_at": "2025-01-05T00:00:00Z",
@@ -124,20 +124,21 @@
       "device": "e5f6a7b8-c9d0-4123-e456-567890123ef0",
       "name": "Critical Temperature - CNC Mill #2",
       "description": "Shuts down machine if temperature exceeds critical threshold",
-      "operator": "gt",
+      "comparison_operator": "gt",
       "threshold": "100.0000",
       "action_config": [
         {
           "type": "stop_machine",
-          "machine_id": "CNC-002"
+          "machine_id": "CNC-002",
+          "cooldown_minutes": 60
         },
         {
           "type": "notification",
           "template_id": 2,
-          "recipients": ["emergency@factory.com"]
+          "recipients": ["emergency@factory.com"],
+          "cooldown_minutes": 60
         }
       ],
-      "cooldown_minutes": 60,
       "last_triggered_at": null,
       "is_enabled": true,
       "created_at": "2025-01-05T00:00:00Z",
@@ -151,16 +152,16 @@
       "device": "f6a7b8c9-d0e1-4234-f567-678901234f01",
       "name": "High Power Consumption Warning",
       "description": "Alerts energy management when power consumption is high",
-      "operator": "gte",
+      "comparison_operator": "gte",
       "threshold": "80.0000",
       "action_config": [
         {
           "type": "notification",
           "template_id": 3,
-          "recipients": ["energy@factory.com"]
+          "recipients": ["energy@factory.com"],
+          "cooldown_minutes": 15
         }
       ],
-      "cooldown_minutes": 15,
       "last_triggered_at": null,
       "is_enabled": true,
       "created_at": "2025-01-05T00:00:00Z",
@@ -351,7 +352,6 @@
       "recipient_name": "Maintenance Team",
       "rendered_message": "ALERT: critical vibration detected on Lathe Machine #1. Current value: 16.7 mm_s. Please check immediately.",
       "status": "sent",
-      "priority": 1,
       "attempt_count": 1,
       "last_attempt_at": "2025-01-19T10:45:12Z",
       "error_message": null,
@@ -370,7 +370,6 @@
       "recipient_name": "On-call Engineer",
       "rendered_message": "ALERT: critical vibration detected on Lathe Machine #1. Current value: 16.7 mm_s. Please check immediately.",
       "status": "sent",
-      "priority": 1,
       "attempt_count": 1,
       "last_attempt_at": "2025-01-19T10:45:15Z",
       "error_message": null,
@@ -389,7 +388,6 @@
       "recipient_name": "Energy Management",
       "rendered_message": "WARNING: High power consumption (85.2 kwh) detected on Press Machine Power Meter.",
       "status": "sent",
-      "priority": 2,
       "attempt_count": 1,
       "last_attempt_at": "2025-01-19T10:55:12Z",
       "error_message": null,

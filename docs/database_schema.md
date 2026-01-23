@@ -58,7 +58,6 @@ This document describes the PostgreSQL database schema for the IoT Hub Alpha MVP
          ▲             │    operator   │    │
          │             │  threshold    │    │
          │             │  action_config│◄───┘
-         │             │  cooldown_mins│    
          │             │  last_trigger │    
          │             │  is_enabled   │    
          │             │  created_at   │    
@@ -200,7 +199,6 @@ Rule definitions for triggering events based on telemetry thresholds.
 | comparison_operator | VARCHAR(10)   | NOT NULL                  | gt, lt, gte, lte, eq, neq                      |
 | threshold           | DECIMAL(15,4) | NOT NULL                  | Threshold value                                |
 | action_config       | JSONB         | NOT NULL                  | Actions to take when rule triggered            |
-| cooldown_minutes    | INTEGER       | DEFAULT 15                | Minimum minutes between triggers               |
 | last_triggered_at   | TIMESTAMPTZ   | NULL                      | When rule was last triggered                   |
 | is_enabled          | BOOLEAN       | DEFAULT TRUE              | Rule active status                             |
 | created_at          | TIMESTAMPTZ   | NOT NULL, DEFAULT NOW()   | Creation timestamp                             |
@@ -221,11 +219,13 @@ Rule definitions for triggering events based on telemetry thresholds.
   {
     "type": "notification",
     "template_id": 5,
-    "recipients": ["admin@company.com"]
+    "recipients": ["admin@company.com"],
+    "cooldown_minutes": 30
   },
   {
     "type": "stop_machine",
-    "machine_id": "M-123"
+    "machine_id": "M-123",
+    "cooldown_minutes": 60
   }
 ]
 ```

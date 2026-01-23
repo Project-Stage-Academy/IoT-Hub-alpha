@@ -19,6 +19,13 @@ def validate_action_config(value):
         if "type" not in item:
             raise ValidationError("Each action item must have a 'type' field")
 
+        cooldown_minutes = item.get("cooldown_minutes")
+        if cooldown_minutes is not None:
+            if not isinstance(cooldown_minutes, int):
+                raise ValidationError("cooldown_minutes must be an integer")
+            if cooldown_minutes < 0:
+                raise ValidationError("cooldown_minutes must be >= 0")
+
         action_type = item.get("type")
 
         # Type-specific validation
@@ -52,7 +59,6 @@ class Rule(models.Model):
             '{"type": "stop_machine", "machine_id": "M-123"}]'
         ),
     )
-    cooldown_minutes = models.IntegerField(default=15)
     last_triggered_at = models.DateTimeField(null=True, blank=True)
     is_enabled = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
