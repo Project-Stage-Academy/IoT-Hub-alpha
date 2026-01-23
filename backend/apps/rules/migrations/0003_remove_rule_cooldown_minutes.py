@@ -6,12 +6,12 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('rules', '0002_rename_operator_to_comparison_operator'),
+        ("rules", "0002_rename_operator_to_comparison_operator"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='rule',
-            name='cooldown_minutes',
+            model_name="rule",
+            name="cooldown_minutes",
         ),
     ]
