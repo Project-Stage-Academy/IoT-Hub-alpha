@@ -1,0 +1,38 @@
+[
+    {
+      "name": "Lathe #1 trigger",
+      "data": {
+        "schema_version": "1.0",
+        "ssn": "VIB-SN-001",
+        "value": 1500
+      },
+      "expected": 202
+    },
+        {
+      "name": "CNC Mill #2 trigger",
+      "data": {
+        "schema_version": "1.0",
+        "ssn": "TEMP-SN-002",
+        "value": 10090
+      },
+      "expected": 202
+    },
+        {
+      "name": "Power Consumption trigger",
+      "data": {
+        "schema_version": "1.0",
+        "ssn": "PWR-SN-003",
+        "value": 8500
+      },
+      "expected": 202
+    },
+      {
+      "name": "CNC Mill #2 no trigger",
+      "data": {
+        "schema_version": "1.0",
+        "ssn": "TEMP-SN-002",
+        "value": 4442
+      },
+      "expected": 202
+    }
+  ]

@@ -1,4 +1,5 @@
 from pathlib import Path
+import sys
 from typing import Any
 from time import perf_counter
 from .data_structures import ParsedArgs
@@ -51,3 +52,6 @@ def main_sim(raw: Any) -> None:
         )
     total_run_time = perf_counter() - prog_start
     reporter.end_report(stats, total_run_time)
+    
+    if stats.errors or stats.failed:
+        sys.exit(1)
