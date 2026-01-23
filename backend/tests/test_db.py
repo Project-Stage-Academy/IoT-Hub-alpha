@@ -61,9 +61,8 @@ class DBSmokeTest(TestCase):
             comparison_operator="gt",
             threshold=30.0,
             action_config=[
-                {"type": "notification", "template_id": 1},
+                {"type": "notification", "template_id": 1, "cooldown_minutes": 15},
             ],
-            cooldown_minutes=15,
             is_enabled=True,
         )
 
@@ -101,7 +100,6 @@ class DBSmokeTest(TestCase):
             recipient_name="Smoke User",
             rendered_message="Alert: Smoke test event",
             status="pending",
-            priority=1,
             attempt_count=0,
         )
 

@@ -6,6 +6,13 @@ from django.core.validators import MinValueValidator
 from apps.events.models import Event
 
 
+class NotificationPriority(models.IntegerChoices):
+    LOW = 1, "Low Priority"
+    MEDIUM = 2, "Medium Priority"
+    HIGH = 3, "High Priority"
+    CRITICAL = 4, "Critical Priority"
+
+
 def validate_recipients(value):
     """Validates recipients JSON structure."""
     if not isinstance(value, list):
@@ -38,11 +45,6 @@ def validate_recipients(value):
 
 
 class NotificationTemplate(models.Model):
-    class Priority(models.IntegerChoices):
-        LOW = 1, "Low Priority"
-        MEDIUM = 2, "Medium Priority"
-        HIGH = 3, "High Priority"
-        CRITICAL = 4, "Critical Priority"
 
     id = models.BigAutoField(primary_key=True)
     name = models.CharField(max_length=100, unique=True)
@@ -57,8 +59,8 @@ class NotificationTemplate(models.Model):
         ),
     )
     priority = models.IntegerField(
-        choices=Priority.choices,
-        default=Priority.MEDIUM,
+        choices=NotificationPriority.choices,
+        default=NotificationPriority.MEDIUM,
         validators=[MinValueValidator(1)],
     )
     retry_count = models.IntegerField(default=3, validators=[MinValueValidator(1)])
@@ -84,7 +86,6 @@ class NotificationTemplate(models.Model):
 
 
 class NotificationDelivery(models.Model):
-    Priority = NotificationTemplate.Priority
 
     class NotificationType(models.TextChoices):
         EMAIL = "email", "Email"
@@ -119,16 +120,7 @@ class NotificationDelivery(models.Model):
         choices=NotificationStatus.choices,
         default=NotificationStatus.PENDING,
     )
-    priority = models.IntegerField(
-        choices=Priority.choices,
-        default=Priority.MEDIUM,
-        db_index=True,
-        validators=[MinValueValidator(1)],
-        help_text=(
-            "Priority snapshot from template (can be overridden). "
-            "Higher = more urgent."
-        ),
-    )
+
     attempt_count = models.IntegerField(default=0)
     last_attempt_at = models.DateTimeField(null=True, blank=True)
     error_message = models.TextField(
@@ -139,11 +131,11 @@ class NotificationDelivery(models.Model):
 
     class Meta:
         db_table = "notification_deliveries"
-        ordering = ["status", "priority", "-created_at"]
+        ordering = ["status", "-created_at"]
         indexes = [
             models.Index(fields=["event"], name="idx_notif_deliv_event"),
             models.Index(
-                fields=["status", "priority", "created_at"],
+                fields=["status", "created_at"],
                 name="idx_notif_deliv_queue",
             ),
             models.Index(
