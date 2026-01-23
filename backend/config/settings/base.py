@@ -1,3 +1,4 @@
+import logging
 import os
 from pathlib import Path
 
@@ -181,8 +182,17 @@ REQUEST_ID_GENERATOR = "request_id.generators.uuid4"
 
 try:
     from config.logging import setup_celery_logging_context  # noqa: E402
-except Exception:
+except ImportError as exc:
+    logging.getLogger(__name__).exception(
+        "logging.setup_celery_logging_context_import_failed",
+        extra={"error": str(exc)},
+    )
     setup_celery_logging_context = None
 
-if setup_celery_logging_context:
+if callable(setup_celery_logging_context):
     setup_celery_logging_context()
+elif setup_celery_logging_context is not None:
+    logging.getLogger(__name__).warning(
+        "logging.setup_celery_logging_context_not_callable",
+        extra={"type": type(setup_celery_logging_context).__name__},
+    )
