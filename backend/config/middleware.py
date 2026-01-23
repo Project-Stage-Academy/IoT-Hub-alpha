@@ -27,13 +27,19 @@ class RequestContextMiddleware:
             module_name, func_name = generator_path.rsplit(".", 1)
             generator = getattr(importlib.import_module(module_name), func_name)
             return generator()
-        except Exception:
+        except (ImportError, AttributeError) as exc:
+            logging.getLogger(__name__).warning(
+                "request_id_generator_load_failed",
+                extra={"error": str(exc)},
+            )
             return str(uuid.uuid4())
 
     def __call__(self, request):
         request.request_id = self._get_request_id(request)
-        bind_request_context(request)
+        context_bound = False
         try:
+            bind_request_context(request)
+            context_bound = True
             response = self.get_response(request)
             request_id = getattr(request, "request_id", None)
             if request_id:
@@ -42,4 +48,5 @@ class RequestContextMiddleware:
 
             return response
         finally:
-            clear_request_context()
+            if context_bound:
+                clear_request_context()
