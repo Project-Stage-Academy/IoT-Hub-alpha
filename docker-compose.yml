@@ -1,3 +1,9 @@
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   db:
     image: timescale/timescaledb:latest-pg15
@@ -18,11 +24,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
+    logging: *default-logging
     networks:
       - iot_hub_net
     # TODO: add backup/restore strategy for postgres_data
@@ -48,11 +50,7 @@ services:
       interval: 10s
       timeout: 3s
       retries: 5
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
+    logging: *default-logging
     networks:
       - iot_hub_net
     # TODO: add production server (gunicorn) and static/media handling
@@ -67,11 +65,7 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
+    logging: *default-logging
     networks:
       - iot_hub_net
     # Run once: docker compose run --rm migrate
@@ -83,11 +77,7 @@ services:
     # TODO: configure redis auth, persistence, and memory policy
     volumes:
       - redis_data:/data
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
+    logging: *default-logging
     networks:
       - iot_hub_net
 
@@ -104,11 +94,7 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
+    logging: *default-logging
     networks:
       - iot_hub_net
     # TODO: add celery config and queues
@@ -120,11 +106,7 @@ services:
     # TODO: add prometheus.yml and scrape targets
     volumes:
       - prometheus_data:/prometheus
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
+    logging: *default-logging
     networks:
       - iot_hub_net
 
@@ -137,11 +119,7 @@ services:
       - grafana_data:/var/lib/grafana
     depends_on:
       - prometheus
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
+    logging: *default-logging
     networks:
       - iot_hub_net
 
