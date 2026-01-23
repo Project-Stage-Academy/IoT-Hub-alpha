@@ -229,3 +229,7 @@ Thumbs.db
 # Linter and formatter
 .flake8
 .black
+#data simulator log file
+sim_log.jsonl
+
+.vscode/settings.json
