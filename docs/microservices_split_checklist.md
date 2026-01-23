@@ -99,7 +99,7 @@ Splitting services without observability increases operational risk.
 
 ### Criteria
 - [ ] Metrics are exposed per service
-- [ ] Prometheus scraping is configured or planned
+- [x] Prometheus scraping is configured or planned
 - [ ] Logs include service identifiers and correlation IDs
 - [ ] Basic health checks are implemented (`/health`)
 
@@ -111,9 +111,9 @@ The deployment model must support multiple independently deployed services.
 
 ### Criteria
 - [ ] Docker images are built per service
-- [ ] Docker Compose or orchestration supports multi-service setup
-- [ ] Network policies between services are defined
-- [ ] Service startup and dependency ordering is documented
+- [x] Docker Compose or orchestration supports multi-service setup
+- [x] Network policies between services are defined
+- [x] Service startup and dependency ordering is documented
 
 ---
 
@@ -134,7 +134,7 @@ The team must be ready to operate multiple services.
 
 ### Criteria
 - [ ] Runbooks exist per service
-- [ ] Backup and restore procedures are validated
+- [x] Backup and restore procedures are validated
 - [ ] On-call or ownership model is defined
 - [ ] Incident response process is documented
 
