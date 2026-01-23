@@ -95,11 +95,11 @@ class DBSmokeTest(TestCase):
         self.delivery = NotificationDelivery.objects.create(
             event=self.event,
             template=self.template,
-            recipient_type="email",
+            notification_type=NotificationDelivery.NotificationType.EMAIL,
             recipient_address="smoke@example.com",
             recipient_name="Smoke User",
             rendered_message="Alert: Smoke test event",
-            status="pending",
+            status=NotificationDelivery.NotificationStatus.PENDING,
             attempt_count=0,
         )
 

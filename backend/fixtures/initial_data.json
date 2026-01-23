@@ -347,16 +347,16 @@
     "fields": {
       "event": 1,
       "template": 1,
-      "recipient_type": "email",
+      "notification_type": "email",
       "recipient_address": "maintenance@factory.com",
       "recipient_name": "Maintenance Team",
-      "rendered_message": "ALERT: critical vibration detected on Lathe Machine #1. Current value: 16.7 mm_s. Please check immediately.",
+      "rendered_message": "ALERT: CRITICAL vibration detected on Lathe Machine #1. Current value: 16.2 mm/s. Please check immediately.",
       "status": "sent",
       "attempt_count": 1,
-      "last_attempt_at": "2025-01-19T10:45:12Z",
+      "last_attempt_at": "2025-01-19T11:45:00Z",
       "error_message": null,
-      "sent_at": "2025-01-19T10:45:12Z",
-      "created_at": "2025-01-19T10:45:10Z"
+      "sent_at": "2025-01-19T11:45:00Z",
+      "created_at": "2025-01-19T11:40:00Z"
     }
   },
   {
@@ -365,7 +365,7 @@
     "fields": {
       "event": 1,
       "template": 1,
-      "recipient_type": "sms",
+      "notification_type": "sms",
       "recipient_address": "+380501234567",
       "recipient_name": "On-call Engineer",
       "rendered_message": "ALERT: critical vibration detected on Lathe Machine #1. Current value: 16.7 mm_s. Please check immediately.",
@@ -383,16 +383,16 @@
     "fields": {
       "event": 2,
       "template": 3,
-      "recipient_type": "email",
+      "notification_type": "email",
       "recipient_address": "energy@factory.com",
       "recipient_name": "Energy Management",
-      "rendered_message": "WARNING: High power consumption (85.2 kwh) detected on Press Machine Power Meter.",
-      "status": "sent",
-      "attempt_count": 1,
-      "last_attempt_at": "2025-01-19T10:55:12Z",
-      "error_message": null,
-      "sent_at": "2025-01-19T10:55:12Z",
-      "created_at": "2025-01-19T10:55:10Z"
+      "rendered_message": "WARNING: HIGH power consumption detected on Press Machine. Current: 85.7 kWh. Please review usage.",
+      "status": "failed",
+      "attempt_count": 3,
+      "last_attempt_at": "2025-01-19T13:15:00Z",
+      "error_message": "SMTP connection timeout",
+      "sent_at": null,
+      "created_at": "2025-01-19T13:00:00Z"
     }
   }
 ]
