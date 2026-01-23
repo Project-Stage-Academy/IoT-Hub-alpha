@@ -104,7 +104,10 @@ class NotificationDelivery(models.Model):
     template = models.ForeignKey(
         NotificationTemplate, on_delete=models.PROTECT, related_name="deliveries"
     )
-    recipient_type = models.CharField(max_length=20, choices=NotificationType.choices)
+    notification_type = models.CharField(
+        max_length=20,
+        choices=NotificationType.choices,
+    )
     recipient_address = models.TextField(
         help_text=("Email address, phone number, or webhook URL")
     )
@@ -147,6 +150,6 @@ class NotificationDelivery(models.Model):
 
     def __str__(self):
         return (
-            f"Delivery {self.id} - {self.recipient_type} to "
+            f"Delivery {self.id} - {self.notification_type} to "
             f"{self.recipient_address} ({self.status})"
         )
