@@ -8,50 +8,73 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('events', '0002_remove_telemetry_id_add_snapshot'),
-        ('notifications', '0001_initial'),
+        ("events", "0002_remove_telemetry_id_add_snapshot"),
+        ("notifications", "0001_initial"),
     ]
 
     operations = [
         migrations.AlterModelOptions(
-            name='notificationdelivery',
-            options={'ordering': ['status', '-created_at'], 'verbose_name_plural': 'Notification deliveries'},
+            name="notificationdelivery",
+            options={
+                "ordering": ["status", "-created_at"],
+                "verbose_name_plural": "Notification deliveries",
+            },
         ),
         migrations.RemoveIndex(
-            model_name='notificationdelivery',
-            name='idx_notif_deliv_queue',
+            model_name="notificationdelivery",
+            name="idx_notif_deliv_queue",
         ),
         migrations.RemoveField(
-            model_name='notificationdelivery',
-            name='priority',
+            model_name="notificationdelivery",
+            name="priority",
         ),
         migrations.AlterField(
-            model_name='notificationdelivery',
-            name='rendered_message',
-            field=models.TextField(help_text='Final message after template rendering with actual values (e.g., device name, metric value)'),
+            model_name="notificationdelivery",
+            name="rendered_message",
+            field=models.TextField(
+                help_text="Final message after template rendering with actual values (e.g., device name, metric value)"
+            ),
         ),
         migrations.AlterField(
-            model_name='notificationtemplate',
-            name='priority',
-            field=models.IntegerField(choices=[(1, 'Low Priority'), (2, 'Medium Priority'), (3, 'High Priority'), (4, 'Critical Priority')], default=2, validators=[django.core.validators.MinValueValidator(1)]),
+            model_name="notificationtemplate",
+            name="priority",
+            field=models.IntegerField(
+                choices=[
+                    (1, "Low Priority"),
+                    (2, "Medium Priority"),
+                    (3, "High Priority"),
+                    (4, "Critical Priority"),
+                ],
+                default=2,
+                validators=[django.core.validators.MinValueValidator(1)],
+            ),
         ),
         migrations.AlterField(
-            model_name='notificationtemplate',
-            name='recipients',
-            field=models.JSONField(help_text='Schema: [{"type": "email", "address": "admin@company.com"}, {"type": "sms", "phone": "+380501234567"}]', validators=[apps.notifications.models.validate_recipients]),
+            model_name="notificationtemplate",
+            name="recipients",
+            field=models.JSONField(
+                help_text='Schema: [{"type": "email", "address": "admin@company.com"}, {"type": "sms", "phone": "+380501234567"}]',
+                validators=[apps.notifications.models.validate_recipients],
+            ),
         ),
         migrations.AlterField(
-            model_name='notificationtemplate',
-            name='retry_count',
-            field=models.IntegerField(default=3, validators=[django.core.validators.MinValueValidator(1)]),
+            model_name="notificationtemplate",
+            name="retry_count",
+            field=models.IntegerField(
+                default=3, validators=[django.core.validators.MinValueValidator(1)]
+            ),
         ),
         migrations.AlterField(
-            model_name='notificationtemplate',
-            name='retry_delay_minutes',
-            field=models.IntegerField(default=5, validators=[django.core.validators.MinValueValidator(1)]),
+            model_name="notificationtemplate",
+            name="retry_delay_minutes",
+            field=models.IntegerField(
+                default=5, validators=[django.core.validators.MinValueValidator(1)]
+            ),
         ),
         migrations.AddIndex(
-            model_name='notificationdelivery',
-            index=models.Index(fields=['status', 'created_at'], name='idx_notif_deliv_queue'),
+            model_name="notificationdelivery",
+            index=models.Index(
+                fields=["status", "created_at"], name="idx_notif_deliv_queue"
+            ),
         ),
     ]
