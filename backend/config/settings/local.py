@@ -16,10 +16,12 @@ LOGGING = {
     "loggers": {
         **LOGGING_BASE.get("loggers", {}),  # noqa: F405
         "django.db.backends": {
+            "handlers": ["console"],
             "level": "WARNING",
             "propagate": True,
         },
         "django.db.backends.schema": {
+            "handlers": ["console"],
             "level": "WARNING",
             "propagate": True,
         },
