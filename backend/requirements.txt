@@ -1,6 +1,8 @@
 django==5.2.10
 python-dotenv==1.2.1
 psycopg2-binary>=2.9.10
+pydantic==2.12.5
+pydantic_core==2.41.5
 celery==5.4.0
 redis==5.0.8
 djangorestframework>=3.14.0

@@ -57,7 +57,7 @@
   ],
   "rules": [
     {
-      "device": "Lathe Machine #1 Vibration Sensor",
+      "device": "VIB-SN-001",
       "name": "High Vibration Alert - Lathe #1",
       "description": "Detects dangerously high vibration levels",
       "operator": "gte",
@@ -73,7 +73,7 @@
       "is_enabled": true
     },
     {
-      "device": "CNC Mill #2 Temperature Sensor",
+      "device": "TEMP-SN-002",
       "name": "Critical Temperature - CNC Mill #2",
       "description": "Shuts down machine if temperature exceeds critical threshold",
       "operator": "gt",
@@ -93,7 +93,7 @@
       "is_enabled": true
     },
     {
-      "device": "Press Machine Power Meter",
+      "device": "PWR-SN-003",
       "name": "High Power Consumption Warning",
       "description": "Alerts energy management when power consumption is high",
       "operator": "gte",
@@ -108,5 +108,43 @@
       "cooldown_minutes": 15,
       "is_enabled": true
     }
+  ],
+  "notification_templates": [
+    {
+      "name": "Critical Vibration Alert",
+      "message_template": "ALERT: {severity} vibration detected on {device_name}. Current value: {value} {unit}. Please check immediately.",
+      "recipients": [
+        {"type": "email", "address": "maintenance@factory.com"},
+        {"type": "email", "address": "supervisor@factory.com"},
+        {"type": "sms", "phone": "+380501234567"}
+      ],
+      "priority": 1,
+      "retry_count": 3,
+      "retry_delay_minutes": 5,
+      "is_active": true
+  },
+  {
+      "name": "Temperature Emergency",
+      "message_template": "EMERGENCY: Critical temperature ({value} {unit}) exceeded on {device_name}. Machine has been stopped.",
+      "recipients": [
+        {"type": "email", "address": "emergency@factory.com"},
+        {"type": "webhook", "url": "https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXX"}
+      ],
+      "priority": 1,
+      "retry_count": 5,
+      "retry_delay_minutes": 2,
+      "is_active": true
+  },
+  {
+      "name": "Power Consumption Warning",
+      "message_template": "WARNING: High power consumption ({value} {unit}) detected on {device_name}.",
+      "recipients": [
+        {"type": "email", "address": "energy@factory.com"}
+      ],
+      "priority": 2,
+      "retry_count": 2,
+      "retry_delay_minutes": 10,
+      "is_active": true
+  }
   ]
 }
