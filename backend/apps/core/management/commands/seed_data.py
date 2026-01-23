@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import argparse
 from pathlib import Path
 from typing import Any
 from django.conf import settings
@@ -20,7 +21,7 @@ User = get_user_model()
 class Command(BaseCommand):
     help = "Seed demo data (idempotent) from backend/seed/*.json"
 
-    def add_arguments(self, parser):
+    def add_arguments(self, parser: argparse.ArgumentParser) -> None:
         parser.add_argument("--file", default="seed/seed_data.json")
 
         parser.add_argument(
