@@ -10,6 +10,7 @@ This document describes the PostgreSQL database schema for the IoT Hub Alpha MVP
 - **Extensions**: TimescaleDB (time-series optimization), UUID-OSSP (UUID generation)
 - **ORM**: Django 6.0.1
 - **Connection Pooling**: psycopg2-binary with connection pooling enabled
+- **Timestamps**: All timestamps use TIMESTAMPTZ (timestamp with time zone)
 
 ## Database Schema Diagram
 
@@ -53,10 +54,10 @@ This document describes the PostgreSQL database schema for the IoT Hub Alpha MVP
     │FK device_id   │  │FK device_id   │    │
     │  timestamp    │  │  name         │    │
     │  payload      │  │  description  │    │
-    └───────────────┘  │  operator     │    │
-         ▲             │  threshold    │    │
+    └───────────────┘  │  comparison_  │    │
+         ▲             │    operator   │    │
+         │             │  threshold    │    │
          │             │  action_config│◄───┘
-         │             │  cooldown_mins│    
          │             │  last_trigger │    
          │             │  is_enabled   │    
          │             │  created_at   │    
@@ -70,15 +71,15 @@ This document describes the PostgreSQL database schema for the IoT Hub Alpha MVP
          │            ├─────────────────┤   
          │            │PK id (BIGINT)   │   
          │            │FK rule_id       │   
-         └────────────┤   telemetry_id │   
-                      │   timestamp    │◄────┐
-                      │   severity     │     │
-                      │   message      │     │
-                      │   execution_   │     │
-                      │     results    │     │
-                      │   metadata     │     │
-                      │   status       │     │
-                      └─────────────────┘     │
+         │            │   timestamp     │◄────┐
+         │            │   severity      │     │
+         │            │   message       │     │
+         │            │   execution_    │     │
+         │            │     results     │     │
+         │            │   telemetry_    │     │
+         │            │     snapshot    │     │
+         │            │   status        │     │
+         │            └─────────────────┘     │
                               │               │
                               │               │
                               │               │
@@ -92,12 +93,11 @@ This document describes the PostgreSQL database schema for the IoT Hub Alpha MVP
                      │PK id (BIGSERIAL)   │◄──┘
                      │FK event_id         │
                      │FK template_id      │
-                     │   recipient_type   │
+                     │ notification_type  │
                      │   recipient_address│
                      │   recipient_name   │
                      │   rendered_message │
                      │   status           │
-                     │   priority         │
                      │   attempt_count    │
                      │   last_attempt_at  │
                      │   error_message    │
@@ -117,15 +117,18 @@ Defines types of IoT devices with their expected metric information.
 | id               | UUID          | PRIMARY KEY               | Unique identifier                              |
 | name             | VARCHAR(100)  | UNIQUE, NOT NULL          | Device type name (e.g., vibration_sensor)      |
 | description      | TEXT          | NULL                      | Detailed description                           |
-| metric_name      | VARCHAR(20)   | NOT NULL (Enum)           | Primary metric (vibration, temperature, pressure) |
+| metric_name      | VARCHAR(20)   | NOT NULL                  | Primary metric (vibration, temperature, pressure) |
 | metric_unit      | VARCHAR(50)   | NOT NULL                  | Unit of measurement (mm_s, celsius, etc.)      |
 | metric_min       | DECIMAL(15,4) | NULL                      | Minimum expected value                         |
 | metric_max       | DECIMAL(15,4) | NULL                      | Maximum expected value                         |
-| created_at       | TIMESTAMP     | NOT NULL, DEFAULT NOW()   | Creation timestamp                             |
+| created_at       | TIMESTAMPTZ   | NOT NULL, DEFAULT NOW()   | Creation timestamp                             |
 
 **Indexes:**
 - `idx_device_type_name` on `name` 
 - `idx_device_type_metric` on `metric_name`
+
+**Validation:**
+- `clean()` method ensures `metric_min < metric_max` when both are provided
 
 ### 2. devices
 
@@ -139,9 +142,9 @@ Individual IoT device instances deployed in the field.
 | serial_number    | VARCHAR(100)  | UNIQUE, NOT NULL           | Manufacturer serial number                     |
 | location         | TEXT          | NULL                       | Physical location (e.g., Workshop A)           |
 | status           | VARCHAR(20)   | NOT NULL, DEFAULT 'active' | active, inactive, error                        |
-| last_seen        | TIMESTAMP     | NULL                       | Last telemetry received timestamp              |
-| created_at       | TIMESTAMP     | NOT NULL, DEFAULT NOW()    | Creation timestamp                             |
-| updated_at       | TIMESTAMP     | NOT NULL, DEFAULT NOW()    | Last update timestamp                          |
+| last_seen        | TIMESTAMPTZ   | NULL                       | Last telemetry received timestamp              |
+| created_at       | TIMESTAMPTZ   | NOT NULL, DEFAULT NOW()    | Creation timestamp                             |
+| updated_at       | TIMESTAMPTZ   | NOT NULL, DEFAULT NOW()    | Last update timestamp                          |
 
 **Indexes:**
 - `idx_device_serial` on `serial_number`
@@ -154,9 +157,9 @@ Time-series telemetry data from devices. This table is converted to a TimescaleD
 
 | Column           | Type          | Constraints               | Description                                    |
 |------------------|---------------|---------------------------|------------------------------------------------|
-| id               | BIGSERIAL     | PRIMARY KEY               | Auto-incrementing identifier                   |
+| id               | BIGSERIAL      | PRIMARY KEY               | Auto-incrementing identifier                   |
 | device_id        | UUID          | FK → devices.id, NOT NULL | Device that generated the telemetry            |
-| timestamp        | TIMESTAMP     | NOT NULL, DEFAULT NOW()   | When telemetry was recorded                    |
+| timestamp        | TIMESTAMPTZ   | NOT NULL, DEFAULT NOW()   | When telemetry was recorded                    |
 | payload          | JSONB         | NOT NULL                  | Telemetry data with version and measurements   |
 
 **Indexes:**
@@ -167,14 +170,14 @@ Time-series telemetry data from devices. This table is converted to a TimescaleD
 - Partitioned by: `timestamp`
 - Chunk interval: 7 days (default)
 - Compression: Enabled for data older than 30 days
-- Retention policy: 1 year (configurable)
+- Retention policy: 365 days (configurable via environment variable)
 
 **Example payload:**
 ```json
 {
   "version": "0.0.1",
   "serial_number": "VIB-SN-001",
-  "metrics": {
+  "payload": {
     "vibration": 5.2,
     "temperature": 45.3,
     "operating_hours": 1250
@@ -186,20 +189,19 @@ Time-series telemetry data from devices. This table is converted to a TimescaleD
 
 Rule definitions for triggering events based on telemetry thresholds.
 
-| Column            | Type          | Constraints               | Description                                    |
-|-------------------|---------------|---------------------------|------------------------------------------------|
-| id                | UUID          | PRIMARY KEY               | Unique identifier                              |
-| device_id         | UUID          | FK → devices.id, NOT NULL | Device to monitor                              |
-| name              | VARCHAR(255)  | NOT NULL                  | Rule name                                      |
-| description       | TEXT          | NULL                      | Detailed description                           |
-| operator          | VARCHAR(10)   | NOT NULL                  | gt, lt, gte, lte, eq, neq                      |
-| threshold         | DECIMAL(15,4) | NOT NULL                  | Threshold value                                |
-| action_config     | JSONB         | NOT NULL                  | Actions to take when rule triggered            |
-| cooldown_minutes  | INTEGER       | DEFAULT 15                | Minimum minutes between triggers               |
-| last_triggered_at | TIMESTAMP     | NULL                      | When rule was last triggered                   |
-| is_enabled        | BOOLEAN       | DEFAULT TRUE              | Rule active status                             |
-| created_at        | TIMESTAMP     | NOT NULL, DEFAULT NOW()   | Creation timestamp                             |
-| updated_at        | TIMESTAMP     | NOT NULL, DEFAULT NOW()   | Last update timestamp                          |
+| Column              | Type          | Constraints               | Description                                    |
+|---------------------|---------------|---------------------------|------------------------------------------------|
+| id                  | UUID          | PRIMARY KEY               | Unique identifier                              |
+| device_id           | UUID          | FK → devices.id, NOT NULL | Device to monitor                              |
+| name                | VARCHAR(255)  | NOT NULL                  | Rule name                                      |
+| description         | TEXT          | NULL                      | Detailed description                           |
+| comparison_operator | VARCHAR(10)   | NOT NULL                  | gt, lt, gte, lte, eq, neq                      |
+| threshold           | DECIMAL(15,4) | NOT NULL                  | Threshold value                                |
+| action_config       | JSONB         | NOT NULL                  | Actions to take when rule triggered            |
+| last_triggered_at   | TIMESTAMPTZ   | NULL                      | When rule was last triggered                   |
+| is_enabled          | BOOLEAN       | DEFAULT TRUE              | Rule active status                             |
+| created_at          | TIMESTAMPTZ   | NOT NULL, DEFAULT NOW()   | Creation timestamp                             |
+| updated_at          | TIMESTAMPTZ   | NOT NULL, DEFAULT NOW()   | Last update timestamp                          |
 
 **Indexes:**
 - `idx_rule_device_enabled` on `(device_id, is_enabled)`
@@ -207,17 +209,22 @@ Rule definitions for triggering events based on telemetry thresholds.
 - `idx_rule_last_triggered` on `last_triggered_at`
 - `idx_rule_action_config_gin` (GIN) on `action_config`
 
+**Validators:**
+- `validate_action_config` ensures proper JSON structure for action configurations
+
 **Example action_config:**
 ```json
 [
   {
     "type": "notification",
     "template_id": 5,
-    "recipients": ["admin@company.com"]
+    "recipients": ["admin@company.com"],
+    "cooldown_minutes": 30
   },
   {
     "type": "stop_machine",
-    "machine_id": "M-123"
+    "machine_id": "M-123",
+    "cooldown_minutes": 60
   }
 ]
 ```
@@ -226,24 +233,27 @@ Rule definitions for triggering events based on telemetry thresholds.
 
 Events triggered by rule evaluations.
 
-| Column           | Type          | Constraints               | Description                                    |
-|------------------|---------------|---------------------------|------------------------------------------------|
-| id               | BIGSERIAL     | PRIMARY KEY               | Auto-incrementing identifier                   |
-| rule_id          | UUID          | FK → rules.id, NOT NULL   | Rule that triggered the event                  |
-| telemetry_id     | BIGINT        | NULL                      | Reference to triggering telemetry (no FK)      |
-| timestamp        | TIMESTAMP     | NOT NULL, DEFAULT NOW()   | Event occurrence time                          |
-| severity         | VARCHAR(20)   | NOT NULL                  | critical, warning, info                        |
-| message          | TEXT          | NOT NULL                  | Human-readable event description               |
-| execution_results| JSONB         | NOT NULL                  | Results of actions taken                       |
-| metadata         | JSONB         | NULL                      | Additional context, telemetry snapshot         |
-| status           | VARCHAR(20)   | NOT NULL, DEFAULT 'new'   | new, acknowledged, resolved                    |
+| Column            | Type          | Constraints               | Description                                    |
+|-------------------|---------------|---------------------------|------------------------------------------------|
+| id                | BIGSERIAL      | PRIMARY KEY               | Auto-incrementing identifier                   |
+| rule_id           | UUID          | FK → rules.id, NOT NULL   | Rule that triggered the event                  |
+| timestamp         | TIMESTAMPTZ   | NOT NULL, DEFAULT NOW()   | Event occurrence time                          |
+| severity          | VARCHAR(20)   | NOT NULL                  | critical, warning, info                        |
+| message           | TEXT          | NOT NULL                  | Human-readable event description               |
+| execution_results | JSONB         | NOT NULL                  | Results of actions taken                       |
+| telemetry_snapshot| JSONB         | NULL                      | Snapshot of telemetry data that triggered event|
+| status            | VARCHAR(20)   | NOT NULL, DEFAULT 'new'   | new, acknowledged, resolved                    |
 
 **Indexes:**
 - `idx_event_rule` on `rule_id`
-- `idx_event_telemetry` on `telemetry_id`
 - `idx_event_status_time` on `(status, timestamp)`
-- `idx_event_time_severity_status` on `(timestamp, severity, status)`
-- `idx_event_execution_results_gin` (GIN) on `execution_results`
+- `idx_event_time_sev_status` on `(timestamp, severity, status)`
+- `idx_event_exec_results_gin` (GIN) on `execution_results`
+- `idx_event_telemetry_snap_gin` (GIN) on `telemetry_snapshot`
+
+**Validators:**
+- `validate_execution_results` ensures proper JSON structure for execution results
+- `validate_telemetry_snapshot` ensures proper JSON structure for telemetry snapshots
 
 **Example execution_results:**
 ```json
@@ -264,13 +274,25 @@ Events triggered by rule evaluations.
 ]
 ```
 
+**Example telemetry_snapshot:**
+```json
+{
+  "device_id": "d4e5f6a7-b8c9-4012-d345-456789012def",
+  "timestamp": "2026-01-22T10:15:30Z",
+  "payload": {
+    "vibration": 22.5,
+    "temperature": 85.3
+  }
+}
+```
+
 ### 6. notification_templates
 
 Templates for notifications to be sent when events occur.
 
 | Column              | Type          | Constraints               | Description                                    |
 |---------------------|---------------|---------------------------|------------------------------------------------|
-| id                  | BIGSERIAL     | PRIMARY KEY               | Auto-incrementing identifier                   |
+| id                  | BIGSERIAL      | PRIMARY KEY               | Auto-incrementing identifier                   |
 | name                | VARCHAR(100)  | UNIQUE, NOT NULL          | Template name                                  |
 | message_template    | TEXT          | NOT NULL                  | Message with placeholders                      |
 | recipients          | JSONB         | NOT NULL                  | Default recipients configuration               |
@@ -278,14 +300,17 @@ Templates for notifications to be sent when events occur.
 | retry_count         | INTEGER       | DEFAULT 3                 | Max retry attempts                             |
 | retry_delay_minutes | INTEGER       | DEFAULT 5                 | Minutes between retry attempts                 |
 | is_active           | BOOLEAN       | DEFAULT TRUE              | Template active status                         |
-| created_at          | TIMESTAMP     | NOT NULL, DEFAULT NOW()   | Creation timestamp                             |
-| updated_at          | TIMESTAMP     | NOT NULL, DEFAULT NOW()   | Last update timestamp                          |
+| created_at          | TIMESTAMPTZ   | NOT NULL, DEFAULT NOW()   | Creation timestamp                             |
+| updated_at          | TIMESTAMPTZ   | NOT NULL, DEFAULT NOW()   | Last update timestamp                          |
 
 **Indexes:**
-- `idx_notification_template_name` on `name`
-- `idx_notification_template_active` on `is_active` 
-- `idx_notification_template_priority` on `priority`
-- `idx_notification_template_recipients_gin` (GIN) on `recipients`
+- `idx_notif_templ_name` on `name`
+- `idx_notif_templ_active` on `is_active` 
+- `idx_notif_templ_priority` on `priority`
+- `idx_notif_templ_recip_gin` (GIN) on `recipients`
+
+**Validators:**
+- `validate_recipients` ensures proper JSON structure for recipients
 
 **Example recipients:**
 ```json
@@ -302,25 +327,24 @@ Records of notification delivery attempts.
 
 | Column             | Type          | Constraints               | Description                                    |
 |--------------------|---------------|---------------------------|------------------------------------------------|
-| id                 | BIGSERIAL     | PRIMARY KEY               | Auto-incrementing identifier                   |
+| id                 | BIGSERIAL      | PRIMARY KEY               | Auto-incrementing identifier                   |
 | event_id           | BIGINT        | FK → events.id, NOT NULL (CASCADE) | Associated event                      |
 | template_id        | BIGINT        | FK → notification_templates.id, NOT NULL | Template used                  |
-| recipient_type     | VARCHAR(20)   | NOT NULL                  | email, sms, webhook                            |
+| notification_type  | VARCHAR(20)   | NOT NULL                  | email, sms, webhook                            |
 | recipient_address  | TEXT          | NOT NULL                  | Email address, phone, webhook URL              |
 | recipient_name     | VARCHAR(255)  | NULL                      | Human-readable recipient name                  |
 | rendered_message   | TEXT          | NOT NULL                  | Final message with placeholders filled         |
 | status             | VARCHAR(20)   | NOT NULL, DEFAULT 'pending' | pending, sent, failed                       |
-| priority           | INTEGER       | DEFAULT 1                 | Delivery priority (lower = higher priority)    |
 | attempt_count      | INTEGER       | DEFAULT 0                 | Number of delivery attempts                    |
-| last_attempt_at    | TIMESTAMP     | NULL                      | Last attempt timestamp                         |
+| last_attempt_at    | TIMESTAMPTZ   | NULL                      | Last attempt timestamp                         |
 | error_message      | TEXT          | NULL                      | Error details if failed                        |
-| sent_at            | TIMESTAMP     | NULL                      | Successful delivery timestamp                  |
-| created_at         | TIMESTAMP     | NOT NULL, DEFAULT NOW()   | Creation timestamp                             |
+| sent_at            | TIMESTAMPTZ   | NULL                      | Successful delivery timestamp                  |
+| created_at         | TIMESTAMPTZ   | NOT NULL, DEFAULT NOW()   | Creation timestamp                             |
 
 **Indexes:**
-- `idx_notification_delivery_event` on `event_id`
-- `idx_notification_delivery_queue` on `(status, priority, created_at)` 
-- `idx_notification_delivery_retry` on `(status, attempt_count, last_attempt_at)`
+- `idx_notif_deliv_event` on `event_id`
+- `idx_notif_deliv_queue` on `(status, created_at)` 
+- `idx_notif_deliv_retry` on `(status, attempt_count, last_attempt_at)`
 
 ## TimescaleDB Integration
 
@@ -352,54 +376,40 @@ docker compose run --rm web python manage.py setup_timescaledb
 ```
 
 This command:
-1. Converts the `telemetry` table to a TimescaleDB hypertable
-2. Creates a GIN index on the JSONB `payload` column
-3. Sets up retention policy
-4. Enables compression for older data
+1. Drops the primary key constraint from the `telemetry` table
+2. Converts the `telemetry` table to a TimescaleDB hypertable
+3. Creates a GIN index on the JSONB `payload` column
+4. Sets up retention policy (default 365 days, configurable)
+5. Enables compression for older data (default 30 days, configurable)
 
-### Hypertable Setup in Django
-
-Configure the hypertable setup command:
+### TimescaleDB Setup Command Structure
 
 ```python
 # apps/telemetry/management/commands/setup_timescaledb.py
-def handle(self, *args, **options):
-    with connection.cursor() as cursor:
-        # Check if TimescaleDB extension is enabled
-        cursor.execute("SELECT extname FROM pg_extension WHERE extname='timescaledb';")
-        if cursor.fetchone() is None:
-            cursor.execute("CREATE EXTENSION IF NOT EXISTS timescaledb CASCADE;")
-            
-        # Create hypertable
-        cursor.execute("""
-            SELECT create_hypertable(
-                'telemetry',
-                'timestamp',
-                if_not_exists => TRUE,
-                migrate_data => TRUE
-            );
-        """)
+class Command(BaseCommand):
+    def _drop_constraints(self, cursor):
+        """Drop primary key constraint before creating hypertable."""
+        # Drop telemetry primary key constraint
         
-        # Add compression policy
-        cursor.execute("""
-            ALTER TABLE telemetry SET (
-              timescaledb.compress,
-              timescaledb.compress_segmentby = 'device_id'
-            );
-            
-            SELECT add_compression_policy(
-                'telemetry', 
-                INTERVAL '30 days'
-            );
-        """)
+    def _create_hypertable(self, cursor):
+        """Create TimescaleDB hypertable for telemetry data."""
+        # Create hypertable from telemetry table
         
-        # Add retention policy for 1 year
-        cursor.execute("""
-            SELECT add_retention_policy(
-                'telemetry',
-                INTERVAL '1 year'
-            );
-        """)
+    def _create_indexes(self, cursor):
+        """Create necessary indexes for telemetry data."""
+        # Create GIN index on payload
+        
+    def _configure_retention(self, cursor):
+        """Configure data retention policy for telemetry."""
+        # Set retention policy based on settings or env vars
+        
+    def _configure_compression(self, cursor):
+        """Configure compression policy for telemetry data."""
+        # Set compression policy based on settings or env vars
+        
+    def handle(self, *args, **options):
+        """Main entry point for TimescaleDB setup."""
+        # Call all methods in sequence
 ```
 
 ## Query Optimization Examples
@@ -415,8 +425,8 @@ FROM telemetry t
 JOIN devices d ON t.device_id = d.id
 WHERE t.device_id = 'd4e5f6a7-b8c9-4012-d345-456789012def'
   AND t.timestamp > NOW() - INTERVAL '24 hours'
-  AND t.payload @> '{"metrics": {"vibration": {}}}'
-  AND (t.payload->'metrics'->'vibration')::numeric > 15
+  AND t.payload @> '{"payload": {"vibration": {}}}'
+  AND (t.payload->'payload'->'vibration')::numeric > 15
 ORDER BY t.timestamp DESC
 LIMIT 100;
 ```
@@ -430,14 +440,14 @@ Limit  (cost=25.26..35.49 rows=8 width=352)
               ->  Bitmap Heap Scan on telemetry t  (cost=4.71..17.96 rows=8 width=336)
                     Recheck Cond: (((device_id = 'd4e5f6a7-...'::uuid) AND 
                                   ("timestamp" > (now() - '24:00:00'::interval))) AND 
-                                  (payload @> '{"metrics": {"vibration": {}}}'::jsonb))
-                    Filter: ((payload -> 'metrics'::text) -> 'vibration'::text)::numeric > '15'::numeric
+                                  (payload @> '{"payload": {"vibration": {}}}'::jsonb))
+                    Filter: ((payload -> 'payload'::text) -> 'vibration'::text)::numeric > '15'::numeric
                     ->  BitmapAnd  (cost=4.71..4.71 rows=8 width=0)
                           ->  Bitmap Index Scan on idx_telemetry_device_time  (cost=0.00..1.73 rows=40 width=0)
                                 Index Cond: ((device_id = 'd4e5f6a7-...'::uuid) AND 
                                            ("timestamp" > (now() - '24:00:00'::interval)))
                           ->  Bitmap Index Scan on idx_telemetry_payload_gin  (cost=0.00..2.97 rows=21 width=0)
-                                Index Cond: (payload @> '{"metrics": {"vibration": {}}}'::jsonb)
+                                Index Cond: (payload @> '{"payload": {"vibration": {}}}'::jsonb)
               ->  Index Scan using devices_pkey on devices d  (cost=0.42..0.85 rows=1 width=40)
                     Index Cond: (id = t.device_id)
 Planning Time: 1.245 ms
@@ -449,13 +459,37 @@ This query is optimized by:
 2. Using the JSONB GIN index to efficiently find records with vibration metrics
 3. Applying a numeric filter on the vibration value
 
+### Events with Telemetry Snapshot Query
+
+This query shows how to efficiently filter events based on telemetry snapshot data:
+
+```sql
+EXPLAIN ANALYZE
+SELECT e.id, e.severity, e.message, e.telemetry_snapshot
+FROM events e
+WHERE e.rule_id = 'a1b2c3d4-e5f6-7890-a1b2-c3d4e5f67890'
+  AND e.timestamp > NOW() - INTERVAL '7 days'
+  AND e.telemetry_snapshot @> '{"payload": {"temperature": {}}}'
+  AND (e.telemetry_snapshot->'payload'->'temperature')::numeric > 80
+ORDER BY e.timestamp DESC;
+```
+
 ## Security Considerations
 
 1. **Database credentials**: Store in `.env`, never commit to Git
 2. **Connection encryption**: Use SSL in production
 3. **Role-based access**: Create read-only users for reporting tools
 4. **Telemetry retention**: Configure retention policy based on data volume and regulatory requirements
-5. **SQL injection protection**: Use Django ORM's parameterized queries
+5. **SQL injection protection**: Use Django ORM's parameterized queries and validate all inputs
+6. **JSON validation**: Use validators to ensure proper structure of JSON fields
+
+## Important Notes on Database Design
+
+1. **Telemetry Data Independence**: The `events` table stores a snapshot of telemetry data in `telemetry_snapshot` field rather than relying on a foreign key to the `telemetry` table. This is essential because telemetry data is subject to a retention policy and can be automatically deleted after a period of time, while events need to persist longer and maintain historical context.
+
+2. **TimescaleDB Hypertables**: Only the `telemetry` table is configured as a TimescaleDB hypertable, optimized for time-series data. Other tables, including `events`, are standard PostgreSQL tables.
+
+3. **Timestamp with Time Zone**: All timestamps in the database use `timestamp with time zone` (timestamptz) data type to ensure proper timezone handling.
 
 ## Related Documentation
 

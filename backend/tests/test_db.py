@@ -23,9 +23,10 @@ class DBSmokeTest(TestCase):
             cursor.execute("SELECT 1;")
             self.assertEqual(cursor.fetchone()[0], 1)
 
-    def test_core_models_workflow(self):
-        # DeviceType + Device
-        device_type = DeviceType.objects.create(
+    def setUp(self):
+        """Set up common test data for device tests."""
+        # Create device type
+        self.device_type = DeviceType.objects.create(
             name="Smoke Temperature Sensor",
             metric_name="temperature",
             metric_unit="°C",
@@ -33,67 +34,55 @@ class DBSmokeTest(TestCase):
             metric_max=120.0,
         )
 
-        device = Device.objects.create(
-            device_type=device_type,
+        # Create device
+        self.device = Device.objects.create(
+            device_type=self.device_type,
             name="Smoke Device 1",
             serial_number="SMOKE-SN-0001",
             status="active",
             last_seen=timezone.now(),
         )
 
-        self.assertEqual(DeviceType.objects.count(), 1)
-        self.assertEqual(Device.objects.count(), 1)
-
-        # Telemetry
-        payload = {
+        # Create telemetry
+        self.payload = {
             "version": "1.0.0",
-            "serial_number": device.serial_number,
+            "serial_number": self.device.serial_number,
             "value": 22.5,
-            "unit": device_type.metric_unit,
+            "unit": self.device_type.metric_unit,
         }
-        telemetry = Telemetry.objects.create(device=device, payload=payload)
+        self.telemetry = Telemetry.objects.create(
+            device=self.device, payload=self.payload
+        )
 
-        self.assertIsNotNone(telemetry.id)
-        self.assertEqual(telemetry.device_id, device.id)
-        self.assertIn("value", telemetry.payload)
-
-        # JSONField query
-        self.assertEqual(Telemetry.objects.filter(payload__has_key="value").count(), 1)
-
-        # Rule
-        rule = Rule.objects.create(
-            device=device,
+        # Create rule
+        self.rule = Rule.objects.create(
+            device=self.device,
             name="Smoke High Temperature Rule",
-            operator="gt",
+            comparison_operator="gt",
             threshold=30.0,
             action_config=[
-                {"type": "notification", "template_id": 1},
+                {"type": "notification", "template_id": 1, "cooldown_minutes": 15},
             ],
-            cooldown_minutes=15,
             is_enabled=True,
         )
 
-        self.assertEqual(Rule.objects.filter(device=device, is_enabled=True).count(), 1)
-
-        # Event
-        event = Event.objects.create(
-            rule=rule,
-            telemetry_id=telemetry.id,
+        # Create event
+        self.event = Event.objects.create(
+            rule=self.rule,
             timestamp=timezone.now(),
             severity="warning",
             message="Smoke test event",
             execution_results=[{"type": "notification", "status": "completed"}],
-            metadata={"telemetry_snapshot": telemetry.payload},
+            telemetry_snapshot={
+                "device_id": str(self.device.id),
+                "timestamp": self.telemetry.timestamp.isoformat(),
+                "payload": self.telemetry.payload,
+            },
             status="new",
         )
 
-        self.assertIsNotNone(event.id)
-        self.assertEqual(event.rule_id, rule.id)
-        self.assertEqual(event.telemetry_id, telemetry.id)
-        self.assertEqual(Event.objects.filter(rule__device=device).count(), 1)
-
-        # Notification
-        template = NotificationTemplate.objects.create(
+        # Create notification template and delivery
+        self.template = NotificationTemplate.objects.create(
             name="Smoke Template",
             message_template="Alert: {message}",
             recipients=[{"type": "email", "address": "smoke@example.com"}],
@@ -103,23 +92,71 @@ class DBSmokeTest(TestCase):
             is_active=True,
         )
 
-        delivery = NotificationDelivery.objects.create(
-            event=event,
-            template=template,
-            recipient_type="email",
+        self.delivery = NotificationDelivery.objects.create(
+            event=self.event,
+            template=self.template,
+            notification_type=NotificationDelivery.NotificationType.EMAIL,
             recipient_address="smoke@example.com",
             recipient_name="Smoke User",
             rendered_message="Alert: Smoke test event",
-            status="pending",
-            priority=1,
+            status=NotificationDelivery.NotificationStatus.PENDING,
             attempt_count=0,
         )
 
+    def test_device_type_and_device_creation(self):
+        """Test creating device types and devices."""
+        self.assertEqual(DeviceType.objects.count(), 1)
+        self.assertEqual(Device.objects.count(), 1)
+        self.assertEqual(self.device.device_type, self.device_type)
+        self.assertEqual(self.device.name, "Smoke Device 1")
+
+    def test_telemetry_creation(self):
+        """Test telemetry creation and JSON fields."""
+        self.assertIsNotNone(self.telemetry.id)
+        self.assertEqual(self.telemetry.device_id, self.device.id)
+        self.assertIn("value", self.telemetry.payload)
+        self.assertEqual(self.telemetry.payload["value"], 22.5)
+
+    def test_telemetry_json_queries(self):
+        """Test querying JSON fields in telemetry."""
+        self.assertEqual(Telemetry.objects.filter(payload__has_key="value").count(), 1)
+        self.assertEqual(Telemetry.objects.filter(payload__value=22.5).count(), 1)
+
+    def test_rule_creation(self):
+        """Test rule creation and querying."""
+        self.assertEqual(
+            Rule.objects.filter(device=self.device, is_enabled=True).count(), 1
+        )
+        self.assertEqual(self.rule.name, "Smoke High Temperature Rule")
+        self.assertEqual(self.rule.comparison_operator, "gt")
+        self.assertEqual(float(self.rule.threshold), 30.0)
+
+    def test_event_creation(self):
+        """Test event creation and relationships."""
+        self.assertIsNotNone(self.event.id)
+        self.assertEqual(self.event.rule_id, self.rule.id)
+        self.assertIsNotNone(self.event.telemetry_snapshot)
+        self.assertEqual(Event.objects.filter(rule__device=self.device).count(), 1)
+
+    def test_event_telemetry_snapshot(self):
+        """Test event telemetry snapshot queries."""
+        self.assertEqual(
+            Event.objects.filter(telemetry_snapshot__has_key="payload").count(), 1
+        )
+        self.assertEqual(
+            self.event.telemetry_snapshot["device_id"], str(self.device.id)
+        )
+        self.assertIn("payload", self.event.telemetry_snapshot)
+
+    def test_notification_creation(self):
+        """Test notification template and delivery creation."""
         self.assertEqual(NotificationTemplate.objects.count(), 1)
         self.assertEqual(NotificationDelivery.objects.count(), 1)
-        self.assertEqual(delivery.event_id, event.id)
+        self.assertEqual(self.delivery.event_id, self.event.id)
+        self.assertEqual(self.delivery.template_id, self.template.id)
 
-        # Metadata JSON query
-        self.assertEqual(
-            Event.objects.filter(metadata__has_key="telemetry_snapshot").count(), 1
-        )
+    def test_notification_template_json(self):
+        """Test notification template JSON handling."""
+        self.assertEqual(len(self.template.recipients), 1)
+        self.assertEqual(self.template.recipients[0]["type"], "email")
+        self.assertEqual(self.template.recipients[0]["address"], "smoke@example.com")
