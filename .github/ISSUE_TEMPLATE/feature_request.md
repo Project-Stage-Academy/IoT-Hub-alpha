@@ -22,6 +22,3 @@ assignees: ''
 
 ## 🏗 Technical Notes (Optional)
 *Any specific implementation ideas, libraries to use, or database changes.*
-
-## 🔗 Related Epic
-*Link this issue to a parent Epic or User Story.*

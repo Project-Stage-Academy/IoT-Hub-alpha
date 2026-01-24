@@ -20,7 +20,8 @@
 - [ ] **Testing:** New and existing unit tests pass via `pytest`.
 - [ ] **Docker:** I have verified the changes run correctly in the `docker compose` environment.
 - [ ] **Documentation:** I have updated the `README.md` or files in `/docs` if necessary.
-- [ ] **Reviewer:** Two reviewer and mentor is assigned to this PR.
+- [ ] **Issue Linking:** PR linked to corresponding issue/User Story
+- [ ] **Reviewer:** Two teammates and a mentor or expert are assigned to this PR.
 
 ## 📸 Evidence (Optional)
 *Add screenshots, logs, or terminal output to demonstrate the working feature or fix.*
