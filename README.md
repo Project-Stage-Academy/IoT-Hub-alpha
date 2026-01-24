@@ -63,14 +63,14 @@ docker compose up -d --build
 
 For detailed database setup, schema description, and operations guide, please refer to the [Database Documentation](docs/readme-database.md).
 
-Run migrations and create an administrative account to access the dashboard:
+Run migrations to set up the database:
 
 ```bash
 # Apply database migrations
 docker compose run --rm migrate
 ```
 
-Initialize roles and users with the management commands, please refer to the [Role capabilities](docs/admin.md).
+To initialize roles and users, see the [Admin Documentation](docs/admin.md).
 
 ## Docker Skeleton (Current)
 

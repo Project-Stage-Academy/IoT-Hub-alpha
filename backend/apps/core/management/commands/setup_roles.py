@@ -68,7 +68,7 @@ class Command(BaseCommand):
 
         from apps.devices.models import Device, DeviceType
         from apps.events.models import Event
-        from apps.notifications.models import Notification
+        from apps.notifications.models import NotificationTemplate, NotificationDelivery
         from apps.rules.models import Rule
         from apps.telemetry.models import Telemetry
 
@@ -81,7 +81,8 @@ class Command(BaseCommand):
                 Event: ["change", "view"],
                 Rule: ["add", "change", "view"],
                 Telemetry: ["view"],
-                Notification: ["view"],
+                NotificationTemplate: ["view"],
+                NotificationDelivery: ["view"],
             },
             "Viewers": {
                 Device: ["view"],
@@ -89,7 +90,8 @@ class Command(BaseCommand):
                 Event: ["view"],
                 Rule: ["view"],
                 Telemetry: ["view"],
-                Notification: ["view"],
+                NotificationTemplate: ["view"],
+                NotificationDelivery: ["view"],
             },
         }
 
