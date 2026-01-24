@@ -9,10 +9,6 @@
 5. [Seeding Data](#seeding-data)
 6. [Backup and Restore](#backup-and-restore)
 7. [Troubleshooting](#troubleshooting)
-<<<<<<< HEAD
-=======
-8. [Production Considerations](#production-considerations)
->>>>>>> 3647bd7 (update documentation)
 
 ---
 
@@ -31,7 +27,6 @@ docker compose up -d db
 docker compose ps
 
 # 4. Run migrations
-<<<<<<< HEAD
 docker compose run --rm migrate
 
 # 5. Set up TimescaleDB hypertables
@@ -42,18 +37,6 @@ docker compose run --rm web python manage.py createsuperuser
 
 # 7. Load seed data
 docker compose run --rm web python scripts/seed_data.py
-=======
-docker compose run --rm backend python manage.py migrate
-
-# 5. Set up TimescaleDB hypertables
-docker compose run --rm backend python manage.py setup_timescaledb
-
-# 6. Create superuser
-docker compose run --rm backend python manage.py createsuperuser
-
-# 7. Load seed data
-docker compose run --rm backend python scripts/seed_data.py
->>>>>>> 3647bd7 (update documentation)
 
 # 8. Start all services
 docker compose up
