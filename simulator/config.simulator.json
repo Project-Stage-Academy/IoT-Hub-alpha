@@ -1,28 +1,35 @@
 {
-    "default_url": "https://iot-industry.redocly.app/_mock/openapi/telemetry",
-    "default_data_file": [
-        "test_send.json"
-    ],
-    "default_timeout": 5,
-    "log_file": "sim_log.jsonl",
-    "devices": [
-        {
-            "name": "device1",
-            "data": {
-                "schema_version": "1.0",
-                "ssn": "TEMP-SN-002",
-                "value": 9552
-            },
-            "expected": 202
-        },
-        {
-            "name": "device2",
-            "data": {
-                "schema_version": "1.0",
-                "ssn": "PWR-SN-003",
-                "value": 3244
-            },
-            "expected": 202
-        }
-    ]
+  "default_url": "https://iot-industry.redocly.app/_mock/openapi/telemetry",
+  "default_data_file": ["test_send.json"],
+  "default_timeout": 5,
+  "log_file": "sim_log.jsonl",
+  "devices": [
+    {
+      "name": "device1",
+      "data": {
+        "schema_version": "1.0",
+        "ssn": "TEMP-SN-002",
+        "value": 9552
+      },
+      "expected": 202
+    },
+    {
+      "name": "device2",
+      "data": {
+        "schema_version": "1.0",
+        "ssn": "PWR-SN-003",
+        "value": 3244
+      },
+      "expected": 202
+    },
+    {
+      "name": "rule_trigger_power",
+      "data": {
+        "schema_version": "1.0",
+        "ssn": "CUR-SN-001",
+        "value": 20000
+      },
+      "expected": 202
+    }
+  ]
 }

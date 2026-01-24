@@ -127,11 +127,15 @@ any further schema will have additional fields
 ## `6) Usage`
 Basic run (HTTP mode, using default demos from config)
 ```
-python run.py
+python -m simulator.run
 ```
 Infinite mode
 ```
-python run.py -c 0
+python -m simulator.run -d device1 -c 0
+```
+Using docker compose
+```
+docker compose run --rm simulator
 ```
 
 ### CLI Options
@@ -156,12 +160,12 @@ Logs are written in JSON Lines (JSONL) format.
 
 Run tasks located in Demo1.json file, with verbose and log enabled 5 times with a delay of 0.5 seconds:
 ```
-python run.py -f Demo1.json -v -l -c 5 -r 0.5
+python -m simulator.run -f Demo1.json -v -l -c 5 -r 0.5
 ```
 
 Run device1 (located in config) continuously with a delay of 1 second with no verbose console output and no file logging:
 ```
-python run.py -d device1 -c 0 -r 1
+python -m simulator.run -d device1 -c 0 -r 1
 ```
 
 ## `9) Limitations`

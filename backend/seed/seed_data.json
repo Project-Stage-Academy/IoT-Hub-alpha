@@ -2,7 +2,7 @@
   "device_types": [
     {
       "name": "vibration_sensor",
-      "description": "Industrial vibration monitoring sensor for rotating equipment",
+      "description": "Industrial vibration monitoring sensor for rotating machinery",
       "metric_name": "vibration",
       "metric_unit": "mm_s",
       "metric_min": "0.0000",
@@ -10,7 +10,7 @@
     },
     {
       "name": "temperature_sensor",
-      "description": "High-precision temperature sensor for industrial equipment",
+      "description": "High-precision temperature sensor for industrial equipment monitoring",
       "metric_name": "temperature",
       "metric_unit": "celsius",
       "metric_min": "-40.0000",
@@ -18,17 +18,41 @@
     },
     {
       "name": "power_meter",
-      "description": "3-phase power consumption meter for industrial machinery",
-      "metric_name": "pressure",
+      "description": "Three-phase electrical power consumption meter for industrial machinery",
+      "metric_name": "power",
       "metric_unit": "kwh",
       "metric_min": "0.0000",
       "metric_max": "100.0000"
+    },
+    {
+      "name": "flow_meter",
+      "description": "Liquid flow measurement device for industrial pipeline systems",
+      "metric_name": "flow_rate",
+      "metric_unit": "l_min",
+      "metric_min": "0.0000",
+      "metric_max": "500.0000"
+    },
+    {
+      "name": "humidity_sensor",
+      "description": "Industrial humidity sensor for environmental monitoring in production areas",
+      "metric_name": "humidity",
+      "metric_unit": "percent",
+      "metric_min": "0.0000",
+      "metric_max": "100.0000"
+    },
+    {
+      "name": "current_sensor",
+      "description": "Electrical current sensor for monitoring load on industrial equipment",
+      "metric_name": "current",
+      "metric_unit": "ampere",
+      "metric_min": "0.0000",
+      "metric_max": "200.0000"
     }
   ],
   "devices": [
     {
       "device_type": "vibration_sensor",
-      "name": "Lathe Machine #1 Vibration Sensor",
+      "name": "Lathe #1 Vibration Sensor",
       "serial_number": "VIB-SN-001",
       "location": "Workshop A, Machine ID: LATHE-001",
       "status": "active"
@@ -42,7 +66,7 @@
     },
     {
       "device_type": "power_meter",
-      "name": "Press Machine Power Meter",
+      "name": "Press #3 Power Meter",
       "serial_number": "PWR-SN-003",
       "location": "Workshop A, Machine ID: PRESS-003",
       "status": "active"
@@ -53,30 +77,57 @@
       "serial_number": "VIB-SN-004",
       "location": "Workshop C, Machine ID: GRIND-004",
       "status": "inactive"
+    },
+    {
+      "device_type": "flow_meter",
+      "name": "Cooling Circuit Flow Meter",
+      "serial_number": "FLW-SN-001",
+      "location": "Basement A, Machine ID: FLOW-001",
+      "status": "active"
+    },
+    {
+      "device_type": "humidity_sensor",
+      "name": "Workshop 3A Humidity Sensor",
+      "serial_number": "HMD-SN-001",
+      "location": "Workshop 3A, Machine ID: HUMD-001",
+      "status": "active"
+    },
+    {
+      "device_type": "current_sensor",
+      "name": "Hangar 3A Current Sensor",
+      "serial_number": "CUR-SN-001",
+      "location": "Hangar 3A, Machine ID: CURR-001",
+      "status": "active"
+    },
+    {
+      "device_type": "current_sensor",
+      "name": "Hangar 3 Current Sensor",
+      "serial_number": "CUR-SN-003",
+      "location": "Hangar 3, Machine ID: CURR-005",
+      "status": "active"
     }
   ],
   "rules": [
     {
       "device": "VIB-SN-001",
-      "name": "High Vibration Alert - Lathe #1",
-      "description": "Low vibration levels, machine might be malfunctioning",
-      "operator": "lt",
+      "name": "Low Vibration Alert – Lathe #1",
+      "description": "Alerts maintenance when vibration drops below expected operating range",
+      "comparison_operator": "lt",
       "threshold": 15.3,
       "action_config": [
         {
           "type": "notification",
-          "template_id": 1,
+          "template_id": "Critical Vibration Alert",
           "recipients": ["maintenance@factory.com", "supervisor@factory.com"]
         }
       ],
-      "cooldown_minutes": 30,
       "is_enabled": true
     },
     {
       "device": "TEMP-SN-002",
-      "name": "Critical Temperature - CNC Mill #2",
-      "description": "Shuts down machine if temperature exceeds critical threshold",
-      "operator": "gt",
+      "name": "Critical Temperature – CNC Mill #2",
+      "description": "Stops the machine if temperature exceeds the critical threshold",
+      "comparison_operator": "gt",
       "threshold": 100.8,
       "action_config": [
         {
@@ -85,66 +136,173 @@
         },
         {
           "type": "notification",
-          "template_id": 2,
+          "template_id": "Temperature Emergency",
           "recipients": ["emergency@factory.com"]
         }
       ],
-      "cooldown_minutes": 60,
       "is_enabled": true
     },
     {
       "device": "PWR-SN-003",
       "name": "High Power Consumption Warning",
-      "description": "Alerts energy management when power consumption is high",
-      "operator": "gt",
+      "description": "Alerts energy management when power consumption exceeds normal levels",
+      "comparison_operator": "gt",
       "threshold": 80.5,
       "action_config": [
         {
           "type": "notification",
-          "template_id": 3,
+          "template_id": "Power Consumption Warning",
           "recipients": ["energy@factory.com"]
         }
       ],
-      "cooldown_minutes": 15,
       "is_enabled": true
+    },
+    {
+      "device": "FLW-SN-001",
+      "name": "High Flow Rate Warning",
+      "description": "Alerts management when flow rate exceeds safe operating limits",
+      "comparison_operator": "gt",
+      "threshold": 300.0,
+      "action_config": [
+        {
+          "type": "notification",
+          "template_id": "Flow Rate Warning",
+          "recipients": ["management@factory.com"]
+        }
+      ],
+      "is_enabled": true
+    },
+    {
+      "device": "FLW-SN-001",
+      "name": "Low Flow Rate Warning",
+      "description": "Alerts management when flow rate drops below minimum required levels",
+      "comparison_operator": "lt",
+      "threshold": 50.0,
+      "action_config": [
+        {
+          "type": "notification",
+          "template_id": "Flow Rate Warning",
+          "recipients": ["management@factory.com"]
+        }
+      ],
+      "is_enabled": true
+    },
+    {
+      "device": "HMD-SN-001",
+      "name": "High Humidity Warning",
+      "description": "Alerts management when humidity exceeds acceptable levels",
+      "comparison_operator": "gt",
+      "threshold": 70,
+      "action_config": [
+        {
+          "type": "notification",
+          "template_id": "Humidity Warning",
+          "recipients": ["management@factory.com"]
+        }
+      ],
+      "is_enabled": true
+    },
+    {
+      "device": "CUR-SN-001",
+      "name": "High Current Draw Warning",
+      "description": "Alerts management when electrical current draw is abnormally high",
+      "comparison_operator": "gt",
+      "threshold": 160,
+      "action_config": [
+        {
+          "type": "notification",
+          "template_id": "Power Consumption Warning",
+          "recipients": ["management@factory.com"]
+        }
+      ],
+      "is_enabled": true
+    },
+    {
+      "device": "CUR-SN-001",
+      "name": "Critical Current Draw Alert",
+      "description": "Alerts multiple stakeholders when current draw reaches critical levels",
+      "comparison_operator": "gt",
+      "threshold": 190,
+      "action_config": [
+        {
+          "type": "notification",
+          "template_id": "Power Consumption Warning",
+          "recipients": ["management@factory.com", "energy@support.com", "supervisor@factory.com"]
+        }
+      ],
+      "is_enabled": true
+    },
+    {
+      "device": "CUR-SN-003",
+      "name": "Unexpected Low Current Alert",
+      "description": "Alerts management when current draw indicates possible machine shutdown",
+      "comparison_operator": "lt",
+      "threshold": 20,
+      "action_config": [
+        {
+          "type": "notification",
+          "template_id": "Power Consumption Warning",
+          "recipients": ["management@factory.com"]
+        }
+      ],
+      "is_enabled": false
     }
   ],
   "notification_templates": [
     {
       "name": "Critical Vibration Alert",
-      "message_template": "ALERT: {severity} vibration detected on {device_name}. Current value: {value} {unit}. Please check immediately.",
+      "message_template": "ALERT: {severity} vibration detected on {device_name}. Current value: {value} {unit}. Immediate inspection required.",
       "recipients": [
-        {"type": "email", "address": "maintenance@factory.com"},
-        {"type": "email", "address": "supervisor@factory.com"},
-        {"type": "sms", "phone": "+380501234567"}
+        { "type": "email", "address": "maintenance@factory.com" },
+        { "type": "email", "address": "supervisor@factory.com" },
+        { "type": "sms", "phone": "+380501234567" }
       ],
       "priority": 1,
       "retry_count": 3,
       "retry_delay_minutes": 5,
       "is_active": true
-  },
-  {
+    },
+    {
       "name": "Temperature Emergency",
-      "message_template": "EMERGENCY: Critical temperature ({value} {unit}) exceeded on {device_name}. Machine has been stopped.",
+      "message_template": "EMERGENCY: Critical temperature ({value} {unit}) detected on {device_name}. The machine has been automatically stopped.",
       "recipients": [
-        {"type": "email", "address": "emergency@factory.com"},
-        {"type": "webhook", "url": "https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXX"}
+        { "type": "email", "address": "emergency@factory.com" },
+        {
+          "type": "webhook",
+          "url": "https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXX"
+        }
       ],
       "priority": 1,
       "retry_count": 5,
       "retry_delay_minutes": 2,
       "is_active": true
-  },
-  {
+    },
+    {
       "name": "Power Consumption Warning",
-      "message_template": "WARNING: High power consumption ({value} {unit}) detected on {device_name}.",
-      "recipients": [
-        {"type": "email", "address": "energy@factory.com"}
-      ],
+      "message_template": "WARNING: Elevated power consumption ({value} {unit}) detected on {device_name}.",
+      "recipients": [{ "type": "email", "address": "energy@factory.com" }],
       "priority": 2,
       "retry_count": 2,
       "retry_delay_minutes": 10,
       "is_active": true
-  }
+    },
+    {
+      "name": "Humidity Warning",
+      "message_template": "WARNING: High humidity level ({value} {unit}) detected on {device_name}.",
+      "recipients": [{ "type": "email", "address": "energy@factory.com" }],
+      "priority": 2,
+      "retry_count": 2,
+      "retry_delay_minutes": 10,
+      "is_active": true
+    },
+    {
+      "name": "Flow Rate Warning",
+      "message_template": "WARNING: Abnormal flow rate ({value} {unit}) detected on {device_name}.",
+      "recipients": [{ "type": "email", "address": "energy@factory.com" }],
+      "priority": 2,
+      "retry_count": 2,
+      "retry_delay_minutes": 10,
+      "is_active": true
+    }
   ]
 }

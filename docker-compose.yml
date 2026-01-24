@@ -110,6 +110,18 @@ services:
     networks:
       - iot_hub_net
 
+  simulator:
+    build:
+      context: .
+      dockerfile: simulator/Dockerfile
+    working_dir: /app
+    volumes:
+      - ./simulator:/app/simulator
+    depends_on:
+      - web
+    networks:
+      - iot_hub_net
+
 networks:
   iot_hub_net:
     name: iot_hub_net

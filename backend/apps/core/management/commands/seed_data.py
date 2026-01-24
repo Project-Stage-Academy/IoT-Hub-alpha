@@ -141,8 +141,9 @@ class Command(BaseCommand):
         if create_superuser:
             self._seed_super_user()
         device_map = self._seed_device(data, stats)
-        self._seed_rule(data, device_map, stats)
-        self._seed_notif_template(data, stats)
+        notif_map = self._seed_notif_template(data, stats)
+        self._seed_rule(data, device_map, notif_map, stats)
+        
 
     def _seed_super_user(self) -> None:
         email = os.getenv("DJANGO_SUPERUSER_EMAIL", None)
@@ -216,29 +217,33 @@ class Command(BaseCommand):
         return d_map
 
 
-    def _seed_rule(self, data: SeedData, device_map: dict[str, Device], stats: StatsTally) -> None:
+    def _seed_rule(self, data: SeedData, device_map: dict[str, Device], notif_map: dict[str, int], stats: StatsTally) -> None:
         for rule in data.rules:
             device_ref = rule.device
             if device_ref not in device_map:
                 raise CommandError(f"Unknown device '{device_ref}' referenced by rule '{rule.name}'")
+            for action_conf in rule.action_config:
+                if "template_id" in action_conf.model_fields_set:
+                    action_conf.template_id = notif_map.get(str(action_conf.template_id))
+            action_config_payload = [ac.model_dump(exclude_none=True) for ac in rule.action_config]
             _, created = Rule.objects.update_or_create(
                 name=rule.name,
                 device=device_map[rule.device],
                 defaults={
                     "description": rule.description,
-                    "operator": rule.operator,
+                    "comparison_operator": rule.comparison_operator,
                     "threshold": rule.threshold,
-                    "action_config": rule.action_config,
-                    "cooldown_minutes": rule.cooldown_minutes,
+                    "action_config": action_config_payload,
                     "is_enabled": rule.is_enabled
                 }
             )
             stats.rules.add(created=created)
         
 
-    def _seed_notif_template(self, data: SeedData, stats: StatsTally) -> None:
+    def _seed_notif_template(self, data: SeedData, stats: StatsTally) -> dict[str, int]:
+        notif_map: dict[str, int] = {}
         for notification in data.notification_templates:
-            _, created = NotificationTemplate.objects.update_or_create(
+            obj_notif, created = NotificationTemplate.objects.update_or_create(
                 name=notification.name,
                 defaults={
                     "message_template": notification.message_template,
@@ -250,3 +255,5 @@ class Command(BaseCommand):
                 }
             )
             stats.notification_templates.add(created=created)
+            notif_map[obj_notif.name] = obj_notif.id
+        return notif_map

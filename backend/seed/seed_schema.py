@@ -19,14 +19,20 @@ class DeviceSeed(BaseModel):
     location: str = ""
     status: str = "active"
 
+class ActionConfig(BaseModel):
+    type: str
+    template_id: str | int | None = None
+    recipients: list[str] | None = None
+    machine_id: str | None = None
+
+
 class RuleSeed(BaseModel):
     name: str
     device: str
-    operator: str
+    comparison_operator: str
     description: str
     threshold: Decimal
-    action_config: list[dict[Any, Any]]
-    cooldown_minutes: int
+    action_config: list[ActionConfig]
     is_enabled: bool
 
 class NotificationTemplateSeed(BaseModel):
