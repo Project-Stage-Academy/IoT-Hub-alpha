@@ -1,0 +1,398 @@
+[
+  {
+    "model": "devices.devicetype",
+    "pk": "a1b2c3d4-e5f6-4789-a012-123456789abc",
+    "fields": {
+      "name": "vibration_sensor",
+      "description": "Industrial vibration monitoring sensor for rotating equipment",
+      "metric_name": "vibration",
+      "metric_unit": "mm_s",
+      "metric_min": "0.0000",
+      "metric_max": "20.0000",
+      "created_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "devices.devicetype",
+    "pk": "b2c3d4e5-f6a7-4890-b123-234567890bcd",
+    "fields": {
+      "name": "temperature_sensor",
+      "description": "High-precision temperature sensor for industrial equipment",
+      "metric_name": "temperature",
+      "metric_unit": "celsius",
+      "metric_min": "-40.0000",
+      "metric_max": "120.0000",
+      "created_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "devices.devicetype",
+    "pk": "c3d4e5f6-a7b8-4901-c234-345678901cde",
+    "fields": {
+      "name": "power_meter",
+      "description": "3-phase power consumption meter for industrial machinery",
+      "metric_name": "pressure",
+      "metric_unit": "kwh",
+      "metric_min": "0.0000",
+      "metric_max": "100.0000",
+      "created_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "devices.device",
+    "pk": "d4e5f6a7-b8c9-4012-d345-456789012def",
+    "fields": {
+      "device_type": "a1b2c3d4-e5f6-4789-a012-123456789abc",
+      "name": "Lathe Machine #1 Vibration Sensor",
+      "serial_number": "VIB-SN-001",
+      "location": "Workshop A, Machine ID: LATHE-001",
+      "status": "active",
+      "last_seen": "2025-01-19T12:00:00Z",
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-19T12:00:00Z"
+    }
+  },
+  {
+    "model": "devices.device",
+    "pk": "e5f6a7b8-c9d0-4123-e456-567890123ef0",
+    "fields": {
+      "device_type": "b2c3d4e5-f6a7-4890-b123-234567890bcd",
+      "name": "CNC Mill #2 Temperature Sensor",
+      "serial_number": "TEMP-SN-002",
+      "location": "Workshop B, Machine ID: CNC-002",
+      "status": "active",
+      "last_seen": "2025-01-19T12:00:00Z",
+      "created_at": "2025-01-02T00:00:00Z",
+      "updated_at": "2025-01-19T12:00:00Z"
+    }
+  },
+  {
+    "model": "devices.device",
+    "pk": "f6a7b8c9-d0e1-4234-f567-678901234f01",
+    "fields": {
+      "device_type": "c3d4e5f6-a7b8-4901-c234-345678901cde",
+      "name": "Press Machine Power Meter",
+      "serial_number": "PWR-SN-003",
+      "location": "Workshop A, Machine ID: PRESS-003",
+      "status": "active",
+      "last_seen": "2025-01-19T12:00:00Z",
+      "created_at": "2025-01-03T00:00:00Z",
+      "updated_at": "2025-01-19T12:00:00Z"
+    }
+  },
+  {
+    "model": "devices.device",
+    "pk": "a7b8c9d0-e1f2-4345-a678-789012345a12",
+    "fields": {
+      "device_type": "a1b2c3d4-e5f6-4789-a012-123456789abc",
+      "name": "Grinder #4 Vibration Sensor",
+      "serial_number": "VIB-SN-004",
+      "location": "Workshop C, Machine ID: GRIND-004",
+      "status": "inactive",
+      "last_seen": "2025-01-18T08:00:00Z",
+      "created_at": "2025-01-04T00:00:00Z",
+      "updated_at": "2025-01-18T08:00:00Z"
+    }
+  },
+  {
+    "model": "rules.rule",
+    "pk": "11111111-2222-3333-4444-555555555555",
+    "fields": {
+      "device": "d4e5f6a7-b8c9-4012-d345-456789012def",
+      "name": "High Vibration Alert - Lathe #1",
+      "description": "Detects dangerously high vibration levels",
+      "comparison_operator": "gte",
+      "threshold": "15.0000",
+      "action_config": [
+        {
+          "type": "notification",
+          "template_id": 1,
+          "recipients": ["maintenance@factory.com", "supervisor@factory.com"],
+          "cooldown_minutes": 30
+        }
+      ],
+      "last_triggered_at": null,
+      "is_enabled": true,
+      "created_at": "2025-01-05T00:00:00Z",
+      "updated_at": "2025-01-05T00:00:00Z"
+    }
+  },
+  {
+    "model": "rules.rule",
+    "pk": "22222222-3333-4444-5555-666666666666",
+    "fields": {
+      "device": "e5f6a7b8-c9d0-4123-e456-567890123ef0",
+      "name": "Critical Temperature - CNC Mill #2",
+      "description": "Shuts down machine if temperature exceeds critical threshold",
+      "comparison_operator": "gt",
+      "threshold": "100.0000",
+      "action_config": [
+        {
+          "type": "stop_machine",
+          "machine_id": "CNC-002",
+          "cooldown_minutes": 60
+        },
+        {
+          "type": "notification",
+          "template_id": 2,
+          "recipients": ["emergency@factory.com"],
+          "cooldown_minutes": 60
+        }
+      ],
+      "last_triggered_at": null,
+      "is_enabled": true,
+      "created_at": "2025-01-05T00:00:00Z",
+      "updated_at": "2025-01-05T00:00:00Z"
+    }
+  },
+  {
+    "model": "rules.rule",
+    "pk": "33333333-4444-5555-6666-777777777777",
+    "fields": {
+      "device": "f6a7b8c9-d0e1-4234-f567-678901234f01",
+      "name": "High Power Consumption Warning",
+      "description": "Alerts energy management when power consumption is high",
+      "comparison_operator": "gte",
+      "threshold": "80.0000",
+      "action_config": [
+        {
+          "type": "notification",
+          "template_id": 3,
+          "recipients": ["energy@factory.com"],
+          "cooldown_minutes": 15
+        }
+      ],
+      "last_triggered_at": null,
+      "is_enabled": true,
+      "created_at": "2025-01-05T00:00:00Z",
+      "updated_at": "2025-01-05T00:00:00Z"
+    }
+  },
+  {
+    "model": "telemetry.telemetry",
+    "pk": 1,
+    "fields": {
+      "device": "d4e5f6a7-b8c9-4012-d345-456789012def",
+      "timestamp": "2025-01-19T10:15:00Z",
+      "payload": {
+        "version": "1.0.0",
+        "serial_number": "VIB-SN-001",
+        "metrics": {
+          "vibration": 8.5,
+          "temperature": 45.2,
+          "operating_hours": 1250
+        }
+      }
+    }
+  },
+  {
+    "model": "telemetry.telemetry",
+    "pk": 2,
+    "fields": {
+      "device": "d4e5f6a7-b8c9-4012-d345-456789012def",
+      "timestamp": "2025-01-19T10:30:00Z",
+      "payload": {
+        "version": "1.0.0",
+        "serial_number": "VIB-SN-001",
+        "metrics": {
+          "vibration": 12.3,
+          "temperature": 52.8,
+          "operating_hours": 1250
+        }
+      }
+    }
+  },
+  {
+    "model": "telemetry.telemetry",
+    "pk": 3,
+    "fields": {
+      "device": "d4e5f6a7-b8c9-4012-d345-456789012def",
+      "timestamp": "2025-01-19T10:45:00Z",
+      "payload": {
+        "version": "1.0.0",
+        "serial_number": "VIB-SN-001",
+        "metrics": {
+          "vibration": 16.7,
+          "temperature": 58.1,
+          "operating_hours": 1251
+        }
+      }
+    }
+  },
+  {
+    "model": "events.event",
+    "pk": 1,
+    "fields": {
+      "rule": "11111111-2222-3333-4444-555555555555",
+      "telemetry_id": 3,
+      "timestamp": "2025-01-19T10:45:10Z",
+      "severity": "critical",
+      "message": "High vibration detected on Lathe Machine #1",
+      "execution_results": [
+        {
+          "type": "notification",
+          "template_id": 1,
+          "status": "completed",
+          "sent_count": 2,
+          "completed_at": "2025-01-19T10:45:15Z"
+        }
+      ],
+      "metadata": {
+        "telemetry_snapshot": {
+          "version": "1.0.0",
+          "serial_number": "VIB-SN-001",
+          "metrics": {
+            "vibration": 16.7,
+            "temperature": 58.1,
+            "operating_hours": 1251
+          }
+        },
+        "device_location": "Workshop A, Machine ID: LATHE-001",
+        "operator_on_duty": "Oleg Kobza"
+      },
+      "status": "new"
+    }
+  },
+  {
+    "model": "events.event",
+    "pk": 2,
+    "fields": {
+      "rule": "33333333-4444-5555-6666-777777777777",
+      "telemetry_id": null,
+      "timestamp": "2025-01-19T10:55:10Z",
+      "severity": "warning",
+      "message": "High power consumption on Press Machine",
+      "execution_results": [
+        {
+          "type": "notification",
+          "template_id": 3,
+          "status": "completed",
+          "sent_count": 1,
+          "completed_at": "2025-01-19T10:55:12Z"
+        }
+      ],
+      "metadata": {
+        "telemetry_snapshot": {
+          "version": "1.0.0",
+          "serial_number": "PWR-SN-003",
+          "metrics": {
+            "power": 85.2,
+            "voltage": 381,
+            "current": 223,
+            "power_factor": 0.88
+          }
+        },
+        "device_location": "Workshop A, Machine ID: PRESS-003"
+      },
+      "status": "acknowledged"
+    }
+  },
+  {
+    "model": "notifications.notificationtemplate",
+    "pk": 1,
+    "fields": {
+      "name": "Critical Vibration Alert",
+      "message_template": "ALERT: {severity} vibration detected on {device_name}. Current value: {value} {unit}. Please check immediately.",
+      "recipients": [
+        {"type": "email", "address": "maintenance@factory.com"},
+        {"type": "email", "address": "supervisor@factory.com"},
+        {"type": "sms", "phone": "+380501234567"}
+      ],
+      "priority": 1,
+      "retry_count": 3,
+      "retry_delay_minutes": 5,
+      "is_active": true,
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "notifications.notificationtemplate",
+    "pk": 2,
+    "fields": {
+      "name": "Temperature Emergency",
+      "message_template": "EMERGENCY: Critical temperature ({value} {unit}) exceeded on {device_name}. Machine has been stopped.",
+      "recipients": [
+        {"type": "email", "address": "emergency@factory.com"},
+        {"type": "webhook", "url": "https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXX"}
+      ],
+      "priority": 1,
+      "retry_count": 5,
+      "retry_delay_minutes": 2,
+      "is_active": true,
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "notifications.notificationtemplate",
+    "pk": 3,
+    "fields": {
+      "name": "Power Consumption Warning",
+      "message_template": "WARNING: High power consumption ({value} {unit}) detected on {device_name}.",
+      "recipients": [
+        {"type": "email", "address": "energy@factory.com"}
+      ],
+      "priority": 2,
+      "retry_count": 2,
+      "retry_delay_minutes": 10,
+      "is_active": true,
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "notifications.notificationdelivery",
+    "pk": 1,
+    "fields": {
+      "event": 1,
+      "template": 1,
+      "notification_type": "email",
+      "recipient_address": "maintenance@factory.com",
+      "recipient_name": "Maintenance Team",
+      "rendered_message": "ALERT: CRITICAL vibration detected on Lathe Machine #1. Current value: 16.2 mm/s. Please check immediately.",
+      "status": "sent",
+      "attempt_count": 1,
+      "last_attempt_at": "2025-01-19T11:45:00Z",
+      "error_message": null,
+      "sent_at": "2025-01-19T11:45:00Z",
+      "created_at": "2025-01-19T11:40:00Z"
+    }
+  },
+  {
+    "model": "notifications.notificationdelivery",
+    "pk": 2,
+    "fields": {
+      "event": 1,
+      "template": 1,
+      "notification_type": "sms",
+      "recipient_address": "+380501234567",
+      "recipient_name": "On-call Engineer",
+      "rendered_message": "ALERT: critical vibration detected on Lathe Machine #1. Current value: 16.7 mm_s. Please check immediately.",
+      "status": "sent",
+      "attempt_count": 1,
+      "last_attempt_at": "2025-01-19T10:45:15Z",
+      "error_message": null,
+      "sent_at": "2025-01-19T10:45:15Z",
+      "created_at": "2025-01-19T10:45:10Z"
+    }
+  },
+  {
+    "model": "notifications.notificationdelivery",
+    "pk": 3,
+    "fields": {
+      "event": 2,
+      "template": 3,
+      "notification_type": "email",
+      "recipient_address": "energy@factory.com",
+      "recipient_name": "Energy Management",
+      "rendered_message": "WARNING: HIGH power consumption detected on Press Machine. Current: 85.7 kWh. Please review usage.",
+      "status": "failed",
+      "attempt_count": 3,
+      "last_attempt_at": "2025-01-19T13:15:00Z",
+      "error_message": "SMTP connection timeout",
+      "sent_at": null,
+      "created_at": "2025-01-19T13:00:00Z"
+    }
+  }
+]
