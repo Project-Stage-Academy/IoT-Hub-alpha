@@ -47,7 +47,7 @@ services:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "--fail", "http://localhost:8000/health/"]
-      interval: 10s
+      interval: 120s
       timeout: 3s
       retries: 5
     logging: *default-logging
