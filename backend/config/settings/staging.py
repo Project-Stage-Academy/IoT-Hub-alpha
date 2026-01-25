@@ -14,31 +14,30 @@ if "default" in DATABASES:  # noqa: F405
 else:
     raise ValueError("DATABASES['default'] not configured in base settings")
 
-SECURE_SSL_REDIRECT = os.getenv("SECURE_SSL_REDIRECT", "True").lower() == "true"  # noqa: F405
-SESSION_COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", "True").lower() == "true"  # noqa: F405
-CSRF_COOKIE_SECURE = os.getenv("CSRF_COOKIE_SECURE", "True").lower() == "true"  # noqa: F405
-SECURE_BROWSER_XSS_FILTER = os.getenv("SECURE_BROWSER_XSS_FILTER", "True").lower() == "true"  # noqa: F405
-SECURE_CONTENT_TYPE_NOSNIFF = os.getenv("SECURE_CONTENT_TYPE_NOSNIFF", "True").lower() == "true"  # noqa: F405
+SECURE_SSL_REDIRECT = (
+    os.getenv("SECURE_SSL_REDIRECT", "True").lower() == "true"
+)  # noqa: F405
+SESSION_COOKIE_SECURE = (
+    os.getenv("SESSION_COOKIE_SECURE", "True").lower() == "true"
+)  # noqa: F405
+CSRF_COOKIE_SECURE = (
+    os.getenv("CSRF_COOKIE_SECURE", "True").lower() == "true"
+)  # noqa: F405
+SECURE_BROWSER_XSS_FILTER = (
+    os.getenv("SECURE_BROWSER_XSS_FILTER", "True").lower() == "true"
+)  # noqa: F405
+SECURE_CONTENT_TYPE_NOSNIFF = (
+    os.getenv("SECURE_CONTENT_TYPE_NOSNIFF", "True").lower() == "true"
+)  # noqa: F405
 X_FRAME_OPTIONS = os.getenv("X_FRAME_OPTIONS", "DENY")  # noqa: F405
 
 LOGGING = {
     **LOGGING_BASE,  # noqa: F405
-    "handlers": {
-        "console": {
-            "class": "logging.StreamHandler",
-            "formatter": "json",
-        },
-    },
     "loggers": {
+        **LOGGING_BASE.get("loggers", {}),  # noqa: F405
         "django": {
-            "handlers": ["console"],
             "level": "INFO",
-            "propagate": False,
-        },
-        "django.request": {
-            "handlers": ["console"],
-            "level": "ERROR",
-            "propagate": False,
+            "propagate": True,
         },
     },
 }
