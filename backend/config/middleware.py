@@ -1,10 +1,12 @@
 import importlib
 import logging
+import time
 import uuid
 
 from django.conf import settings
 
 from .logging import bind_request_context
+from .metrics import REQUEST_COUNT, REQUEST_LATENCY
 
 
 class RequestContextMiddleware:
@@ -35,7 +37,26 @@ class RequestContextMiddleware:
     def __call__(self, request):
         request.request_id = self._get_request_id(request)
         bind_request_context(request)
+
+        # Record request start time for metrics
+        start_time = time.time()
+
         response = self.get_response(request)
+
+        # Record request latency
+        latency = time.time() - start_time
+        REQUEST_LATENCY.labels(
+            method=request.method,
+            endpoint=request.path,
+        ).observe(latency)
+
+        # Increment request counter
+        REQUEST_COUNT.labels(
+            method=request.method,
+            endpoint=request.path,
+            status=response.status_code,
+        ).inc()
+
         request_id = getattr(request, "request_id", None)
         if request_id:
             header = getattr(settings, "REQUEST_ID_RESPONSE_HEADER", "X-Request-ID")
