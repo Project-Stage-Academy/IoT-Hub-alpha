@@ -177,7 +177,7 @@ CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", "redis://redis:6379/0
 
 REQUEST_ID_HEADER = "HTTP_X_REQUEST_ID"
 REQUEST_ID_RESPONSE_HEADER = "X-Request-ID"
-REQUEST_ID_GENERATOR = "request_id.generators.uuid4"
+REQUEST_ID_GENERATOR = "request_id.uuid4"
 
 try:
     from config.logging import setup_celery_logging_context  # noqa: E402
