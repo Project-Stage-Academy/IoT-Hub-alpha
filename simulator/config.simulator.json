@@ -1,0 +1,28 @@
+{
+    "default_url": "https://iot-industry.redocly.app/_mock/openapi/telemetry",
+    "default_data_file": [
+        "test_send.json"
+    ],
+    "default_timeout": 5,
+    "log_file": "sim_log.jsonl",
+    "devices": [
+        {
+            "name": "device1",
+            "data": {
+                "schema_version": "1.0",
+                "ssn": "SN2221144",
+                "value": 2652
+            },
+            "expected": 202
+        },
+        {
+            "name": "device2",
+            "data": {
+                "schema_version": "1.0",
+                "ssn": "SN2225555",
+                "value": 3244
+            },
+            "expected": 202
+        }
+    ]
+}

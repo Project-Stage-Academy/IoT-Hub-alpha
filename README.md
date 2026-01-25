@@ -61,6 +61,8 @@ docker compose up -d --build
 
 ### 5. Initialize the Database
 
+For detailed database setup, schema description, and operations guide, please refer to the [Database Documentation](docs/readme-database.md).
+
 Run migrations and create an administrative account to access the dashboard:
 
 ```bash

@@ -24,13 +24,12 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "request_id",
-    # "apps.core",
-    # "apps.devices",
-    # "apps.telemetry",
-    # "apps.rules",
-    # "apps.events",
-    # "apps.notifications",
+    "apps.core",
+    "apps.devices",
+    "apps.telemetry",
+    "apps.rules",
+    "apps.events",
+    "apps.notifications",
 ]
 
 MIDDLEWARE = [
