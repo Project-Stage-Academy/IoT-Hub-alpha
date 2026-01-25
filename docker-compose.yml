@@ -103,9 +103,16 @@ services:
     image: prom/prometheus:v2.54.1
     container_name: iot_hub_prometheus
     profiles: ["monitoring"]
-    # TODO: add prometheus.yml and scrape targets
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
     volumes:
+      - ./devops/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    depends_on:
+      - web
     logging: *default-logging
     networks:
       - iot_hub_net
