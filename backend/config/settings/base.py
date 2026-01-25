@@ -1,3 +1,4 @@
+import logging
 import os
 from pathlib import Path
 
@@ -32,7 +33,9 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    "request_id.middleware.RequestIdMiddleware",
     "django.middleware.security.SecurityMiddleware",
+    "config.middleware.RequestContextMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -115,27 +118,80 @@ from .telemetry import TELEMETRY_RETENTION_DAYS  # noqa: E402
 LOGGING_BASE = {
     "version": 1,
     "disable_existing_loggers": False,
+    "filters": {
+        "request_context": {"()": "config.logging.RequestContextFilter"},
+    },
     "formatters": {
         "verbose": {
             "format": "{levelname} {asctime} {module} {message}",
             "style": "{",
         },
         "json": {
-            "format": "%(asctime)s %(levelname)s %(name)s %(message)s",
+            "()": "pythonjsonlogger.jsonlogger.JsonFormatter",
+            "fmt": (
+                "%(asctime)s %(levelname)s %(name)s %(message)s "
+                "%(request_id)s %(request_method)s %(request_path)s "
+                "%(task_id)s %(task_name)s"
+            ),
+            "rename_fields": {
+                "asctime": "timestamp",
+                "levelname": "level",
+                "name": "logger",
+            },
         },
     },
     "handlers": {
         "console": {
             "class": "logging.StreamHandler",
-            "formatter": "verbose",
+            "formatter": "json",
+            "filters": ["request_context"],
         },
     },
     "root": {
         "handlers": ["console"],
         "level": "INFO",
     },
+    "loggers": {
+        "django.request": {
+            "level": "ERROR",
+            "propagate": True,
+        },
+        "django.server": {
+            "level": "INFO",
+            "propagate": True,
+        },
+        "celery": {
+            "level": "INFO",
+            "propagate": True,
+        },
+        "celery.task": {
+            "level": "INFO",
+            "propagate": True,
+        },
+    },
 }
 
 # Celery (defaults for local compose)
 CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "redis://redis:6379/0")
 CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", "redis://redis:6379/0")
+
+REQUEST_ID_HEADER = "HTTP_X_REQUEST_ID"
+REQUEST_ID_RESPONSE_HEADER = "X-Request-ID"
+REQUEST_ID_GENERATOR = "request_id.generators.uuid4"
+
+try:
+    from config.logging import setup_celery_logging_context  # noqa: E402
+except ImportError as exc:
+    logging.getLogger(__name__).exception(
+        "logging.setup_celery_logging_context_import_failed",
+        extra={"error": str(exc)},
+    )
+    setup_celery_logging_context = None
+
+if callable(setup_celery_logging_context):
+    setup_celery_logging_context()
+elif setup_celery_logging_context is not None:
+    logging.getLogger(__name__).warning(
+        "logging.setup_celery_logging_context_not_callable",
+        extra={"type": type(setup_celery_logging_context).__name__},
+    )
