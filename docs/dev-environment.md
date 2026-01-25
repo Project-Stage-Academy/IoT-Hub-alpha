@@ -25,6 +25,7 @@ Common pitfalls:
 Run from the repo root. If the scripts are not executable, use `chmod +x scripts/*.sh`.
 Windows users: run the scripts via WSL or Git Bash (PowerShell/CMD will not run `sh` scripts).
 Line endings: ensure scripts use LF (not CRLF) on Linux/macOS to avoid `/bin/sh^M` errors.
+Git Bash note: when a command includes a Linux path like `/app`, prefix it with `MSYS2_ARG_CONV_EXCL='*'` to avoid path conversion.
 
 - Start (builds if needed): `scripts/up.sh`
 - Start without override: `scripts/up.sh --no-override`
@@ -37,10 +38,13 @@ Line endings: ensure scripts use LF (not CRLF) on Linux/macOS to avoid `/bin/sh^
 ## Troubleshooting
 
 - Rebuild without cache: `docker compose build --no-cache`
-- Fix file permission issues: `docker compose exec web sh -c "ls -la /app && id"`
+- Fix file permission issues: `docker compose exec -T web sh -c 'ls -la /app && id'`
 - Clear volumes (removes DB data): `docker compose down --volumes`
 - Remove unused images/networks: `docker system prune -f`
 - Recreate containers: `docker compose up -d --build`
+- Healthcheck failed (web): `docker compose logs --tail=200 web` and verify `http://localhost:8000/health/`
+- DB not ready: `docker compose logs --tail=200 db` and `docker compose exec -T db sh -c 'pg_isready -U $POSTGRES_USER'`
+- Migrations stuck: `docker compose run --rm migrate` then restart `web`
 
 ## Health checks
 
@@ -50,7 +54,7 @@ Line endings: ensure scripts use LF (not CRLF) on Linux/macOS to avoid `/bin/sh^
 ## Service checks
 
 - Web app responds: `curl http://localhost:8000/`
-- Postgres reachable: `docker compose exec db pg_isready -U $POSTGRES_USER`
+- Postgres reachable: `docker compose exec -T db sh -c 'pg_isready -U $POSTGRES_USER'`
 - Redis reachable: `docker compose exec redis redis-cli -n 0 ping`
 - Celery worker responsive: `docker compose exec worker celery -A config inspect ping`
 

@@ -30,7 +30,7 @@ Ensure you have the following installed:
 
 ```bash
 git clone <your-repository-url>
-cd iot-catalog-hub
+cd IoT-Hub-alpha
 ```
 ## Api style guide
 
@@ -58,7 +58,24 @@ scripts/up.sh
 ```
 
 > **Note:** The dev override (`docker-compose.override.yml`) is applied automatically.  
-> **Windows:** Run the scripts via WSL or Git Bash (PowerShell/CMD won't run `sh` scripts).
+> **Windows:** Run the scripts via WSL or Git Bash (PowerShell/CMD won't run `sh` scripts).  
+> **Git Bash:** If a command includes a Linux path like `/app`, prefix it with `MSYS2_ARG_CONV_EXCL='*'` to avoid path conversion.
+
+### 4a. DIND Demo
+
+This demo runs Docker-in-Docker. It requires `--privileged` and is not for production use.
+
+```bash
+docker build -t iot-hub-dind-demo scripts/dind-demo
+docker run --privileged --name iot-hub-dind-demo -d iot-hub-dind-demo
+docker exec -it iot-hub-dind-demo docker ps
+```
+
+To stop and remove the demo container:
+
+```bash
+docker rm -f iot-hub-dind-demo
+```
 
 ### 5. Initialize the Database
 
