@@ -41,7 +41,7 @@ dv = Device.objects.count()
 nt = NotificationTemplate.objects.count()
 rl = Rule.objects.count()
 
-assert dt < 1000 and dv < 10000 and nt < 1000 and rl < 10000, 'Counts look suspiciously high after re-seed'
+assert dt < 200 and dv < 200 and nt < 200 and rl < 200, 'Counts look suspiciously high after re-seed'
 print('OK idempotency-ish counts:', dt, dv, nt, rl)
 "
 

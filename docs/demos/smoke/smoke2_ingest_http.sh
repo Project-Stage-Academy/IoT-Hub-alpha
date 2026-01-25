@@ -12,10 +12,10 @@ echo "Seeding demo data (needed so device exists)..."
 docker compose exec -T "$SERVICE" python manage.py seed_data
 
 echo "Sending $COUNT telemetry messages over HTTP via local simulator..."
-docker compose run --rm simulator/run.py \
+docker compose run --rm simulator python -m simulator.run \
   --mode http \
   --device "$DEVICE" \
   --rate "$RATE" \
-  --count "$COUNT" \
+  --count "$COUNT"
 
 echo "✅ ingest HTTP smoke OK"

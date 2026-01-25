@@ -146,6 +146,9 @@ class Command(BaseCommand):
         
 
     def _seed_super_user(self) -> None:
+#       use this
+#       call_command("setup_roles", skip_user=True, skip_group=True)
+#       or this
         email = os.getenv("DJANGO_SUPERUSER_EMAIL", None)
         password = os.getenv("DJANGO_SUPERUSER_PASSWORD", None)
 

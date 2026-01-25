@@ -74,9 +74,9 @@ This operation deletes all existing data and should only be used in development 
 
 ## 6) Demos and simulator docs
 Current available demos:
-- [Demo 1 - Device telemetry registration](./demo1-device-telemetry-register.md)
-- [Demo 2 - Rule triggering and notification handling](./demo2-rules-notifications.md)
-- [Demo 3 - Telemetry streaming aggregation](./demo3-streaming-aggregation.md)
+- [Demo 1 - Device telemetry registration](./demo_01_device_telemetry_register.md)
+- [Demo 2 - Rule triggering and notification handling](./demo_02_rules_notifications.md)
+- [Demo 3 - Telemetry streaming aggregation](./demo_03_streaming_aggregation.md)
 
 [In-depth simulator documentation](../simulator.md)
 ## 7) Troubleshooting

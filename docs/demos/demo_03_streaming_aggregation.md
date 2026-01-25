@@ -33,12 +33,10 @@ This command seeds devices, device types, rules, and aggregation-related configu
 
 ### Step 3: Start telemetry ingestion
 Navigate to the simulator directory:
-```
-cd simulator/
-```
+
 Run the simulator for a fixed amount of cycles:
 ```
-python run.py -d device1 -r 0.3 -c 100
+python -m simulator.run -d demo3.json -r 0.3 -c 100
 ```
 This command:
 

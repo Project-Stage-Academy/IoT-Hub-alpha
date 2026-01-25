@@ -8,7 +8,7 @@ DEVICE="${DEVICE:-rule_trigger_power}"
 COUNT="${COUNT:-1}"
 
 echo "Seeding demo data..."
-docker compose exec -T "$SERVICE" python manage.py seed_dev_data
+docker compose exec -T "$SERVICE" python manage.py seed_data
 
 echo "Capturing notification count before..."
 before=$(
@@ -19,10 +19,12 @@ print(NotificationDelivery.objects.count())
 )
 
 echo "Sending triggering telemetry..."
-docker compose exec -T "$SIM_SERVICE" python simulator/run.py \
+docker compose exec -T "$SIM_SERVICE" python -m simulator.run \
   --mode http \
   --device "$DEVICE" \
   --count "$COUNT"
+
+# Add manual rule triggering worker here when its done.
 
 echo "Capturing notification count after..."
 after=$(

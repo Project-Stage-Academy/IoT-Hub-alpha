@@ -1,11 +1,11 @@
-# Rule threshold triggers and notification creation
+# Device Registration and Telemetry Ingestion Demo
 
 ## `1) Goal`
-This demo demonstrates rule triggers and notification flow:
+This demo demonstrates the full telemetry ingestion flow:
 
-- Triggering rules based on configured threshold values
-- Automatic creation of notifications
-- Proper notification delivery handling
+- Seeding demo data using the `seed_data` management command
+- Running the telemetry simulator
+- Verifying successful API ingestion
 
 ---
 
@@ -30,18 +30,22 @@ docker compose exec web python manage.py seed_data
 This command seeds devices, device types, rules, and notification templates into the database.
 
 ### Step 3: Start telemetry ingestion
-Navigate to the simulator directory:
-```
-cd simulator/
+From root directory simulator directory:
+
 ```
 Run the simulator:
 ```
-python run.py -f demo2.json -r 0.5 -v
+python -m simulator.run -f demo1.json -r 0.5 -v
+```
+
+Or if docker compose is running:
+```
+docker compose run --rm simulator python -m simulator.run -f demo1.json -r 0.5 -v
 ```
 
 This command:
 
-- Sends telemetry payloads from demo2.json
+- Sends telemetry payloads from demo1.json
 
 - Runs at a rate of 2 requests per second
 
@@ -53,11 +57,4 @@ This command:
 
 - No "failed" or "error" messages should be printed
 
-- All telemetry messages should be processed successfully by the API
-
-- 3 rules MUST be triggered
-
-- The expected number of notifications MUST be generated
-
-- Notification delivery attempts MUST be recorded in the
-`notification_deliveries` database table
+- All telemetry messages should be handled properly by the API

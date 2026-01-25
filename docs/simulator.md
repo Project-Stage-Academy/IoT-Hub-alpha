@@ -125,7 +125,7 @@ any further schema will have additional fields
 
 
 ## `6) Usage`
-Basic run (HTTP mode, using default demos from config)
+Basic run (HTTP mode, using default demo files from config)
 ```
 python -m simulator.run
 ```
@@ -177,3 +177,14 @@ python -m simulator.run -d device1 -c 0 -r 1
 - No parallel execution
 
 - HTTP only supports POST
+
+## `10) Simulator dependencies`
+
+The telemetry simulator relies only on a minimal subset of dependencies.
+These are documented in:
+
+requirements-dev.txt
+
+Required for simulator execution:
+- pydantic
+- requests
