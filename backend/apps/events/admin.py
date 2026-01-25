@@ -36,9 +36,9 @@ def mark_events_new(modeladmin, request, queryset):
 
 @admin.register(Event)
 class EventAdmin(admin.ModelAdmin):
-    list_display = ['id', 'rule', 'severity', 'status', 'timestamp']
-    list_filter = ['severity', 'status', 'timestamp', 'rule']
-    search_fields = ['message', 'rule__name']
-    readonly_fields = ['id', 'timestamp', 'execution_results', 'telemetry_snapshot']
-    date_hierarchy = 'timestamp'
+    list_display = ["id", "rule", "severity", "status", "timestamp"]
+    list_filter = ["severity", "status", "timestamp", "rule"]
+    search_fields = ["message", "rule__name"]
+    readonly_fields = ["id", "timestamp", "execution_results", "telemetry_snapshot"]
+    date_hierarchy = "timestamp"
     actions = [acknowledge_events, resolve_events, mark_events_new]

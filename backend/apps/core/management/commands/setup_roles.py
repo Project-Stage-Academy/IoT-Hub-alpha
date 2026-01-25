@@ -49,9 +49,11 @@ class Command(BaseCommand):
         password = os.getenv("ADMIN_PASSWORD", "admin123")
 
         if User.objects.filter(username=username).exists():
-            self.stdout.write(self.style.WARNING(
-                f'Superuser "{username}" already exists, skipping...'
-            ))
+            self.stdout.write(
+                self.style.WARNING(
+                    f'Superuser "{username}" already exists, skipping...'
+                )
+            )
             return
 
         User.objects.create_superuser(
@@ -101,9 +103,11 @@ class Command(BaseCommand):
             if created:
                 self.stdout.write(self.style.SUCCESS(f"Created group: {role_name}"))
             else:
-                self.stdout.write(self.style.WARNING(
-                    f'Group "{role_name}" already exists, updating permissions...'
-                ))
+                self.stdout.write(
+                    self.style.WARNING(
+                        f'Group "{role_name}" already exists, updating permissions...'
+                    )
+                )
                 group.permissions.clear()
 
             for model, perm_types in model_permissions.items():
@@ -117,9 +121,9 @@ class Command(BaseCommand):
                         )
                         group.permissions.add(perm)
                     except Permission.DoesNotExist:
-                        self.stdout.write(self.style.WARNING(
-                            f"Permission {codename} not found"
-                        ))
+                        self.stdout.write(
+                            self.style.WARNING(f"Permission {codename} not found")
+                        )
 
             perm_count = group.permissions.count()
             self.stdout.write(f"{perm_count} permissions assigned")
@@ -151,18 +155,18 @@ class Command(BaseCommand):
             try:
                 group = Group.objects.get(name=group_name)
             except Group.DoesNotExist:
-                self.stdout.write(self.style.ERROR(
-                    f'Group "{group_name}" not found, skipping user "{username}"...'
-                ))
-                self.stdout.write(self.style.WARNING(
-                    "Run without --skip-groups first"
-                ))
+                self.stdout.write(
+                    self.style.ERROR(
+                        f'Group "{group_name}" not found, skipping user "{username}"...'
+                    )
+                )
+                self.stdout.write(self.style.WARNING("Run without --skip-groups first"))
                 continue
 
             if User.objects.filter(username=username).exists():
-                self.stdout.write(self.style.WARNING(
-                    f'User "{username}" already exists, skipping...'
-                ))
+                self.stdout.write(
+                    self.style.WARNING(f'User "{username}" already exists, skipping...')
+                )
                 continue
 
             user = User.objects.create_user(

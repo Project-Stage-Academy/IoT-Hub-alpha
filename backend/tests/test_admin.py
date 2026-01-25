@@ -45,7 +45,9 @@ class TestAdminLogin(TestCase):
 
     def test_operator_can_login(self):
         """Test operator can login to admin"""
-        logged_in = self.client.login(username="test_operator", password="operatorpass123")
+        logged_in = self.client.login(
+            username="test_operator", password="operatorpass123"
+        )
         self.assertTrue(logged_in)
 
         response = self.client.get("/admin/")

@@ -27,16 +27,16 @@ def disable_rules(modeladmin, request, queryset):
 @admin.register(Rule)
 class RuleAdmin(admin.ModelAdmin):
     list_display = [
-        'name',
-        'device',
-        'comparison_operator',
-        'threshold',
-        'is_enabled',
-        'last_triggered_at',
-        'created_at',
+        "name",
+        "device",
+        "comparison_operator",
+        "threshold",
+        "is_enabled",
+        "last_triggered_at",
+        "created_at",
     ]
-    list_filter = ['is_enabled', 'comparison_operator', 'device', 'created_at']
-    search_fields = ['name', 'description', 'device__name', 'device__serial_number']
-    readonly_fields = ['id', 'created_at', 'updated_at', 'last_triggered_at']
-    date_hierarchy = 'created_at'
+    list_filter = ["is_enabled", "comparison_operator", "device", "created_at"]
+    search_fields = ["name", "description", "device__name", "device__serial_number"]
+    readonly_fields = ["id", "created_at", "updated_at", "last_triggered_at"]
+    date_hierarchy = "created_at"
     actions = [enable_rules, disable_rules]
