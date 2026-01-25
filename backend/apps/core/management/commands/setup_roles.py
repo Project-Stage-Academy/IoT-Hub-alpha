@@ -11,6 +11,28 @@ User = get_user_model()
 class Command(BaseCommand):
     help = "Create admin superuser and groups with permissions"
 
+    def notify(self, message, status=None):
+        """Write a styled message to stdout."""
+        if status is None:
+            self.stdout.write(message)
+        else:
+            style = getattr(self.style, status, self.style.SUCCESS)
+            self.stdout.write(style(message))
+
+    def assign_group_permissions(self, group, model, perm_types):
+        """Assign permissions to a group for a specific model."""
+        content_type = ContentType.objects.get_for_model(model)
+        for perm_type in perm_types:
+            codename = f"{perm_type}_{model._meta.model_name}"
+            try:
+                perm = Permission.objects.get(
+                    codename=codename,
+                    content_type=content_type,
+                )
+                group.permissions.add(perm)
+            except Permission.DoesNotExist:
+                self.notify(f"Permission {codename} not found", "WARNING")
+
     def add_arguments(self, parser):
         parser.add_argument(
             "--skip-superuser",
@@ -38,21 +60,19 @@ class Command(BaseCommand):
         if not options["skip_users"]:
             self.create_users()
 
-        self.stdout.write(self.style.SUCCESS("\nSetup completed!"))
+        self.notify("\nSetup completed!", "SUCCESS")
 
     def create_superuser(self):
         """Create admin superuser"""
-        self.stdout.write("\nCreating superuser...")
+        self.notify("\nCreating superuser...")
 
         username = os.getenv("ADMIN_USERNAME", "admin")
         email = os.getenv("ADMIN_EMAIL", "admin@example.com")
         password = os.getenv("ADMIN_PASSWORD", "admin123")
 
         if User.objects.filter(username=username).exists():
-            self.stdout.write(
-                self.style.WARNING(
-                    f'Superuser "{username}" already exists, skipping...'
-                )
+            self.notify(
+                f'Superuser "{username}" already exists, skipping...', "WARNING"
             )
             return
 
@@ -61,12 +81,12 @@ class Command(BaseCommand):
             email=email,
             password=password,
         )
-        self.stdout.write(self.style.SUCCESS(f"Created superuser: {username}"))
-        self.stdout.write(f"Email: {email}")
+        self.notify(f"Created superuser: {username}", "SUCCESS")
+        self.notify(f"Email: {email}")
 
     def create_groups(self):
         """Create groups with permissions"""
-        self.stdout.write("\nCreating groups...")
+        self.notify("\nCreating groups...")
 
         from apps.devices.models import Device, DeviceType
         from apps.events.models import Event
@@ -101,36 +121,23 @@ class Command(BaseCommand):
             group, created = Group.objects.get_or_create(name=role_name)
 
             if created:
-                self.stdout.write(self.style.SUCCESS(f"Created group: {role_name}"))
+                self.notify(f"Created group: {role_name}", "SUCCESS")
             else:
-                self.stdout.write(
-                    self.style.WARNING(
-                        f'Group "{role_name}" already exists, updating permissions...'
-                    )
+                self.notify(
+                    f'Group "{role_name}" already exists, updating permissions...',
+                    "WARNING",
                 )
                 group.permissions.clear()
 
             for model, perm_types in model_permissions.items():
-                content_type = ContentType.objects.get_for_model(model)
-                for perm_type in perm_types:
-                    codename = f"{perm_type}_{model._meta.model_name}"
-                    try:
-                        perm = Permission.objects.get(
-                            codename=codename,
-                            content_type=content_type,
-                        )
-                        group.permissions.add(perm)
-                    except Permission.DoesNotExist:
-                        self.stdout.write(
-                            self.style.WARNING(f"Permission {codename} not found")
-                        )
+                self.assign_group_permissions(group, model, perm_types)
 
             perm_count = group.permissions.count()
-            self.stdout.write(f"{perm_count} permissions assigned")
+            self.notify(f"{perm_count} permissions assigned")
 
     def create_users(self):
         """Create operator and viewer users"""
-        self.stdout.write("\nCreating users...")
+        self.notify("\nCreating users...")
 
         users_config = [
             {
@@ -155,18 +162,15 @@ class Command(BaseCommand):
             try:
                 group = Group.objects.get(name=group_name)
             except Group.DoesNotExist:
-                self.stdout.write(
-                    self.style.ERROR(
-                        f'Group "{group_name}" not found, skipping user "{username}"...'
-                    )
+                self.notify(
+                    f'Group "{group_name}" not found, skipping user "{username}"...',
+                    "ERROR",
                 )
-                self.stdout.write(self.style.WARNING("Run without --skip-groups first"))
+                self.notify("Run without --skip-groups first", "WARNING")
                 continue
 
             if User.objects.filter(username=username).exists():
-                self.stdout.write(
-                    self.style.WARNING(f'User "{username}" already exists, skipping...')
-                )
+                self.notify(f'User "{username}" already exists, skipping...', "WARNING")
                 continue
 
             user = User.objects.create_user(
@@ -177,6 +181,6 @@ class Command(BaseCommand):
             )
             user.groups.add(group)
 
-            self.stdout.write(self.style.SUCCESS(f"Created user: {username}"))
-            self.stdout.write(f"Email: {user_data['email']}")
-            self.stdout.write(f"Group: {group_name}")
+            self.notify(f"Created user: {username}", "SUCCESS")
+            self.notify(f"Email: {user_data['email']}")
+            self.notify(f"Group: {group_name}")

@@ -21,12 +21,15 @@ class RecentTelemetryInline(admin.TabularInline):
     fields = ["id", "timestamp", "payload_short"]
     ordering = ["-timestamp"]
 
+    def get_formset(self, request, obj=None, **kwargs):
+        self.parent_object = obj
+        return super().get_formset(request, obj, **kwargs)
+
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        parent_id = request.resolver_match.kwargs.get("object_id")
-        if parent_id:
+        if hasattr(self, "parent_object") and self.parent_object:
             recent_ids = list(
-                Telemetry.objects.filter(device_id=parent_id)
+                Telemetry.objects.filter(device=self.parent_object)
                 .order_by("-timestamp")
                 .values_list("id", flat=True)[:DEVICE_TELEMETRY_INLINE_LIMIT]
             )

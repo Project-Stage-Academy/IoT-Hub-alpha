@@ -7,26 +7,38 @@ User = get_user_model()
 class TestAdminLogin(TestCase):
     """Test admin login functionality."""
 
+    ADMIN_USERNAME = "test_admin"
+    ADMIN_EMAIL = "admin@test.com"
+    ADMIN_PASSWORD = "adminpass123"
+
+    OPERATOR_USERNAME = "test_operator"
+    OPERATOR_EMAIL = "operator@test.com"
+    OPERATOR_PASSWORD = "operatorpass123"
+
+    VIEWER_USERNAME = "test_viewer"
+    VIEWER_EMAIL = "viewer@test.com"
+    VIEWER_PASSWORD = "viewerpass123"
+
     @classmethod
     def setUpTestData(cls):
         """Create test users"""
         cls.admin_user = User.objects.create_superuser(
-            username="test_admin",
-            email="admin@test.com",
-            password="adminpass123",
+            username=cls.ADMIN_USERNAME,
+            email=cls.ADMIN_EMAIL,
+            password=cls.ADMIN_PASSWORD,
         )
 
         cls.operator_user = User.objects.create_user(
-            username="test_operator",
-            email="operator@test.com",
-            password="operatorpass123",
+            username=cls.OPERATOR_USERNAME,
+            email=cls.OPERATOR_EMAIL,
+            password=cls.OPERATOR_PASSWORD,
             is_staff=True,
         )
 
         cls.viewer_user = User.objects.create_user(
-            username="test_viewer",
-            email="viewer@test.com",
-            password="viewerpass123",
+            username=cls.VIEWER_USERNAME,
+            email=cls.VIEWER_EMAIL,
+            password=cls.VIEWER_PASSWORD,
             is_staff=True,
         )
 
@@ -37,7 +49,9 @@ class TestAdminLogin(TestCase):
 
     def test_superuser_can_login(self):
         """Test superuser can login to admin"""
-        logged_in = self.client.login(username="test_admin", password="adminpass123")
+        logged_in = self.client.login(
+            username=self.ADMIN_USERNAME, password=self.ADMIN_PASSWORD
+        )
         self.assertTrue(logged_in)
 
         response = self.client.get("/admin/")
@@ -46,7 +60,7 @@ class TestAdminLogin(TestCase):
     def test_operator_can_login(self):
         """Test operator can login to admin"""
         logged_in = self.client.login(
-            username="test_operator", password="operatorpass123"
+            username=self.OPERATOR_USERNAME, password=self.OPERATOR_PASSWORD
         )
         self.assertTrue(logged_in)
 
@@ -55,7 +69,9 @@ class TestAdminLogin(TestCase):
 
     def test_viewer_can_login(self):
         """Test viewer can login to admin"""
-        logged_in = self.client.login(username="test_viewer", password="viewerpass123")
+        logged_in = self.client.login(
+            username=self.VIEWER_USERNAME, password=self.VIEWER_PASSWORD
+        )
         self.assertTrue(logged_in)
 
         response = self.client.get("/admin/")
