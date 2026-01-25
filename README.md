@@ -54,10 +54,11 @@ cp .env.example .env
 Build the images and start the services. The setup includes a healthcheck on `http://localhost:8000/health/` to verify the web service is responsive:
 
 ```bash
-docker compose down --remove-orphans
-docker compose up -d --build
+scripts/up.sh
 ```
 
+> **Note:** The dev override (`docker-compose.override.yml`) is applied automatically.  
+> **Windows:** Run the scripts via WSL or Git Bash (PowerShell/CMD won't run `sh` scripts).
 
 ### 5. Initialize the Database
 
@@ -98,13 +99,13 @@ docker build -t iot-hub-web -f backend/Dockerfile backend
 ### To stop all services and keep the data:
 
 ```bash
-docker compose stop
+scripts/down.sh
 ```
 
 ### To shut down and remove containers:
 
 ```bash
-docker compose down
+scripts/down.sh --volumes
 ```
 
 ## 📂 Documentation & Contributing

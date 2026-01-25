@@ -2,6 +2,38 @@
 
 This document covers common Docker troubleshooting and health inspection.
 
+## Compose override (development)
+
+The repo includes `docker-compose.override.yml` for local development.
+
+Usage:
+- Default: `docker compose up -d --build` (override is applied automatically).
+- Disable override: `docker compose -f docker-compose.yml up -d --build`.
+
+Behavior:
+- `./backend:/app` is mounted for live reload with Django's dev server.
+- `DJANGO_SETTINGS_MODULE` is forced to `config.settings.local` for `web`, `worker`, and `migrate`.
+- `collectstatic` and migrations still run, but they write into your local `backend/` tree.
+
+Common pitfalls:
+- If files do not reload, restart the `web` container; on Docker Desktop, ensure the repo is file-shared.
+- If `collectstatic` creates unexpected files, clean `backend/staticfiles/` locally.
+- If migrations do not apply, run `docker compose run --rm migrate` after code changes.
+
+## Convenience scripts
+
+Run from the repo root. If the scripts are not executable, use `chmod +x scripts/*.sh`.
+Windows users: run the scripts via WSL or Git Bash (PowerShell/CMD will not run `sh` scripts).
+Line endings: ensure scripts use LF (not CRLF) on Linux/macOS to avoid `/bin/sh^M` errors.
+
+- Start (builds if needed): `scripts/up.sh`
+- Start without override: `scripts/up.sh --no-override`
+- Stop containers (keep volumes): `scripts/down.sh`
+- Stop and remove volumes: `scripts/down.sh --volumes`
+- Reset database and rerun migrations: `scripts/reset-db.sh`
+- Tail logs: `scripts/logs.sh -f`
+- Tail logs for a service: `scripts/logs.sh -f -s web`
+
 ## Troubleshooting
 
 - Rebuild without cache: `docker compose build --no-cache`
