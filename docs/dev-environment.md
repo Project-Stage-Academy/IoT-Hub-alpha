@@ -1,66 +1,52 @@
-# Dev Environment
+# Dev environment (Docker)
 
-This document covers common Docker troubleshooting and health inspection.
+Single source of truth for local Docker workflow.
+- Quick start: `README.md`
+- Validation checklist: `docs/validation.md`
+- DIND demo: `scripts/dind-demo/README.md`
 
-## Compose override (development)
+## Requirements
 
-The repo includes `docker-compose.override.yml` for local development.
+- Docker Engine/Desktop with Compose v2
 
-Usage:
-- Default: `docker compose up -d --build` (override is applied automatically).
-- Disable override: `docker compose -f docker-compose.yml up -d --build`.
+## Windows notes
 
-Behavior:
-- `./backend:/app` is mounted for live reload with Django's dev server.
-- `DJANGO_SETTINGS_MODULE` is forced to `config.settings.local` for `web`, `worker`, and `migrate`.
-- `collectstatic` and migrations still run, but they write into your local `backend/` tree.
+- Use WSL or Git Bash for `.sh` scripts.
+- Keep LF line endings for `scripts/*.sh` and `backend/scripts/entrypoint.sh`.
+- In Git Bash, prefix commands that include `/app` with `MSYS2_ARG_CONV_EXCL='*'`.
 
-Common pitfalls:
-- If files do not reload, restart the `web` container; on Docker Desktop, ensure the repo is file-shared.
-- If `collectstatic` creates unexpected files, clean `backend/staticfiles/` locally.
-- If migrations do not apply, run `docker compose run --rm migrate` after code changes.
+## Compose override
 
-## Convenience scripts
+- Default: `docker-compose.override.yml` is applied automatically.
+- Disable: `scripts/up.sh --no-override` and `scripts/down.sh --no-override`.
 
-Run from the repo root. If the scripts are not executable, use `chmod +x scripts/*.sh`.
-Windows users: run the scripts via WSL or Git Bash (PowerShell/CMD will not run `sh` scripts).
-Line endings: ensure scripts use LF (not CRLF) on Linux/macOS to avoid `/bin/sh^M` errors.
-Git Bash note: when a command includes a Linux path like `/app`, prefix it with `MSYS2_ARG_CONV_EXCL='*'` to avoid path conversion.
+## Scripts
 
-- Start (builds if needed): `scripts/up.sh`
-- Start without override: `scripts/up.sh --no-override`
-- Stop containers (keep volumes): `scripts/down.sh`
-- Stop and remove volumes: `scripts/down.sh --volumes`
-- Reset database and rerun migrations: `scripts/reset-db.sh`
-- Tail logs: `scripts/logs.sh -f`
-- Tail logs for a service: `scripts/logs.sh -f -s web`
+- Start: `scripts/up.sh [--no-override] [--profile NAME] [services...]`
+  - Examples: `scripts/up.sh web db`, `scripts/up.sh --profile monitoring`
+- Stop: `scripts/down.sh [--no-override] [--volumes] [--remove-orphans]`
+  - `--volumes` removes DB data
+- Logs: `scripts/logs.sh [-f|--follow] [-n|--tail N] [-s|--service SERVICE]...`
+  - Examples: `scripts/logs.sh -f`, `scripts/logs.sh -f -s web`, `scripts/logs.sh --tail 200 db`
+- Reset DB (destructive): `scripts/reset-db.sh [--no-override]`
+  - Drops and recreates the DB, then runs migrations
+- DB init hook: `scripts/init-db.sh`
+  - Runs automatically inside Postgres on first boot when the DB volume is empty
 
 ## Troubleshooting
 
-- Rebuild without cache: `docker compose build --no-cache`
-- Fix file permission issues: `docker compose exec -T web sh -c 'ls -la /app && id'`
-- Clear volumes (removes DB data): `docker compose down --volumes`
-- Remove unused images/networks: `docker system prune -f`
-- Recreate containers: `docker compose up -d --build`
-- Healthcheck failed (web): `docker compose logs --tail=200 web` and verify `http://localhost:8000/health/`
-- DB not ready: `docker compose logs --tail=200 db` and `docker compose exec -T db sh -c 'pg_isready -U $POSTGRES_USER'`
-- Migrations stuck: `docker compose run --rm migrate` then restart `web`
+- Status: `docker compose ps`
+- Web logs: `docker compose logs --tail 200 web`
+- DB logs: `docker compose logs --tail 200 db`
+- DB ready check: `docker compose exec -T db pg_isready -U $POSTGRES_USER`
+- Rebuild: `docker compose build --no-cache`
+- Inspect container health: `docker inspect --format '{{json .State}}' <container>`
+- Fix permissions (container): `docker compose exec -T web sh -c 'ls -la /app && id'`
+- Clear volumes (destructive): `docker compose down --volumes`
 
-## Health checks
+## Logging (direct compose)
 
-- View status: `docker compose ps`
-- Inspect a container: `docker inspect --format '{{json .State}}' <container>`
-
-## Service checks
-
-- Web app responds: `curl http://localhost:8000/`
-- Postgres reachable: `docker compose exec -T db sh -c 'pg_isready -U $POSTGRES_USER'`
-- Redis reachable: `docker compose exec redis redis-cli -n 0 ping`
-- Celery worker responsive: `docker compose exec worker celery -A config inspect ping`
-
-## Validation
-
-Validated locally by running:
-
-- `docker build -t iot-hub-web -f backend/Dockerfile backend`
-- `docker compose up -d --build`
+- Follow all services: `docker compose logs -f`
+- Follow one service: `docker compose logs -f web`
+- Tail with timestamps: `docker compose logs --timestamps --tail 200 web`
+- Logs for multiple services: `docker compose logs -f web worker`

@@ -61,6 +61,37 @@ scripts/up.sh
 > **Windows:** Run the scripts via WSL or Git Bash (PowerShell/CMD won't run `sh` scripts).  
 > **Git Bash:** If a command includes a Linux path like `/app`, prefix it with `MSYS2_ARG_CONV_EXCL='*'` to avoid path conversion.
 
+### Entrypoint scripts (line endings)
+
+Docker runs `backend/scripts/entrypoint.sh` inside Linux containers. Docker will only execute it if:
+- The file exists at `backend/scripts/entrypoint.sh` (bind-mounted to `/app/scripts/entrypoint.sh`).
+- The file uses LF line endings (not CRLF).
+- The executable bit is set in git.
+
+If you see errors like `/bin/sh^M: bad interpreter` or `no such file or directory`, convert the file to LF in your editor and commit it. Configure git to keep LF for shell scripts:
+
+```bash
+git config core.autocrlf false   # Windows
+git config core.autocrlf input   # macOS/Linux
+git update-index --chmod=+x backend/scripts/entrypoint.sh
+```
+
+### Scripts quick reference
+
+Run these from the repo root. On Windows use WSL or Git Bash (PowerShell/CMD will not run `sh` scripts).
+
+- Start stack (builds if needed): `scripts/up.sh`
+- Start without dev override: `scripts/up.sh --no-override`
+- Start only specific services: `scripts/up.sh web db`
+- Start optional profiles: `scripts/up.sh --profile monitoring`
+- Stop containers: `scripts/down.sh`
+- Stop and remove volumes: `scripts/down.sh --volumes`
+- Tail logs: `scripts/logs.sh -f -s web`
+- Reset database (drops and recreates): `scripts/reset-db.sh`
+
+`scripts/init-db.sh` is a Postgres init hook used automatically on first boot when the DB volume is empty.
+For full options and platform notes, see `docs/dev-environment.md`.
+
 ### 4a. DIND Demo
 
 This demo runs Docker-in-Docker. It requires `--privileged` and is not for production use.

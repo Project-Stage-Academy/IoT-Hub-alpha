@@ -1,28 +1,21 @@
-# Documentation Validation Note
-Date: 2026-01-25
+# Validation
 
-Steps:
-- `git clone <repo>`
-- `cp .env.example .env`
-- `scripts/up.sh`
-- `docker compose run --rm migrate`
-- Verified:
-  - http://localhost:8000/ responds
-  - http://localhost:8000/admin/ responds
-  - `docker compose ps` shows `db` and `web` healthy
-- Override (dev):
-  - `docker compose exec -T web printenv DJANGO_SETTINGS_MODULE`
-  - `docker compose exec -T web sh -c 'ls -la /app | head'` (PowerShell/WSL)
-  - `MSYS2_ARG_CONV_EXCL='*' docker compose exec -T web sh -c 'ls -la /app | head'` (Git Bash)
-  - `docker compose exec -T web python manage.py collectstatic --noinput`
-- Scripts:
-  - `scripts/logs.sh -f -s web`
-  - `scripts/reset-db.sh`
-  - `scripts/down.sh`
-- DIND demo:
-  - `docker build -t iot-hub-dind-demo scripts/dind-demo`
-  - `docker run --privileged --name iot-hub-dind-demo -d iot-hub-dind-demo`
-  - `docker exec -it iot-hub-dind-demo docker ps`
+Use this checklist to confirm the local Docker stack is healthy.
+Prereq: stack is running (see `docs/dev-environment.md`).
 
-Notes:
-- On Windows, ensure LF line endings for `backend/scripts/entrypoint.sh` to avoid `/bin/sh^M`.
+## Checklist
+
+- `docker compose ps` shows `db` and `web` healthy
+- `curl http://localhost:8000/health/`
+- `docker compose run --rm migrate` completes
+- `scripts/logs.sh -f -s web` shows no obvious errors
+
+## Last validated
+  
+- Cold start: `scripts/up.sh`
+- Rebuild: `docker compose build --no-cache`
+- Volume persistence: `scripts/down.sh` then `scripts/up.sh` and verify DB data remains
+
+## Optional
+
+- DIND demo: `scripts/dind-demo/README.md`
