@@ -1,29 +1,21 @@
 ---
-name: Feature request
-about: Suggest a new feature or improvement
-title: "[FEATURE] "
+name: "🚀 Feature Request"
+about: Suggest an idea or a new User Story for this project.
 labels: enhancement
-assignees: ""
+assignees: ''
 ---
 
-## Summary
-Provide a concise description of the requested feature.
+## 🔗 Related Epic
+*Link this issue to a parent Epic or User Story.*
 
----
+## 🎯 Problem Statement
+*Is your feature request related to a problem? Please describe.*
 
-## Motivation
-Why is this feature needed? What problem does it solve?
+## 💡 Proposed Solution
+*A clear and concise description of what you want to happen.*
 
----
-
-## Proposed Solution
-Describe the desired behavior, API changes, or user flow.
-
----
-
-## Acceptance Criteria
-The feature is considered complete when:
-
+## ✅ Acceptance Criteria (AC)
+*Define the measurable conditions that must be met for this task to be 'Done'.*
 - [ ] Functional behavior is implemented and verified
 - [ ] Estimated implementation effort is documented
 - [ ] Technical risks are identified and mitigated
@@ -74,3 +66,8 @@ Describe alternative approaches that were considered and why they were rejected.
 
 ## Additional Context
 Include diagrams, references, or any other relevant information.
+
+---
+
+## 🏗 Technical Notes (Optional)
+*Any specific implementation ideas, libraries to use, or database changes.*
