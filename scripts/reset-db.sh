@@ -34,16 +34,27 @@ if [ "$NO_OVERRIDE" -eq 0 ] && [ -f docker-compose.override.yml ]; then
   COMPOSE_ARGS="$COMPOSE_ARGS -f docker-compose.override.yml"
 fi
 
-docker compose $COMPOSE_ARGS up -d db
+# Safety guard to avoid accidental resets outside dev environments.
+DEBUG_VALUE=""
+if [ -f .env ]; then
+  DEBUG_VALUE="$(sed -n 's/^[[:space:]]*DEBUG[[:space:]]*=[[:space:]]*//p' .env | tail -n 1)"
+elif [ -n "${DEBUG+x}" ]; then
+  DEBUG_VALUE="$DEBUG"
+fi
+DEBUG_VALUE="$(printf '%s' "$DEBUG_VALUE" | sed -e 's/[[:space:]]//g' -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//")"
+case "$DEBUG_VALUE" in
+  [Tt][Rr][Uu][Ee]|1|[Yy][Ee][Ss]|[Oo][Nn]) ;;
+  *)
+    echo "Refusing to reset DB because DEBUG is not true. Set DEBUG=True in .env to continue."
+    exit 1
+    ;;
+esac
 
-DB_NAME="$(docker compose $COMPOSE_ARGS exec -T db printenv POSTGRES_DB 2>/dev/null || true)"
-DB_USER="$(docker compose $COMPOSE_ARGS exec -T db printenv POSTGRES_USER 2>/dev/null || true)"
-DB_NAME="${DB_NAME:-iot_hub_alpha_db}"
-DB_USER="${DB_USER:-postgres}"
+docker compose $COMPOSE_ARGS up -d db
 
 i=1
 max_attempts=30
-until docker compose $COMPOSE_ARGS exec -T db pg_isready -U "$DB_USER" >/dev/null 2>&1; do
+until docker compose $COMPOSE_ARGS exec -T db pg_isready >/dev/null 2>&1; do
   if [ "$i" -ge "$max_attempts" ]; then
     echo "Database did not become ready in time."
     exit 1
@@ -52,6 +63,11 @@ until docker compose $COMPOSE_ARGS exec -T db pg_isready -U "$DB_USER" >/dev/nul
   i=$((i + 1))
   sleep 2
 done
+
+DB_NAME="$(docker compose $COMPOSE_ARGS exec -T db printenv POSTGRES_DB 2>/dev/null || true)"
+DB_USER="$(docker compose $COMPOSE_ARGS exec -T db printenv POSTGRES_USER 2>/dev/null || true)"
+DB_NAME="${DB_NAME:-iot_hub_alpha_db}"
+DB_USER="${DB_USER:-postgres}"
 
 docker compose $COMPOSE_ARGS exec -T db psql -U "$DB_USER" -d postgres \
   -c "DROP DATABASE IF EXISTS \"$DB_NAME\";"
