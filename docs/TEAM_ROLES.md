@@ -35,7 +35,16 @@ working on the IoT Catalog Hub project.
 
 ---
 
-## 4. QA / Testing Engineer
+## 4. Security Owner (Optional Role)
+
+**Responsibilities:**
+- Defines authentication and authorization approach
+- Ensures secure handling of secrets and credentials
+- Reviews security implications of design decisions
+
+---
+
+## 5. QA / Testing Engineer
 
 **Responsibilities:**
 - Writes and executes test cases
@@ -45,13 +54,29 @@ working on the IoT Catalog Hub project.
 
 ---
 
-## 5. Documentation Engineer
+## 6. Documentation Engineer
 
 **Responsibilities:**
 - Maintains project documentation
 - Updates README and technical docs
 - Documents API specifications and architecture
 - Ensures onboarding documentation is clear and up to date
+
+---
+
+## 7. Expected Deliverables per Role
+
+* **Backend Developer:** API contract review, participation in pair programming sessions.
+* **DevOps / Infrastructure Engineer:** Optimized `docker-compose` files, CI config (`.github/workflows`), packaging guidance.
+* **Security Engineer:** `docs/security_plan.md`, secrets handling convention, JWT design draft.
+* **QA Engineer:** Automated test reports, verified Acceptance Criteria (AC) for each story.
+
+---
+
+## 8. Intern Expectations
+- Submit **Weekly Progress Reports** (template in `docs/weekly_report_template.md`).
+- Follow the **Definition of Done (DoD)** for every Pull Request.
+- Participate in all **Agile ceremonies** (Daily, Demo, Retro).
 
 ---
 
