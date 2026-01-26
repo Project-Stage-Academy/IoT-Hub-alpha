@@ -300,7 +300,9 @@ class Command(BaseCommand):
             if isinstance(telem.payload.value, int):
                 telem.payload.value = telem.payload.value / 100
             _, created = Telemetry.objects.update_or_create(
-                device_id=device_map[telem.device].id,
-                defaults={"payload": telem.payload.model_dump()},
+                payload= telem.payload.model_dump(),
+                defaults={
+                "device_id": device_map[telem.device].id
+                },
             )
             stats.telemetry.add(created=created)
