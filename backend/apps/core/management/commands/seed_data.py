@@ -57,6 +57,11 @@ class Command(BaseCommand):
         )
 
     def _flush(self, force: bool) -> None:
+        allow_flush = os.getenv("DJANGO_ALLOW_SEED_FLUSH", "0")
+        if int(allow_flush) != 1:
+            raise CommandError(
+                "DJANGO_ALLOW_SEED_FLUSH must be set to 1 to allow flush"
+            )
         if not settings.DEBUG:
             raise CommandError("Flush disabled when settings.DEBUG is False.")
         if not force:
@@ -108,7 +113,10 @@ class Command(BaseCommand):
 
         stats = StatsTally()
 
-        self._start_seed(seed, create_superuser, stats)
+        try:
+            self._start_seed(seed, create_superuser, stats)
+        except Exception as e:
+            raise CommandError("Seeding failed; DB rolled back. Cause: {e}") from e
 
         self.stdout.write(self.style.MIGRATE_HEADING("Seed summary"))
         self.stdout.write(
