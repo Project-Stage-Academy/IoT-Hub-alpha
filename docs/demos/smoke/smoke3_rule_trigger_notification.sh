@@ -6,6 +6,7 @@ SIM_SERVICE="${SIM_SERVICE:-simulator}"
 
 DEVICE="${DEVICE:-rule_trigger_power}"
 COUNT="${COUNT:-1}"
+RATE="${RATE:-0.5}"
 
 echo "Seeding demo data..."
 docker compose exec -T "$SERVICE" python manage.py seed_data
@@ -15,13 +16,14 @@ before=$(
   docker compose exec -T "$SERVICE" python manage.py shell -c "
 from apps.notifications.models import NotificationDelivery
 print(NotificationDelivery.objects.count())
-" | tr -d '\r'
+" | tr -d '\r' | tail -n 1
 )
 
 echo "Sending triggering telemetry..."
-docker compose exec -T "$SIM_SERVICE" python -m simulator.run \
+docker compose run --rm simulator \
+  --files demo2.json \
   --mode http \
-  --device "$DEVICE" \
+  --rate "$RATE" \
   --count "$COUNT"
 
 # Add manual rule triggering worker here when its done.
@@ -31,7 +33,7 @@ after=$(
   docker compose exec -T "$SERVICE" python manage.py shell -c "
 from apps.notifications.models import NotificationDelivery
 print(NotificationDelivery.objects.count())
-" | tr -d '\r'
+" | tr -d '\r' | tail -n 1
 )
 
 echo "Before=$before After=$after"
