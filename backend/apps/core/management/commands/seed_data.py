@@ -19,6 +19,7 @@ from django.contrib.auth import get_user_model
 
 User = get_user_model()
 
+
 class Command(BaseCommand):
     help = "Seed demo data (idempotent) from backend/seed/*.json"
 
@@ -52,24 +53,25 @@ class Command(BaseCommand):
         parser.add_argument(
             "--dry_run",
             action="store_true",
-            help="Validate JSON file data and FK references without writing to DB"
-            
+            help="Validate JSON file data and FK references without writing to DB",
         )
 
     def _flush(self, force: bool) -> None:
         if not settings.DEBUG:
             raise CommandError("Flush disabled when settings.DEBUG is False.")
         if not force:
-            raise CommandError("Refusing to flush without --force. Example: manage.py seed_data --flush --force")
+            raise CommandError(
+                "Refusing to flush without --force. Example: manage.py seed_data --flush --force"
+            )
         call_command("flush", interactive=False)
         self.stdout.write(self.style.SUCCESS("Database flushed successfully"))
-    
+
     def handle(self, *args: Any, **opts: Any) -> None:
-        do_flush: bool = opts['flush']
-        flush_only: bool = opts['flush_only']
-        force: bool = opts['force']
-        create_superuser: bool = opts['create_superuser']
-        dry_run: bool = opts['dry_run']
+        do_flush: bool = opts["flush"]
+        flush_only: bool = opts["flush_only"]
+        force: bool = opts["force"]
+        create_superuser: bool = opts["create_superuser"]
+        dry_run: bool = opts["dry_run"]
 
         if flush_only and dry_run:
             raise CommandError("--flush_only cannot be combined with --dry_run")
@@ -92,7 +94,7 @@ class Command(BaseCommand):
             data = json.loads(path.read_text(encoding="utf-8"))
         except json.JSONDecodeError as e:
             raise CommandError(f"Invalid JSON in {path}: {e}") from e
-        
+
         try:
             seed = SeedData.model_validate(data)
         except ValidationError as e:
@@ -102,19 +104,21 @@ class Command(BaseCommand):
             self._dry_run(seed)
             self.stdout.write(self.style.SUCCESS("JSON is valid"))
             return
-        
+
         stats = StatsTally()
 
         self._start_seed(seed, create_superuser, stats)
 
         self.stdout.write(self.style.MIGRATE_HEADING("Seed summary"))
-        self.stdout.write(self.style.SUCCESS(
-                                             f"Devices - created: {stats.devices.created}, updated: {stats.devices.updated}\n"
-                                             f"Device Types - created: {stats.device_types.created}, updated: {stats.device_types.updated}\n"
-                                             f"Rules: created - {stats.rules.created}, updated: {stats.rules.updated}\n"
-                                             f"Notification templates - created: {stats.notification_templates.created}, updated: {stats.notification_templates.updated}\n"
-                                             f"Telemetry: created - {stats.telemetry.created}, updated: {stats.telemetry.updated}\n"
-                                             ))
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"Devices - created: {stats.devices.created}, updated: {stats.devices.updated}\n"
+                f"Device Types - created: {stats.device_types.created}, updated: {stats.device_types.updated}\n"
+                f"Rules: created - {stats.rules.created}, updated: {stats.rules.updated}\n"
+                f"Notification templates - created: {stats.notification_templates.created}, updated: {stats.notification_templates.updated}\n"
+                f"Telemetry: created - {stats.telemetry.created}, updated: {stats.telemetry.updated}\n"
+            )
+        )
 
     def _dry_run(self, seed: SeedData):
         d_type_names = {dt.name for dt in seed.device_types}
@@ -124,25 +128,23 @@ class Command(BaseCommand):
         for dev in seed.devices:
             if dev.device_type not in d_type_names:
                 errors.append(
-                f"- device '{dev.serial_number}' ('{dev.name}') -> unknown device_type '{dev.device_type}'"
-            )
-            
+                    f"- device '{dev.serial_number}' ('{dev.name}') -> unknown device_type '{dev.device_type}'"
+                )
+
         for rule in seed.rules:
             if rule.device not in d_ssn:
-                 errors.append(
-                f"- rule '{rule.name}' -> unknown device '{rule.device}'"
-            )
-        
+                errors.append(f"- rule '{rule.name}' -> unknown device '{rule.device}'")
+
         for telem in seed.telemetry:
             if telem.device not in d_ssn:
                 errors.append(
-                f"- rule '{telem.device}' -> unknown device '{telem.device}'"
-            )
+                    f"- rule '{telem.device}' -> unknown device '{telem.device}'"
+                )
 
         if errors:
-            raise CommandError("Invalid seed JSON cross-references:\n" + "\n".join(errors))
-            
-        
+            raise CommandError(
+                "Invalid seed JSON cross-references:\n" + "\n".join(errors)
+            )
 
     @transaction.atomic
     def _start_seed(self, data: SeedData, create_superuser: bool, stats: StatsTally):
@@ -152,7 +154,6 @@ class Command(BaseCommand):
         notif_map = self._seed_notif_template(data, stats)
         self._seed_rule(data, device_map, notif_map, stats)
         self._seed_telemetry(data, device_map, stats)
-        
 
     def _seed_super_user(self) -> None:
         email = os.getenv("ADMIN_EMAIL", None)
@@ -165,12 +166,12 @@ class Command(BaseCommand):
         user, created = User.objects.update_or_create(
             username=username,
             defaults={
-            "email": email,
-            "is_staff": True,
-            "is_superuser": True,
-            "is_active": True,
+                "email": email,
+                "is_staff": True,
+                "is_superuser": True,
+                "is_active": True,
             },
-            )
+        )
 
         if created:
             user.set_password(password)
@@ -178,19 +179,23 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS("Superuser created"))
         else:
             changed = False
-            for field, val in {"is_staff": True, "is_superuser": True, "is_active": True}.items():
+            for field, val in {
+                "is_staff": True,
+                "is_superuser": True,
+                "is_active": True,
+            }.items():
                 if getattr(user, field) != val:
                     setattr(user, field, val)
                     changed = True
             if changed:
                 self.stdout.write(self.style.SUCCESS("Superuser updated"))
                 user.set_password(password)
-                user.save(update_fields=["password", "is_staff", "is_superuser", "is_active"])
+                user.save(
+                    update_fields=["password", "is_staff", "is_superuser", "is_active"]
+                )
             else:
                 self.stdout.write(self.style.SUCCESS("Superuser already ok"))
 
-
-    
     def _seed_device(self, data: SeedData, stats: StatsTally) -> dict[str, Device]:
         dt_map: dict[str, DeviceType] = {}
         d_map: dict[str, Device] = {}
@@ -211,7 +216,9 @@ class Command(BaseCommand):
         for d in data.devices:
             dt_name = d.device_type
             if dt_name not in dt_map:
-                raise CommandError(f"Unknown device_type '{dt_name}' referenced by device {d}")
+                raise CommandError(
+                    f"Unknown device_type '{dt_name}' referenced by device {d}"
+                )
 
             device, created = Device.objects.update_or_create(
                 serial_number=d.serial_number,
@@ -226,16 +233,27 @@ class Command(BaseCommand):
             d_map[device.serial_number] = device
         return d_map
 
-
-    def _seed_rule(self, data: SeedData, device_map: dict[str, Device], notif_map: dict[str, int], stats: StatsTally) -> None:
+    def _seed_rule(
+        self,
+        data: SeedData,
+        device_map: dict[str, Device],
+        notif_map: dict[str, int],
+        stats: StatsTally,
+    ) -> None:
         for rule in data.rules:
             device_ref = rule.device
             if device_ref not in device_map:
-                raise CommandError(f"Unknown device '{device_ref}' referenced by rule '{rule.name}'")
+                raise CommandError(
+                    f"Unknown device '{device_ref}' referenced by rule '{rule.name}'"
+                )
             for action_conf in rule.action_config:
                 if "template_id" in action_conf.model_fields_set:
-                    action_conf.template_id = notif_map.get(str(action_conf.template_id))
-            action_config_payload = [ac.model_dump(exclude_none=True) for ac in rule.action_config]
+                    action_conf.template_id = notif_map.get(
+                        str(action_conf.template_id)
+                    )
+            action_config_payload = [
+                ac.model_dump(exclude_none=True) for ac in rule.action_config
+            ]
             _, created = Rule.objects.update_or_create(
                 name=rule.name,
                 device=device_map[rule.device],
@@ -244,11 +262,10 @@ class Command(BaseCommand):
                     "comparison_operator": rule.comparison_operator,
                     "threshold": rule.threshold,
                     "action_config": action_config_payload,
-                    "is_enabled": rule.is_enabled
-                }
+                    "is_enabled": rule.is_enabled,
+                },
             )
             stats.rules.add(created=created)
-        
 
     def _seed_notif_template(self, data: SeedData, stats: StatsTally) -> dict[str, int]:
         notif_map: dict[str, int] = {}
@@ -262,20 +279,20 @@ class Command(BaseCommand):
                     "retry_count": notification.retry_count,
                     "retry_delay_minutes": notification.retry_delay_minutes,
                     "is_active": notification.is_active,
-                }
+                },
             )
             stats.notification_templates.add(created=created)
             notif_map[obj_notif.name] = obj_notif.id
         return notif_map
-    
-    def _seed_telemetry(self, data: SeedData, device_map: dict[str, Device], stats: StatsTally) -> None:
+
+    def _seed_telemetry(
+        self, data: SeedData, device_map: dict[str, Device], stats: StatsTally
+    ) -> None:
         for telem in data.telemetry:
             if isinstance(telem.payload.value, int):
                 telem.payload.value = telem.payload.value / 100
             _, created = Telemetry.objects.update_or_create(
-                device_id = device_map[telem.device].id,
-                defaults={
-                    "payload": telem.payload.model_dump()
-                }
+                device_id=device_map[telem.device].id,
+                defaults={"payload": telem.payload.model_dump()},
             )
             stats.telemetry.add(created=created)

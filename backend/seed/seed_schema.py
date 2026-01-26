@@ -12,12 +12,14 @@ class DeviceTypeSeed(BaseModel):
     metric_min: Decimal
     metric_max: Decimal
 
+
 class DeviceSeed(BaseModel):
     serial_number: str
     name: str
     device_type: str
     location: str = ""
     status: str = "active"
+
 
 class ActionConfig(BaseModel):
     type: str
@@ -35,6 +37,7 @@ class RuleSeed(BaseModel):
     action_config: list[ActionConfig]
     is_enabled: bool
 
+
 class NotificationTemplateSeed(BaseModel):
     name: str
     message_template: str
@@ -44,13 +47,16 @@ class NotificationTemplateSeed(BaseModel):
     retry_delay_minutes: int
     is_active: bool
 
+
 class Payload(BaseModel):
     schema_version: str
     value: int | float
 
+
 class TelemetrySeed(BaseModel):
     device: str
     payload: Payload
+
 
 class SeedData(BaseModel):
     device_types: list[DeviceTypeSeed]
@@ -58,6 +64,7 @@ class SeedData(BaseModel):
     rules: list[RuleSeed]
     telemetry: list[TelemetrySeed]
     notification_templates: list[NotificationTemplateSeed]
+
 
 @dataclass
 class Stats:
@@ -69,6 +76,7 @@ class Stats:
             self.created += 1
         else:
             self.updated += 1
+
 
 @dataclass
 class StatsTally:
