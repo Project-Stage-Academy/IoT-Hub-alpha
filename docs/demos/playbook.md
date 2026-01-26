@@ -29,8 +29,8 @@ docker compose exec web python manage.py seed_data
 ```
 
 Supported CLI flags:
-| flag | description |
-|------|-------------|
+| flag       | description |
+|------------|-------------|
 |--flush| DANGER: Completely flushes the database and then seeds data|
 |--flush_only| DANGER: Completely flushes the database without seeding|
 |--force| Required confirmation flag for `--flush` and `--flush_only`|

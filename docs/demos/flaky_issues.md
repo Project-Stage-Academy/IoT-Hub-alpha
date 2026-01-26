@@ -110,7 +110,7 @@ Minor variations in aggregation timing are expected and acceptable
 
 ### Mitigations
 
-- Use conservative rates for demos (rate <= 1)
+- Use conservative rates for demos (rate <= 0.5)
 - Prefer deterministic --count over infinite mode
 - Allow simulator retries where applicable
 

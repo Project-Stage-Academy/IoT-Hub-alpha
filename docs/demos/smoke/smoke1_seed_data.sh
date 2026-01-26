@@ -3,7 +3,7 @@ set -euo pipefail
 
 export DJANGO_LOG_LEVEL=WARNING
 
-SERVICE="${SERVICE:-web}"              # docker compose service running Django
+SERVICE="${SERVICE:-web}"
 SEED_CMD="${SEED_CMD:-python manage.py seed_data}"
 DJANGO_SHELL="${DJANGO_SHELL:-python manage.py shell -c}"
 
@@ -27,22 +27,24 @@ print('OK counts:',
       'rules=', Rule.objects.count())
 "
 
-echo "Re-running seed to verify idempotency (counts should not explode)..."
-docker compose exec -T "$SERVICE" $SEED_CMD
-
-docker compose exec -T "$SERVICE" $DJANGO_SHELL "
-
+echo "Taking counts before re-seed..."
+before="$(docker compose exec -T "$SERVICE" $DJANGO_SHELL "
 from apps.devices.models import DeviceType, Device
 from apps.rules.models import Rule
 from apps.notifications.models import NotificationTemplate
+print(DeviceType.objects.count(), Device.objects.count(), NotificationTemplate.objects.count(), Rule.objects.count())
+")"
 
-dt = DeviceType.objects.count()
-dv = Device.objects.count()
-nt = NotificationTemplate.objects.count()
-rl = Rule.objects.count()
+echo "Re-running seed..."
+docker compose exec -T "$SERVICE" $SEED_CMD
 
-assert dt < 200 and dv < 200 and nt < 200 and rl < 200, 'Counts look suspiciously high after re-seed'
-print('OK idempotency-ish counts:', dt, dv, nt, rl)
-"
+echo "Taking counts after re-seed..."
+after="$(docker compose exec -T "$SERVICE" $DJANGO_SHELL "
+from apps.devices.models import DeviceType, Device
+from apps.rules.models import Rule
+from apps.notifications.models import NotificationTemplate
+print(DeviceType.objects.count(), Device.objects.count(), NotificationTemplate.objects.count(), Rule.objects.count())
+")"
 
-echo "✅ seed/admin smoke OK"
+test "$before" = "$after" || { echo "❌ Not idempotent: before=$before after=$after"; exit 1; }
+echo "✅ Idempotency verified: $after"

@@ -32,7 +32,7 @@ This command seeds devices, device types, rules, and notification templates into
 ### Step 3: Start telemetry ingestion
 From root directory simulator directory:
 
-```
+
 Run the simulator:
 ```
 python -m simulator.run -f demo1.json -r 0.5 -v
@@ -40,7 +40,7 @@ python -m simulator.run -f demo1.json -r 0.5 -v
 
 Or if docker compose is running:
 ```
-docker compose run --rm simulator python -m simulator.run -f demo1.json -r 0.5 -v
+docker compose run --rm simulator -f demo1.json -r 0.5 -v
 ```
 
 This command:

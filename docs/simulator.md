@@ -129,14 +129,15 @@ Basic run (HTTP mode, using default demo files from config)
 ```
 python -m simulator.run
 ```
+Using docker compose
+```
+docker compose run --rm simulator.run
+```
 Infinite mode
 ```
 python -m simulator.run -d device1 -c 0
 ```
-Using docker compose
-```
-docker compose run --rm simulator
-```
+
 
 ### CLI Options
 |quick flag | flag| Description | Default value|
@@ -145,9 +146,9 @@ docker compose run --rm simulator
 | -f| --files (str) | select 1 or more files from /docs/demos to run | default value is loaded from config|
 |-c| --count (int)| count of task loops, multiplicative with multiple tasks | 1 |
 |-m| --mode ("http"/"mqtt")|  select http or mqtt sender | http |
-|-r| --rate(float)| delay between requests in seconds | 1.0 |
-|-v| --verbose(bool) | enables verbose mode in console output | False |
-|-l| --log | enables logging to the file specified in config (`log_file`) | False|
+|-r| --rate(float)| delay between requests in seconds | 0.7 |
+|-v| --verbose(flag) | enables verbose mode in console output | False |
+|-l| --log(flag) | enables logging to the file specified in config (`log_file`) | False|
 
 ## `7) Logging`
 Logs are written in JSON Lines (JSONL) format.

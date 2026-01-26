@@ -36,6 +36,10 @@ Run the simulator:
 ```
 python -m simulator.run -f demo2.json -r 0.5 -v
 ```
+or from docker:
+```
+docker compose run --rm simulator -f demo2.json -r 0.5 -v
+```
 
 This command:
 

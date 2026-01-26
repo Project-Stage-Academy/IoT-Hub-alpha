@@ -36,17 +36,19 @@ Navigate to the simulator directory:
 
 Run the simulator for a fixed amount of cycles:
 ```
-python -m simulator.run -d demo3.json -r 0.3 -c 100
+python -m simulator.run -f demo3.json -r 0.5 -v
+```
+or from docker:
+```
+docker compose run --rm simulator -f demo3.json -r 0.5 -v
 ```
 This command:
 
-- Sends telemetry payloads from config.simulator.json device1
+- Sends telemetry payloads from demo3.json
 
 - Runs at a rate of 3 request per second
 
 - Executes 100 requests in total
-
-- Enables verbose output
 
 ### Step 4: Query aggregation endpoint
 After the simulator finishes, query the aggregation endpoint:
