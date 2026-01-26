@@ -61,7 +61,8 @@ class Command(BaseCommand):
             raise CommandError("Flush disabled when settings.DEBUG is False.")
         if not force:
             raise CommandError(
-                "Refusing to flush without --force. Example: manage.py seed_data --flush --force"
+                "Refusing to flush without --force. Example: "
+                "manage.py seed_data --flush --force"
             )
         call_command("flush", interactive=False)
         self.stdout.write(self.style.SUCCESS("Database flushed successfully"))
@@ -112,11 +113,17 @@ class Command(BaseCommand):
         self.stdout.write(self.style.MIGRATE_HEADING("Seed summary"))
         self.stdout.write(
             self.style.SUCCESS(
-                f"Devices - created: {stats.devices.created}, updated: {stats.devices.updated}\n"
-                f"Device Types - created: {stats.device_types.created}, updated: {stats.device_types.updated}\n"
-                f"Rules: created - {stats.rules.created}, updated: {stats.rules.updated}\n"
-                f"Notification templates - created: {stats.notification_templates.created}, updated: {stats.notification_templates.updated}\n"
-                f"Telemetry: created - {stats.telemetry.created}, updated: {stats.telemetry.updated}\n"
+                f"Devices - created: {stats.devices.created}, "
+                f"updated: {stats.devices.updated}\n"
+                f"Device Types - created: {stats.device_types.created}, "
+                f"updated: {stats.device_types.updated}\n"
+                f"Rules: created - {stats.rules.created}, "
+                f"updated: {stats.rules.updated}\n"
+                f"Notification templates - "
+                f"created: {stats.notification_templates.created}, "
+                f"updated: {stats.notification_templates.updated}\n"
+                f"Telemetry: created - {stats.telemetry.created}, "
+                f"updated: {stats.telemetry.updated}\n"
             )
         )
 
@@ -128,7 +135,8 @@ class Command(BaseCommand):
         for dev in seed.devices:
             if dev.device_type not in d_type_names:
                 errors.append(
-                    f"- device '{dev.serial_number}' ('{dev.name}') -> unknown device_type '{dev.device_type}'"
+                    f"- device '{dev.serial_number}' ('{dev.name}') "
+                    f"-> unknown device_type '{dev.device_type}'"
                 )
 
         for rule in seed.rules:
