@@ -14,6 +14,7 @@ from pydantic import ValidationError
 from apps.rules.models import Rule
 from apps.notifications.models import NotificationTemplate
 from apps.devices.models import DeviceType, Device
+from apps.telemetry.models import Telemetry
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
@@ -111,7 +112,8 @@ class Command(BaseCommand):
                                              f"Devices - created: {stats.devices.created}, updated: {stats.devices.updated}\n"
                                              f"Device Types - created: {stats.device_types.created}, updated: {stats.device_types.updated}\n"
                                              f"Rules: created - {stats.rules.created}, updated: {stats.rules.updated}\n"
-                                             f"Notification templates - created: {stats.notification_templates.created}, updated: {stats.notification_templates.updated}"
+                                             f"Notification templates - created: {stats.notification_templates.created}, updated: {stats.notification_templates.updated}\n"
+                                             f"Telemetry: created - {stats.telemetry.created}, updated: {stats.telemetry.updated}\n"
                                              ))
 
     def _dry_run(self, seed: SeedData):
@@ -131,6 +133,12 @@ class Command(BaseCommand):
                 f"- rule '{rule.name}' -> unknown device '{rule.device}'"
             )
         
+        for telem in seed.telemetry:
+            if telem.device not in d_ssn:
+                errors.append(
+                f"- rule '{telem.device}' -> unknown device '{telem.device}'"
+            )
+
         if errors:
             raise CommandError("Invalid seed JSON cross-references:\n" + "\n".join(errors))
             
@@ -143,20 +151,19 @@ class Command(BaseCommand):
         device_map = self._seed_device(data, stats)
         notif_map = self._seed_notif_template(data, stats)
         self._seed_rule(data, device_map, notif_map, stats)
+        self._seed_telemetry(data, device_map, stats)
         
 
     def _seed_super_user(self) -> None:
-#       use this
-#       call_command("setup_roles", skip_user=True, skip_group=True)
-#       or this
-        email = os.getenv("DJANGO_SUPERUSER_EMAIL", None)
-        password = os.getenv("DJANGO_SUPERUSER_PASSWORD", None)
+        email = os.getenv("ADMIN_EMAIL", None)
+        password = os.getenv("ADMIN_PASSWORD", None)
+        username = os.getenv("ADMIN_USERNAME", None)
 
         if not email or not password:
             raise CommandError("Superuser env vars are missing")
 
         user, created = User.objects.get_or_create(
-            email=email,
+            username=username,
             defaults={
             "is_staff": True,
             "is_superuser": True,
@@ -216,7 +223,6 @@ class Command(BaseCommand):
             )
             stats.devices.add(created=created)
             d_map[device.serial_number] = device
-
         return d_map
 
 
@@ -260,3 +266,15 @@ class Command(BaseCommand):
             stats.notification_templates.add(created=created)
             notif_map[obj_notif.name] = obj_notif.id
         return notif_map
+    
+    def _seed_telemetry(self, data: SeedData, device_map: dict[str, Device], stats: StatsTally) -> None:
+        for telem in data.telemetry:
+            if isinstance(telem.payload.value, int):
+                telem.payload.value = telem.payload.value / 100
+            _, created = Telemetry.objects.update_or_create(
+                device_id = device_map[telem.device].id,
+                defaults={
+                    "payload": telem.payload.model_dump()
+                }
+            )
+            stats.telemetry.add(created=created)

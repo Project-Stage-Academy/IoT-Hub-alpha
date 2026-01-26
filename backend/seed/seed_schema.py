@@ -44,10 +44,19 @@ class NotificationTemplateSeed(BaseModel):
     retry_delay_minutes: int
     is_active: bool
 
+class Payload(BaseModel):
+    schema_version: str
+    value: int | float
+
+class TelemetrySeed(BaseModel):
+    device: str
+    payload: Payload
+
 class SeedData(BaseModel):
     device_types: list[DeviceTypeSeed]
     devices: list[DeviceSeed]
     rules: list[RuleSeed]
+    telemetry: list[TelemetrySeed]
     notification_templates: list[NotificationTemplateSeed]
 
 @dataclass
@@ -67,3 +76,4 @@ class StatsTally:
     devices: Stats = field(default_factory=Stats)
     rules: Stats = field(default_factory=Stats)
     notification_templates: Stats = field(default_factory=Stats)
+    telemetry: Stats = field(default_factory=Stats)

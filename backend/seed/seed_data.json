@@ -304,5 +304,29 @@
       "retry_delay_minutes": 10,
       "is_active": true
     }
+  ],
+  "telemetry": [
+    {
+      "device": "VIB-SN-001",
+      "payload": {
+      "schema_version": "1.0",
+      "value": 2000
+      }
+    },
+    {
+      "device": "TEMP-SN-002",
+      "payload": 
+      {
+      "schema_version": "1.0",
+      "value": 9033
+      }
+    },
+    {
+      "device": "PWR-SN-003",
+      "payload": {
+      "schema_version": "1.0",
+      "value": 6543
+      }
+    }
   ]
 }
