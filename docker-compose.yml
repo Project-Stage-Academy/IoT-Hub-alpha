@@ -43,6 +43,8 @@ services:
     ports:
       - "8000:8000"
     depends_on:
+      redis:
+        condition: service_healthy
       db:
         condition: service_healthy
     healthcheck:
@@ -63,6 +65,8 @@ services:
     env_file:
       - .env
     depends_on:
+      redis:
+        condition: service_healthy
       db:
         condition: service_healthy
     logging: *default-logging
@@ -79,6 +83,7 @@ services:
       interval: 1s
       timeout: 3s
       retries: 30
+      start_period: 5s
     # TODO: configure redis auth, persistence, and memory policy
     volumes:
       - redis_data:/data
@@ -95,9 +100,9 @@ services:
     env_file:
       - .env
     depends_on:
-      db:
-        condition: service_healthy
       redis:
+        condition: service_healthy
+      db:
         condition: service_healthy
     logging: *default-logging
     networks:

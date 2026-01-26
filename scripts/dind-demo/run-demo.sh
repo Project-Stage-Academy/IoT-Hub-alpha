@@ -18,6 +18,7 @@ if ! docker compose version >/dev/null 2>&1; then
   exit 1
 fi
 
+mkdir -p /var/log
 DOCKERD_LOG="/var/log/dockerd.log"
 dockerd-entrypoint.sh --host=unix:///var/run/docker.sock > "$DOCKERD_LOG" 2>&1 &
 

@@ -51,9 +51,22 @@ while [ $# -gt 0 ]; do
   shift
 done
 
-COMPOSE_ARGS="-f docker-compose.yml"
+COMPOSE_ARGS=""
+if [ -f docker-compose.yml ]; then
+  COMPOSE_ARGS="-f docker-compose.yml"
+fi
+
 if [ "$NO_OVERRIDE" -eq 0 ] && [ -f docker-compose.override.yml ]; then
-  COMPOSE_ARGS="$COMPOSE_ARGS -f docker-compose.override.yml"
+  if [ -n "$COMPOSE_ARGS" ]; then
+    COMPOSE_ARGS="$COMPOSE_ARGS -f docker-compose.override.yml"
+  else
+    COMPOSE_ARGS="-f docker-compose.override.yml"
+  fi
+fi
+
+if [ -z "$COMPOSE_ARGS" ]; then
+  echo "No compose files found (docker-compose.yml or docker-compose.override.yml)."
+  exit 1
 fi
 
 LOG_ARGS="logs --timestamps --tail $TAIL"
