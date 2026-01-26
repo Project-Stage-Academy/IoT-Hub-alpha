@@ -29,9 +29,31 @@ docker compose exec web python manage.py seed_data
 
 This command seeds devices, device types, rules, and notification templates into the database.
 
-### Step 3: Start telemetry ingestion
-From root directory simulator directory:
+### Step 4: Aquire JWT token
+```
+GET .../api/v1/auth/fake
+```
 
+will return a "fake" development-only JWT token.
+
+### Step 5: Register Device
+```
+POST .../api/v1/devices
+Authorization: Bearer <JWT_token>
+```
+
+send the following body:
+```json
+{
+    "name": "Lathe #4 Vibration Sensor",
+    "ssn": "VIB-SN-555",
+    "status": "active",
+    "location": "Workshop X, Machine ID: 22222",
+    "device_type": "7a123004-f09d-4d69-b7ee-25fbe2cc75a7"
+}
+```
+
+### Step 6: Start telemetry ingestion
 
 Run the simulator:
 ```
@@ -45,7 +67,7 @@ docker compose run --rm simulator -f demo1.json -r 0.5 -v
 
 This command:
 
-- Sends telemetry payloads from demo1.json
+- Sends telemetry payloads from demo1.json to the newly created device
 
 - Runs at a rate of 2 requests per second
 
