@@ -30,7 +30,6 @@ docker compose exec web python manage.py seed_data
 This command seeds devices, device types, rules, and notification templates into the database.
 
 ### Step 3: Start telemetry ingestion
-Navigate to the simulator directory:
 
 Run the simulator:
 ```
