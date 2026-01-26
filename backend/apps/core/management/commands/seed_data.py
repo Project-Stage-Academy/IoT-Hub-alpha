@@ -162,9 +162,10 @@ class Command(BaseCommand):
         if not email or not password:
             raise CommandError("Superuser env vars are missing")
 
-        user, created = User.objects.get_or_create(
+        user, created = User.objects.update_or_create(
             username=username,
             defaults={
+            "email": email,
             "is_staff": True,
             "is_superuser": True,
             "is_active": True,
