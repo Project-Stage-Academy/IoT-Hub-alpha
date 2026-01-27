@@ -118,7 +118,7 @@ class DeviceSerializer:
 
         # 5) Status choices validation (якщо передали)
         if "status" in cleaned:
-            allowed = {c[0] for c in Device.STATUS_CHOICES}
+            allowed = {c[0] for c in Device._meta.get_field("status").choices}
             if cleaned["status"] not in allowed:
                 self.errors["status"] = f"Invalid status. Allowed: {', '.join(sorted(allowed))}"
 
