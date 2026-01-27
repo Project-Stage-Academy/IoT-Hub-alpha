@@ -171,13 +171,17 @@ LOGGING_BASE = {
     },
 }
 
+# Set LOGGING to use LOGGING_BASE by default
+# (can be overridden in local.py and staging.py if needed)
+LOGGING = LOGGING_BASE
+
 # Celery (defaults for local compose)
 CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "redis://redis:6379/0")
 CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", "redis://redis:6379/0")
 
 REQUEST_ID_HEADER = "HTTP_X_REQUEST_ID"
 REQUEST_ID_RESPONSE_HEADER = "X-Request-ID"
-REQUEST_ID_GENERATOR = "request_id.generators.uuid4"
+REQUEST_ID_GENERATOR = "request_id.uuid4"
 
 try:
     from config.logging import setup_celery_logging_context  # noqa: E402
