@@ -39,23 +39,26 @@ class RequestContextMiddleware:
         bind_request_context(request)
 
         # Record request start time for metrics
-        start_time = time.time()
+        start_time = time.perf_counter()
+        response = None
+        status_code = 500  # Default for errors
 
-        response = self.get_response(request)
+        try:
+            response = self.get_response(request)
+            status_code = response.status_code
+        finally:
+            # Record request latency and count even if an error occurred
+            latency = time.perf_counter() - start_time
+            REQUEST_LATENCY.labels(
+                method=request.method,
+                endpoint=request.path,
+            ).observe(latency)
 
-        # Record request latency
-        latency = time.time() - start_time
-        REQUEST_LATENCY.labels(
-            method=request.method,
-            endpoint=request.path,
-        ).observe(latency)
-
-        # Increment request counter
-        REQUEST_COUNT.labels(
-            method=request.method,
-            endpoint=request.path,
-            status=response.status_code,
-        ).inc()
+            REQUEST_COUNT.labels(
+                method=request.method,
+                endpoint=request.path,
+                status=str(status_code),
+            ).inc()
 
         request_id = getattr(request, "request_id", None)
         if request_id:
