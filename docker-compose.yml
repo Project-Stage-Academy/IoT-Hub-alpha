@@ -46,10 +46,11 @@ services:
       db:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "--fail", "http://localhost:8000/health/"]
-      interval: 120s
-      timeout: 3s
-      retries: 5
+      test: ["CMD", "/app/scripts/healthcheck.sh"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     logging: *default-logging
     networks:
       - iot_hub_net
@@ -121,9 +122,14 @@ services:
     image: grafana/grafana:11.2.0
     container_name: iot_hub_grafana
     profiles: ["monitoring"]
-    # TODO: provision datasources and dashboards
+    ports:
+      - "3000:3000"
     volumes:
       - grafana_data:/var/lib/grafana
+      - ./devops/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./devops/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+    env_file:
+      - .env
     depends_on:
       - prometheus
     logging: *default-logging
