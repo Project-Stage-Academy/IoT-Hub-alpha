@@ -1,8 +1,11 @@
 import importlib
 import logging
+import time
 import uuid
 
 from django.conf import settings
+from django.core.cache import cache
+from django.http import JsonResponse
 
 from .logging import bind_request_context, clear_request_context
 
@@ -50,3 +53,49 @@ class RequestContextMiddleware:
         finally:
             if context_bound:
                 clear_request_context()
+
+
+class RateLimitingMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        if not getattr(settings, "RATE_LIMIT_ENABLED", False):
+            return self.get_response(request)
+
+        ip_address = self.get_client_ip(request)
+        if not ip_address:
+            return self.get_response(request)
+
+        # Define limits based on path
+        if request.path.startswith("/admin"):
+            limit_count = getattr(settings, "RATE_LIMIT_ADMIN_COUNT", 60)
+            limit_period = getattr(settings, "RATE_LIMIT_ADMIN_PERIOD", 60)
+        elif "telemetry" in request.path:
+            limit_count = getattr(settings, "RATE_LIMIT_DEVICE_COUNT", 100)
+            limit_period = getattr(settings, "RATE_LIMIT_DEVICE_PERIOD", 60)
+        else:
+            limit_count = getattr(settings, "RATE_LIMIT_DEFAULT_COUNT", 60)
+            limit_period = getattr(settings, "RATE_LIMIT_DEFAULT_PERIOD", 60)
+
+        cache_key = f"rate_limit_{ip_address}"
+        request_history = cache.get(cache_key, [])
+
+        current_time = time.time()
+        valid_requests = [t for t in request_history if t > current_time - limit_period]
+
+        if len(valid_requests) >= limit_count:
+            return JsonResponse({"error": "Too many requests."}, status=429)
+
+        valid_requests.append(current_time)
+        cache.set(cache_key, valid_requests, limit_period)
+
+        return self.get_response(request)
+
+    def get_client_ip(self, request):
+        x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(",")[0]
+        else:
+            ip = request.META.get("REMOTE_ADDR")
+        return ip
