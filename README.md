@@ -63,15 +63,14 @@ docker compose up -d --build
 
 For detailed database setup, schema description, and operations guide, please refer to the [Database Documentation](docs/readme-database.md).
 
-Run migrations and create an administrative account to access the dashboard:
+Run migrations to set up the database:
 
 ```bash
 # Apply database migrations
 docker compose run --rm migrate
-
-# Create a superuser
-docker compose exec web python manage.py createsuperuser
 ```
+
+To initialize roles and users, see the [Admin Documentation](docs/admin.md).
 
 ## Docker Skeleton (Current)
 
