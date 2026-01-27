@@ -282,8 +282,8 @@ Support ticket collection script: collect-observability-data.sh
 # Prometheus YAML validated with yamllint
 yamllint devops/prometheus.yml
 
-# Grafana JSON validated with jq
-jq empty devops/grafana/provisioning/dashboards/grafana-dashboard.json
+# Grafana JSON validated with Python
+python3 -m json.tool devops/grafana/provisioning/dashboards/grafana-dashboard.json
 ```
 **See**: [.github/workflows/ci.yml](.github/workflows/ci.yml) - config-validation job
 
