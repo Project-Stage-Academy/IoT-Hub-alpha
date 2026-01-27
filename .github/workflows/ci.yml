@@ -67,36 +67,21 @@ jobs:
       - name: Install validation tools
         run: |
           pip install yamllint
-          sudo apt-get update && sudo apt-get install -y jq
 
       - name: Validate Prometheus YAML
-        run: |
-          echo "Validating Prometheus configuration..."
-          yamllint -d "{extends: default, rules: {line-length: {max: 120}, comments: {min-spaces-from-content: 1}}}" devops/prometheus.yml
+        run: yamllint devops/prometheus.yml
 
       - name: Validate Grafana Datasources YAML
-        run: |
-          echo "Validating Grafana datasources..."
-          for file in devops/grafana/provisioning/datasources/*.yml; do
-            echo "Checking $file"
-            yamllint -d "{extends: default, rules: {line-length: {max: 120}, comments: {min-spaces-from-content: 1}}}" "$file"
-          done
+        run: yamllint devops/grafana/provisioning/datasources/
 
       - name: Validate Grafana Dashboards JSON
         run: |
-          echo "Validating Grafana dashboards JSON..."
           for file in devops/grafana/provisioning/dashboards/*.json; do
-            echo "Checking $file"
-            jq empty "$file" || (echo "Invalid JSON in $file" && exit 1)
+            python3 -m json.tool "$file" > /dev/null || (echo "Invalid JSON in $file" && exit 1)
           done
 
       - name: Validate Grafana Provisioning Config YAML
-        run: |
-          echo "Validating Grafana provisioning configs..."
-          for file in devops/grafana/provisioning/dashboards/*.yml; do
-            echo "Checking $file"
-            yamllint -d "{extends: default, rules: {line-length: {max: 120}, comments: {min-spaces-from-content: 1}}}" "$file"
-          done
+        run: yamllint devops/grafana/provisioning/dashboards/
 
   tests:
     runs-on: ubuntu-latest
