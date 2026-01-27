@@ -30,7 +30,74 @@ Ensure you have the following installed:
 
 ```bash
 git clone <your-repository-url>
-cd IoT-Hub-alpha
+cd iot-catalog-hub
+```
+## Api style guide
+
+[Api style guide](docs/readme-api.md)
+
+### 3. Environment Setup
+
+The application relies on environment variables defined in a `.env` file. Create your local version from the provided template:
+
+```bash
+cp .env.example .env
+```
+
+
+> **Note:** The default values in `.env.example` are pre-configured to work with the Docker Compose setup immediately.
+
+---
+
+### 4. Launch with Docker Compose
+
+Build the images and start the services. The setup includes a healthcheck on `http://localhost:8000/health/` to verify the web service is responsive:
+
+```bash
+docker compose down --remove-orphans
+docker compose up -d --build
+```
+
+
+### 5. Initialize the Database
+
+For detailed database setup, schema description, and operations guide, please refer to the [Database Documentation](docs/readme-database.md).
+
+Run migrations to set up the database:
+
+```bash
+# Apply database migrations
+docker compose run --rm migrate
+```
+
+To initialize roles and users, see the [Admin Documentation](docs/admin.md).
+
+## Docker Skeleton (Current)
+
+The compose file includes placeholders for `redis`, `worker`, `prometheus`, and `grafana`. These services are intentionally minimal and marked with TODOs for teammates to complete.
+
+Basic local build (Dockerfile only):
+
+```bash
+docker build -t iot-hub-web -f backend/Dockerfile backend
+```
+
+## 🔗 Access Points
+
+| Service      | URL                        |
+|-------------|----------------------------|
+| Web API      | http://localhost:8000/     |
+| Admin Panel  | http://localhost:8000/admin/ |
+| Health Check | http://localhost:8000/health/ |
+
+---
+
+## 🛑 Stopping the Application
+
+### To stop all services and keep the data:
+
+```bash
+docker compose stop
 ```
 ## Api style guide
 
