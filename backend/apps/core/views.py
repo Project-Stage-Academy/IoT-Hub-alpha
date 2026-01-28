@@ -1,4 +1,5 @@
 """Core application views for health checks and metrics."""
+
 import logging
 
 from django.core.exceptions import ImproperlyConfigured
