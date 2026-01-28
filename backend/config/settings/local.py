@@ -3,6 +3,7 @@ from .base import *  # noqa: F403, F401
 # Overrides: DEBUG, ALLOWED_HOSTS, DATABASES["default"]["CONN_MAX_AGE"], LOGGING
 
 DEBUG = True
+REQUEST_ID_GENERATOR = "uuid.uuid4"
 
 ALLOWED_HOSTS = ["localhost", "127.0.0.1", "0.0.0.0"]
 
