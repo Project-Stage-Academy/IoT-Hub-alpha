@@ -5,6 +5,8 @@ from django.views import View
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.core.exceptions import ValidationError as DjangoValidationError
+from math import ceil
+from django.core.paginator import Paginator, EmptyPage
 
 from .models import Device
 from .serializer import DeviceSerializer, ApiValidationError
@@ -21,10 +23,62 @@ def _json_body(request: HttpRequest) -> dict:
 
 @method_decorator(csrf_exempt, name="dispatch")
 class DeviceListView(View):
-    def get(self, request: HttpRequest):
+    def get(self, request):
         qs = Device.objects.all().order_by("-created_at")
-        data = [DeviceSerializer(instance=obj).to_dict() for obj in qs]
-        return JsonResponse({"devices": data, "count": len(data)}, status=200)
+
+        page_raw = request.GET.get("page", "1")
+        page_size_raw = request.GET.get("page_size", "10")
+
+        # parse + validate
+        try:
+            page = int(page_raw)
+            page_size = int(page_size_raw)
+        except ValueError:
+            return JsonResponse(
+                {"errors": {"pagination": "page and page_size must be integers"}},
+                status=400,
+            )
+
+        if page < 1:
+            return JsonResponse({"errors": {"page": "page must be >= 1"}}, status=400)
+
+        if page_size < 1 or page_size > 1000:
+            return JsonResponse(
+                {"errors": {"page_size": "page_size must be between 1 and 1000"}},
+                status=400,
+            )
+
+        total = qs.count()
+        total_pages = ceil(total / page_size) if total > 0 else 0
+
+        paginator = Paginator(qs, page_size)
+
+        try:
+            page_obj = paginator.page(page)
+            items = page_obj.object_list
+        except EmptyPage:
+            items = []
+            page_obj = None
+
+        data = [DeviceSerializer(instance=obj).to_dict() for obj in items]
+
+        next_page = (page + 1) if page < total_pages else None
+        prev_page = (page - 1) if page > 1 and total_pages > 0 else None
+
+        return JsonResponse(
+            {
+                "data": data,
+                "pagination": {
+                    "page": page,
+                    "page_size": page_size,
+                    "total": total,
+                    "total_pages": total_pages,
+                    "next_page": next_page,
+                    "prev_page": prev_page,
+                },
+            },
+            status=200,
+        )
 
     def post(self, request: HttpRequest):
         try:

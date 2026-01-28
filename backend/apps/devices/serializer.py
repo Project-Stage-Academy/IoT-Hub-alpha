@@ -12,10 +12,7 @@ from .models import Device, DeviceType
 
 
 class ApiValidationError(Exception):
-    """
-    Наш виняток для акуратних 400-відповідей.
-    errors має бути dict: {field: "message"} або {field: ["m1","m2"]}.
-    """
+
     def __init__(self, errors: dict[str, Any], status_code: int = 400):
         super().__init__("Validation error")
         self.errors = errors
@@ -31,7 +28,6 @@ class DeviceTypeSerializer:
     instance: DeviceType
 
     def to_dict(self) -> dict[str, Any]:
-        # Мінімально корисне для відповіді
         return {
             "id": str(self.instance.id),
             "name": self.instance.name,
@@ -42,7 +38,7 @@ class DeviceTypeSerializer:
 class DeviceSerializer:
     instance: Optional[Device] = None
     data: Optional[dict[str, Any]] = None
-    partial: bool = False  # для PATCH
+    partial: bool = False 
 
     read_fields = (
         "id",
@@ -126,7 +122,6 @@ class DeviceSerializer:
         if "device_type_id" in cleaned:
             dt_id = cleaned["device_type_id"]
             try:
-                # дозволяємо UUID string
                 if isinstance(dt_id, str):
                     UUID(dt_id)
                 device_type = DeviceType.objects.get(id=dt_id)
@@ -134,7 +129,6 @@ class DeviceSerializer:
             except (ValueError, ObjectDoesNotExist):
                 self.errors["device_type_id"] = "DeviceType not found or invalid id."
             finally:
-                # прибираємо device_type_id, бо в модель пишемо device_type
                 cleaned.pop("device_type_id", None)
 
         if self.errors:
