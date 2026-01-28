@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     "apps.rules",
     "apps.events",
     "apps.notifications",
+    "django_celery_beat",
 ]
 
 MIDDLEWARE = [
@@ -79,6 +80,9 @@ DATABASES = {
     }
 }
 
+TIME_ZONE = "UTC"  # or your TZ
+USE_TZ = True
+
 if os.getenv("DB_CONN_HEALTH_CHECKS", "False").lower() == "true":
     DATABASES["default"]["CONN_HEALTH_CHECKS"] = True
 
@@ -96,6 +100,15 @@ AUTH_PASSWORD_VALIDATORS = [
         "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
     },
 ]
+
+
+#Celery
+CELERY_BROKER_URL = "redis://redis:6379/0"
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+
+CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
+
 
 LANGUAGE_CODE = "en-us"
 
