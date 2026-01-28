@@ -100,11 +100,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Devices"
+                $ref: "#/components/schemas/DeviceResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
-        "404":
-          $ref: "#/components/responses/NotFoundError"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
   /devices/{id}:
@@ -127,11 +125,63 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Devices"
+                $ref: "#/components/schemas/Device"
         "404":
           $ref: "#/components/responses/NotFoundError"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
+    patch:
+      description: update a device partially
+      summary: Update device (partial)
+      operationId: DeviceUpdate
+      tags: [devices]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: a1b2c3d4-e5f6-7890-1234-567890abcdef
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeviceUpdate"
+      responses:
+        "200":
+          description: device updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeviceResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+
+    delete:
+      description: delete a device
+      summary: Delete device
+      operationId: DeviceDelete
+      tags: [devices]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: a1b2c3d4-e5f6-7890-1234-567890abcdef
+      responses:
+        "204":
+          description: device deleted
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        
   /auth/fake:
     get: 
       security: []
@@ -219,7 +269,7 @@ components:
         data:
           type: array
           items:
-            $ref: "#/components/schemas/Devices"
+            $ref: "#/components/schemas/Device"
         pagination:
           $ref: "#/components/schemas/PaginationMeta"
     Error:
@@ -279,69 +329,109 @@ components:
           minimum: -50000
           maximum: 1000000
           example: 2443
-    Devices:
+    Device:
       type: object
       required:
+        - id
+        - device_type_id
         - name
-        - ssn
-        - location
+        - serial_number
         - status
-        - created
-        - updated
+        - created_at
+        - updated_at
       properties:
+        id:
+          type: string
+          format: uuid
+          example: 5d0e2855-738d-4ed8-8fbf-7c8d9d2329c5
+        device_type_id:
+          type: string
+          format: uuid
+          example: 7ca821df-4d26-4eb6-bd4f-426b6e2f08c8
         name:
           type: string
-          example: Themometer lower level 5
-        ssn:
+          example: Sensor 1
+        serial_number:
           type: string
-          description: "Device serial number (must match a registered device)"
-          example: SN2224412
+          example: SN-001
         location:
           type: string
-          example: Industrial park 15
+          nullable: true
+          example: Lab
         status:
           type: string
-          enum: [Active, Paused, Offline, Maintenance, Error, Deprecated]
-          example: Paused
-        created:
+          enum: [active, inactive, error]
+          example: active
+        last_seen:
           type: string
           format: date-time
-          example: 2026-01-16T14:30:00Z
-        updated:
+          nullable: true
+          example: "2026-01-27T20:58:00Z"
+        created_at:
           type: string
           format: date-time
-          example: 2026-01-16T17:30:00Z
+          example: "2026-01-27T20:57:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2026-01-27T21:10:00Z"
+
     DeviceCreate:
       type: object
       required:
+        - device_type_id
         - name
-        - ssn
-        - location
-        - status
-        - description
-        - default_metrics
+        - serial_number
       properties:
+        device_type_id:
+          type: string
+          format: uuid
+          example: 7ca821df-4d26-4eb6-bd4f-426b6e2f08c8
         name:
           type: string
-          example: Themometer lower level 5
-        ssn:
+          example: Sensor 1
+        serial_number:
           type: string
-          description: "Device serial number (must match a registered device)"
-          example: SN2224412
+          example: SN-001
         location:
           type: string
-          example: Industrial park 15
+          nullable: true
+          example: Lab
         status:
           type: string
-          enum: [Active, Paused, Offline, Maintenance, Error, Deprecated]
-          example: Paused
-        description:
+          enum: [active, inactive, error]
+          example: active
+
+    DeviceUpdate:
+      type: object
+      description: Partial update (all fields optional)
+      properties:
+        device_type_id:
           type: string
-          example: Gen 2 Themometer
-        default_metrics:
+          format: uuid
+          example: 7ca821df-4d26-4eb6-bd4f-426b6e2f08c8
+        name:
           type: string
-          enum: [C, K, F, psi, wh]
-          example: C
+          example: Sensor 1
+        serial_number:
+          type: string
+          example: SN-001
+        location:
+          type: string
+          nullable: true
+          example: Lab
+        status:
+          type: string
+          enum: [active, inactive, error]
+          example: inactive
+
+    DeviceResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: "#/components/schemas/Device"
+
   responses:
     UnauthorizedError:
       description: No or invalid JWT token provided
