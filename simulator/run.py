@@ -1,8 +1,12 @@
 import argparse
-from assets.data_structures import PayloadEnvelope
-from assets.main import main_sim
-from assets.helpers import get_config
-
+try:
+    from .assets.data_structures import PayloadEnvelope
+    from .assets.main import main_sim
+    from .assets.helpers import get_config
+except:
+    from assets.data_structures import PayloadEnvelope
+    from assets.main import main_sim
+    from assets.helpers import get_config
 
 def main() -> None:
     """

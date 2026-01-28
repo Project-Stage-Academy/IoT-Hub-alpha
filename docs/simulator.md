@@ -125,14 +125,19 @@ any further schema will have additional fields
 
 
 ## `6) Usage`
-Basic run (HTTP mode, using default demos from config)
+Basic run (HTTP mode, using default demo files from config)
 ```
-python run.py
+python -m simulator.run
+```
+Using docker compose
+```
+docker compose run --rm simulator.run
 ```
 Infinite mode
 ```
-python run.py -c 0
+python -m simulator.run -d device1 -c 0
 ```
+
 
 ### CLI Options
 |quick flag | flag| Description | Default value|
@@ -141,9 +146,9 @@ python run.py -c 0
 | -f| --files (str) | select 1 or more files from /docs/demos to run | default value is loaded from config|
 |-c| --count (int)| count of task loops, multiplicative with multiple tasks | 1 |
 |-m| --mode ("http"/"mqtt")|  select http or mqtt sender | http |
-|-r| --rate(float)| delay between requests in seconds | 1.0 |
-|-v| --verbose(bool) | enables verbose mode in console output | False |
-|-l| --log | enables logging to the file specified in config (`log_file`) | False|
+|-r| --rate(float)| delay between requests in seconds | 0.7 |
+|-v| --verbose(flag) | enables verbose mode in console output | False |
+|-l| --log(flag) | enables logging to the file specified in config (`log_file`) | False|
 
 ## `7) Logging`
 Logs are written in JSON Lines (JSONL) format.
@@ -156,12 +161,12 @@ Logs are written in JSON Lines (JSONL) format.
 
 Run tasks located in Demo1.json file, with verbose and log enabled 5 times with a delay of 0.5 seconds:
 ```
-python run.py -f Demo1.json -v -l -c 5 -r 0.5
+python -m simulator.run -f Demo1.json -v -l -c 5 -r 0.5
 ```
 
 Run device1 (located in config) continuously with a delay of 1 second with no verbose console output and no file logging:
 ```
-python run.py -d device1 -c 0 -r 1
+python -m simulator.run -d device1 -c 0 -r 1
 ```
 
 ## `9) Limitations`
@@ -173,3 +178,14 @@ python run.py -d device1 -c 0 -r 1
 - No parallel execution
 
 - HTTP only supports POST
+
+## `10) Simulator dependencies`
+
+The telemetry simulator relies only on a minimal subset of dependencies.
+These are documented in:
+
+requirements-dev.txt
+
+Required for simulator execution:
+- pydantic
+- requests

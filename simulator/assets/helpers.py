@@ -15,7 +15,7 @@ def get_data_from_demos(files: list[str]) -> list[PayloadEnvelope]:
     root = Path(__file__).resolve().parent.parent
     payloadenvelope: list[PayloadEnvelope] = []
     for file in files:
-        path = Path(f"{root}/{file}")
+        path = Path(f"{root}/assets/demos/{file}")
         if not path.exists():
             raise argparse.ArgumentTypeError(f"{file} in config.simulator but does not exist")
         with open(path, "r") as f:
