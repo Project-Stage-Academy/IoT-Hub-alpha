@@ -11,12 +11,13 @@ API Style Guide (Industry 4.0)
 7. [Authentication & Authorization](#7-authentication--authorization)
 8. [Pagination](#8-pagination)
 9. [Errors](#9-errors)
-10. [Create / Update Patterns](#10-create-update-patterns)
-11. [Resource Representations](#11-resource-representations)
-12. [Filtering, Searching, Sorting](#12-filtering-searching-sorting)
-13. [Security Requirements](#13-security-requirements)
-14. [Deprecation Policy](#14-deprecation-policy)
-15. [Documentation Rules](#15-documentation-rules)
+10.[Curl commands for a device](#10-curl-commands-for-a-device)
+11. [Create / Update Patterns](#11-create-update-patterns)
+12. [Resource Representations](#12-resource-representations)
+13. [Filtering, Searching, Sorting](#13-filtering-searching-sorting)
+14. [Security Requirements](#14-security-requirements)
+15. [Deprecation Policy](#15-deprecation-policy)
+16. [Documentation Rules](#16-documentation-rules)
 
 
 ## `1) Obtaining a JWT Token for testing`
@@ -290,13 +291,72 @@ Standard shape:
     "error" : "An error has occured"
 }
 ```
-## `10) Create Update Patterns`
+
+## `10) Curl commands for a device`
+Simple curl commands for registering a device and fetching its data.
+
+###  `Create a device (POST)`
+You must have a DeviceType created first. Use its UUID as device_type_id.
+```
+$payload = @{
+  name = "Sensor 1"
+  serial_number = "SN-001"
+  device_type_id = "PUT_DEVICE_TYPE_UUID_HERE"
+  status = "active"
+  location = "Lab"
+}
+
+Invoke-RestMethod -Method Post `
+  -Uri "http://localhost:8000/api/v1/devices/" `
+  -Headers $headers `
+  -ContentType "application/json" `
+  -Body ($payload | ConvertTo-Json)
+
+```
+### `Get device by id (GET)`
+
+```
+$deviceId = "PUT_DEVICE_UUID_HERE"
+Invoke-RestMethod -Method Get `
+  -Uri "http://localhost:8000/api/v1/devices/$deviceId/" `
+  -Headers $headers
+```
+### `Update device (PATCH)`
+In this example - status was updated
+```
+$deviceId = "PUT_DEVICE_UUID_HERE"
+$patch = @{ status = "inactive" }
+
+Invoke-RestMethod -Method Patch `
+  -Uri "http://localhost:8000/api/v1/devices/$deviceId/" `
+  -Headers $headers `
+  -ContentType "application/json" `
+  -Body ($patch | ConvertTo-Json)
+
+```
+
+### `List devices (Pagination)`
+```
+Invoke-RestMethod -Method Get `
+  -Uri "http://localhost:8000/api/v1/devices/?page=1&page_size=10" `
+  -Headers $headers
+```
+### `Delete device (DELETE)`
+```
+$deviceId = "PUT_DEVICE_UUID_HERE"
+Invoke-RestMethod -Method Delete `
+  -Uri "http://localhost:8000/api/v1/devices/$deviceId/" `
+  -Headers $headers
+
+```
+
+## `11) Create Update Patterns`
 
 Create returns: 201 + created resource (or location header) 
 
 telemetry POST requests returns 202 with no body
 
-## `11) Resource Representations`
+## `12) Resource Representations`
 
 - JSON objects use snake_case
 
@@ -321,7 +381,7 @@ for example, a thermometer will send its value(31.4) in such a way:
 
 - IDs - UUID for all API operations
 
-## `12) Filtering, Searching, Sorting`
+## `13) Filtering, Searching, Sorting`
 
 Resource access is currently supported on:
 - devices endpoint using a url parameter of {id}
@@ -370,13 +430,13 @@ GET .../api/v1/telemetry?device_id=a1b2c3d4-e5f6-7890-1234-567890abcdef
 }
 ```
 
-## `13) Security Requirements`
+## `14) Security Requirements`
 
 TLS only: yes
 
 Audit logging: TODO
 
-## `14) Deprecation Policy`
+## `15) Deprecation Policy`
 
 How endpoints are deprecated: Endpoints are never deprecated as it is a IoT system
 
@@ -384,7 +444,7 @@ How clients are notified: Changelog
 
 Deprecation: false
 
-## `15) Documentation Rules`
+## `16) Documentation Rules`
 
 For every endpoint, document:
 
