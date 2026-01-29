@@ -104,8 +104,7 @@ services:
         condition: service_healthy
       db:
         condition: service_healthy
-      redis:
-        condition: service_started
+        
     logging: *default-logging
     networks:
       - iot_hub_net
@@ -139,6 +138,18 @@ services:
     depends_on:
       - prometheus
     logging: *default-logging
+    networks:
+      - iot_hub_net
+      
+  simulator:
+    build:
+      context: .
+      dockerfile: simulator/Dockerfile
+    working_dir: /app
+    volumes:
+      - ./simulator:/app/simulator
+    depends_on:
+      - web
     networks:
       - iot_hub_net
 
