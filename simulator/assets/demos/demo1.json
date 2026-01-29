@@ -1,0 +1,34 @@
+[
+    {
+      "name": "malformed payload 1",
+      "data": {
+        "schema_version": "1.0",
+        "ssn": "VIB-SN-555"
+      },
+      "expected": 400
+    },
+        {
+      "name": "malformed payload 2",
+      "data": {
+        "ssn": "VIB-SN-555",
+        "value": 4442
+      },
+      "expected": 400
+    },
+        {
+      "name": "malformed payload 3",
+      "data": {
+        "value": 4442
+      },
+      "expected": 400
+    },
+      {
+      "name": "pass",
+      "data": {
+        "schema_version": "1.0",
+        "ssn": "VIB-SN-555",
+        "value": 4442
+      },
+      "expected": 5024
+    }
+  ]

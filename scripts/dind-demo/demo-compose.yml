@@ -1,0 +1,8 @@
+services:
+  demo-web:
+    image: nginx:1.27-alpine
+    ports:
+      - "8080:80"
+  demo-redis:
+    image: redis:7-alpine
+  

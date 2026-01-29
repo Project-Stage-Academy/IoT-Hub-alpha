@@ -1,0 +1,22 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    environment: local
+    service: iot-hub
+
+scrape_configs:
+  # Django application metrics
+  - job_name: 'django'
+    scrape_interval: 10s
+    metrics_path: '/metrics/'
+    static_configs:
+      - targets: ['web:8000']
+        labels:
+          instance: 'django-app'
+
+  # Prometheus itself
+  - job_name: 'prometheus'
+    scrape_interval: 15s
+    static_configs:
+      - targets: ['localhost:9090']

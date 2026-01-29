@@ -1,26 +1,30 @@
-## Summary
-Describe the changes introduced by this pull request.
+## 📝 Description
+*Provide a brief summary of the changes introduced by this Pull Request. What problem does it solve or what feature does it add?*
 
-## Related Issue
-Link the related issue (if applicable).
+## 🔗 Related Issue / User Story
+*Link the relevant GitHub Issue or User Story here.*
+- Fixes #
+- Part of Epic #
 
-## Changes
-- 
-- 
-- 
+## 🛠 Type of Change
+- [ ] Feature (new functionality)
+- [ ] Bug fix (non-breaking change which fixes an issue)
+- [ ] Documentation update
+- [ ] Refactoring / Chore (no functional changes)
 
-## Checklist
-- [ ] Code follows project style guidelines
-- [ ] Tests added or updated
-- [ ] Documentation updated (if applicable)
-- [ ] CI pipeline passes successfully
-- [ ] No breaking changes introduced
+## ✅ Development Checklist (Definition of Done)
+*Before submitting this PR, please confirm the following:*
 
-## Testing
-Describe how the changes were tested.
+- [ ] **Formatting:** Code is formatted using `black`.
+- [ ] **Linting:** `flake8` checks pass with zero warnings.
+- [ ] **Testing:** New and existing unit tests pass via `pytest`.
+- [ ] **Docker:** I have verified the changes run correctly in the `docker compose` environment.
+- [ ] **Documentation:** I have updated the `README.md` or files in `/docs` if necessary.
+- [ ] **Issue Linking:** PR linked to corresponding issue/User Story
+- [ ] **Reviewer:** Two teammates and a mentor or expert are assigned to this PR.
 
-## Screenshots / Logs
-Attach screenshots or logs if applicable.
+## 📸 Evidence (Optional)
+*Add screenshots, logs, or terminal output to demonstrate the working feature or fix.*
 
-## Notes for Reviewers
-Anything reviewers should pay special attention to.
+## 💬 Additional Notes
+*Any extra context or things the reviewer should focus on.*

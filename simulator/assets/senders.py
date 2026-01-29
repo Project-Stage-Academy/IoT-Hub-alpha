@@ -35,7 +35,8 @@ class HttpSender(Sender):
         try:
             response = session.post(
                 self.base_url,
-                json=item.data.model_dump(),
+                headers={"X-Device-Serial-Number": item.data.ssn},
+                json=item.data.model_dump(exclude={"ssn"}),
                 timeout=self.timeout
             )
             latency = int((time.perf_counter() - start) * 1000)
