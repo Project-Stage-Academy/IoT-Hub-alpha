@@ -23,7 +23,14 @@ class DeviceApiTests(TestCase):
         self.assertIsInstance(body["data"], list)
 
         p = body["pagination"]
-        for key in ("page", "page_size", "total", "total_pages", "next_page", "prev_page"):
+        for key in (
+            "page",
+            "page_size",
+            "total",
+            "total_pages",
+            "next_page",
+            "prev_page",
+        ):
             self.assertIn(key, p)
 
     def test_list_devices_invalid_page_returns_400(self):

@@ -84,7 +84,9 @@ class DeviceListView(View):
         try:
             payload = _json_body(request)
             device = DeviceSerializer(data=payload, partial=False).save()
-            return JsonResponse({"data": DeviceSerializer(instance=device).to_dict()}, status=201)
+            return JsonResponse(
+                {"data": DeviceSerializer(instance=device).to_dict()}, status=201
+            )
         except ApiValidationError as e:
             return JsonResponse({"errors": e.errors}, status=e.status_code)
         except DjangoValidationError as e:
@@ -97,7 +99,9 @@ class DeviceDetailView(View):
     def get(self, request: HttpRequest, device_id):
         try:
             obj = Device.objects.get(id=device_id)
-            return JsonResponse({"data": DeviceSerializer(instance=obj).to_dict()}, status=200)
+            return JsonResponse(
+                {"data": DeviceSerializer(instance=obj).to_dict()}, status=200
+            )
         except Device.DoesNotExist:
             return JsonResponse({"detail": "Not found."}, status=404)
 
@@ -123,8 +127,12 @@ class DeviceDetailView(View):
 
         try:
             payload = _json_body(request)
-            updated = DeviceSerializer(instance=obj, data=payload, partial=partial).save()
-            return JsonResponse({"data": DeviceSerializer(instance=updated).to_dict()}, status=200)
+            updated = DeviceSerializer(
+                instance=obj, data=payload, partial=partial
+            ).save()
+            return JsonResponse(
+                {"data": DeviceSerializer(instance=updated).to_dict()}, status=200
+            )
         except ApiValidationError as e:
             return JsonResponse({"errors": e.errors}, status=e.status_code)
         except DjangoValidationError as e:

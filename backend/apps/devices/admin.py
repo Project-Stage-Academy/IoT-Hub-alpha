@@ -5,7 +5,6 @@ from django.conf import settings
 from .models import Device, DeviceType
 from apps.telemetry.models import Telemetry
 
-
 DEVICE_TELEMETRY_INLINE_LIMIT = getattr(settings, "DEVICE_TELEMETRY_INLINE_LIMIT", 1)
 
 

@@ -38,7 +38,7 @@ class DeviceTypeSerializer:
 class DeviceSerializer:
     instance: Optional[Device] = None
     data: Optional[dict[str, Any]] = None
-    partial: bool = False 
+    partial: bool = False
 
     read_fields = (
         "id",
@@ -55,7 +55,7 @@ class DeviceSerializer:
         "serial_number",
         "location",
         "status",
-        "device_type_id", 
+        "device_type_id",
     )
 
     errors: dict[str, Any] = field(default_factory=dict)
@@ -68,7 +68,9 @@ class DeviceSerializer:
         payload["id"] = str(self.instance.id)
 
         # device_type віддаємо як обʼєкт + id (зручно клієнту)
-        payload["device_type"] = DeviceTypeSerializer(self.instance.device_type).to_dict()
+        payload["device_type"] = DeviceTypeSerializer(
+            self.instance.device_type
+        ).to_dict()
         payload["device_type_id"] = str(self.instance.device_type_id)
 
         # datetimes -> ISO
@@ -116,7 +118,9 @@ class DeviceSerializer:
         if "status" in cleaned:
             allowed = {c[0] for c in Device._meta.get_field("status").choices}
             if cleaned["status"] not in allowed:
-                self.errors["status"] = f"Invalid status. Allowed: {', '.join(sorted(allowed))}"
+                self.errors["status"] = (
+                    f"Invalid status. Allowed: {', '.join(sorted(allowed))}"
+                )
 
         # 6) device_type_id -> DeviceType instance
         if "device_type_id" in cleaned:
@@ -147,7 +151,8 @@ class DeviceSerializer:
             for k, v in cleaned.items():
                 setattr(obj, k, v)
 
-        # Важливо: full_clean() запускає model validation (max_length, choices, unique і т.д.)
+        # Важливо: full_clean() запускає model validation
+        # (max_length, choices, unique і т.д.)
         obj.full_clean()
         obj.save()
         return obj
