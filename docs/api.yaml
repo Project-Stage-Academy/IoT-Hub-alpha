@@ -132,7 +132,7 @@ paths:
           $ref: "#/components/responses/UnauthorizedError"
     patch:
       description: update a device partially
-      summary: Update device (partial)
+      summary: Update device
       operationId: DeviceUpdate
       tags: [devices]
       parameters:
