@@ -78,7 +78,7 @@ class RateLimitingMiddleware:
             limit_count = getattr(settings, "RATE_LIMIT_DEFAULT_COUNT", 60)
             limit_period = getattr(settings, "RATE_LIMIT_DEFAULT_PERIOD", 60)
 
-        cache_key = f"rate_limit_{ip_address}"
+        cache_key = f"rate_limit_{ip_address}_{request.path}"
         request_history = cache.get(cache_key, [])
 
         current_time = time.time()
