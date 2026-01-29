@@ -233,3 +233,5 @@ Thumbs.db
 sim_log.jsonl
 
 .vscode/settings.json
+
+devops/auth/.htpasswd
