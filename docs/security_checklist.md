@@ -8,10 +8,11 @@ This checklist should be completed by a developer before every demo to ensure th
 
 | # | Check                                   | Instructions                                                                                                                                                             | Status (Done/NA) |
 | - | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------- |
-| 1 | **Validate TLS**                        | Access the application in your browser and verify that the connection is secure (i.e., you see a padlock icon and the URL starts with `https`).                               |                  |
+| 1 | **Validate TLS** | Open https://localhost in browser OR run: curl -vk https://localhost | |
 | 2 | **Check for exposed secrets**           | Review your local `.env` file and ensure that no secrets are hard-coded in the source code. Use `git status` to ensure no secret files are accidentally staged for commit.    |                  |
-| 3 | **Validate token issuance**             | Log in to the application and verify that you receive a new access token.                                                                                                |                  |
+| 3 | **Validate token issuance** | Verify that a valid JWT access token is returned and expiration (`exp`) claim is present. | |
 | 4 | **Verify repository access controls**   | Go to the repository settings on GitHub and ensure that only authorized team members have access.                                                                        |                  |
+| 5 | **Verify rate limiting** | Send >N requests (e.g. >20 within 1 minute) to ingestion endpoint | |
 
 ---
 
@@ -35,15 +36,12 @@ docker-compose down
 docker-compose up
 ```
 
-## Revoking a Dev Token
+## Revoking a Dev JWT Token
 
-If a developer access token is compromised, it must be revoked immediately.
+- Reduce token lifetime in settings
+- Rotate JWT signing key
+- Restart services
 
-1.  Go to your GitHub [Personal access tokens](https://github.com/settings/tokens) page.
-
-2.  Find the compromised token and click **Delete**.
-
-3.  If the token was used in any applications, you will need to generate a new token and update the application's configuration.
 
 ## Minimal Incident Response
 
@@ -57,3 +55,9 @@ If you identify a security incident, follow these steps:
 3.  **Investigate:** Work with the team to understand the root cause and the extent of the damage.
 
 4.  **Resolve:** Apply the necessary fixes to address the vulnerability and restore the system to a secure state.
+
+## Scope Note
+
+This project uses a minimal TLS setup intended for local development only.
+Production-grade TLS termination (e.g. nginx + gunicorn/uvicorn workers)
+is intentionally out of scope for the MVP foundation.
