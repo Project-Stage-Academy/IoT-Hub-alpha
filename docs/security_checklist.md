@@ -1,30 +1,59 @@
 # Security Checklist
 
-## Secrets Handling
+This document provides a checklist of security-related tasks for developers.
 
-### Local Development
+## Pre-Demo Security Checklist
 
-For local development, secrets are stored in a `.env` file in the root of the project. This file is ignored by Git and should never be committed. A `.env.example` file is provided to show the required environment variables.
+This checklist should be completed by a developer before every demo to ensure the application is secure. It should take less than 15 minutes to complete.
 
-To set up your local environment:
+| # | Check                                   | Instructions                                                                                                                                                             | Status (Done/NA) |
+| - | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------- |
+| 1 | **Validate TLS**                        | Access the application in your browser and verify that the connection is secure (i.e., you see a padlock icon and the URL starts with `https`).                               |                  |
+| 2 | **Check for exposed secrets**           | Review your local `.env` file and ensure that no secrets are hard-coded in the source code. Use `git status` to ensure no secret files are accidentally staged for commit.    |                  |
+| 3 | **Validate token issuance**             | Log in to the application and verify that you receive a new access token.                                                                                                |                  |
+| 4 | **Verify repository access controls**   | Go to the repository settings on GitHub and ensure that only authorized team members have access.                                                                        |                  |
 
-1.  Copy the `.env.example` file to `.env`: `cp .env.example .env`
-2.  Fill in the required secret values in the `.env` file.
+---
 
-**Never commit the `.env` file to version control.**
+## Rotating a Compromised Secret (Local)
 
-### CI/CD
+If you suspect a secret in your local `.env` file has been compromised, follow these steps immediately:
 
-In CI/CD environments, secrets should be stored as encrypted secrets or environment variables within the CI/CD platform's secret management system.
+1.  **Generate a new secret:** Use a password generator or a command-line tool like `openssl` to generate a new random secret.
 
-- **GitHub Actions**: Use [Encrypted Secrets](https://docs.github.com/en/actions/security-guides/encrypted-secrets) to store secrets. These secrets are made available as environment variables in the workflow. See the `.github/workflows/ci.yml` file for an example of how secrets are used.
+```bash
+openssl rand -hex 32
+```
 
-### Prohibited Values
+2.  **Update your `.env` file:** Replace the old secret with the new one in your local `.env` file.
 
-The following values must never be committed to the repository in any form:
+3.  **Restart the application:** Stop and restart the Django application to ensure it picks up the new secret.
 
--   `SECRET_KEY`
--   `DATABASE_URL` or its components (password, etc.)
--   `CELERY_BROKER_URL`
--   API keys
--   Other credentials
+```bash
+docker-compose down
+
+docker-compose up
+```
+
+## Revoking a Dev Token
+
+If a developer access token is compromised, it must be revoked immediately.
+
+1.  Go to your GitHub [Personal access tokens](https://github.com/settings/tokens) page.
+
+2.  Find the compromised token and click **Delete**.
+
+3.  If the token was used in any applications, you will need to generate a new token and update the application's configuration.
+
+## Minimal Incident Response
+
+If you identify a security incident, follow these steps:
+
+
+1.  **Contain:** Take immediate steps to prevent further damage. This may involve shutting down a service, revoking a token, or disconnecting a machine from the network.
+
+2.  **Communicate:** Notify the project lead or a senior developer immediately. Provide a clear and concise summary of the incident.
+
+3.  **Investigate:** Work with the team to understand the root cause and the extent of the damage.
+
+4.  **Resolve:** Apply the necessary fixes to address the vulnerability and restore the system to a secure state.

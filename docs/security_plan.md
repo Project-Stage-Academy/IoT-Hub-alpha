@@ -25,6 +25,8 @@ For the MVP, we assume a semi-trusted environment and prioritize threats that ar
   - *Mitigation*: Backend logic must enforce ownership checks, ensuring users can only access resources associated with their account. (Note: This is a design goal for the API implementation).
 - **Credential Leakage**: Developer credentials or application secrets are accidentally exposed.
   - *Mitigation*: Secrets are managed via environment variables (`.env` file) and are explicitly excluded from source control via `.gitignore`.
+- **API Abuse / Brute Force**: Excessive requests to ingestion or admin endpoints.
+  - *Mitigation*: Basic rate limiting middleware applied to sensitive endpoints.
 
 ### Out-of-Scope Threats for MVP
 
@@ -43,7 +45,7 @@ The development environment is optimized for rapid iteration and debugging.
 
 - **Authentication**: JWT authentication is in place, but developers may use a "fake" token endpoint or simplified user accounts for ease of use.
 - **Encryption**: HTTPS is available via a locally-trusted development certificate (`mkcert`) through the Nginx proxy service. This protects against casual network sniffing but is not production-grade.
-- **Secrets**: Managed in a local `.env` file. The default values in `.env.example` are sufficient to run the stack but should not be used elsewhere.
+- **Secrets**: Managed in a local `.env` file which is excluded from version control. These values are for local use only and must never be reused in staging or production.
 - **Network Access**: Services are exposed on `localhost`. There is no restriction on network access.
 
 ### Staging
@@ -55,3 +57,7 @@ The staging environment should mirror the production setup as closely as possibl
 - **Secrets**: All secrets (database passwords, Django `SECRET_KEY`, JWT signing keys) **must** be unique, strong, and securely managed via a proper secrets management system (e.g., environment variables injected by the CI/CD platform, HashiCorp Vault, AWS Secrets Manager).
 - **Network Access**: Access to the staging environment should be restricted. At a minimum, administrative endpoints (like the Django Admin) should be firewalled to specific IP addresses (e.g., the office VPN).
 - **Auditing**: Logging levels should be increased to capture all relevant access and error events for security monitoring.
+
+## CI/CD Considerations
+
+CI pipelines must not contain hardcoded secrets. All sensitive values (API keys, signing keys, credentials) are injected at runtime via the CI platform's encrypted secret store.
