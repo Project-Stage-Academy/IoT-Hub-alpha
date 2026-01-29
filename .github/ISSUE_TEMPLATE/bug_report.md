@@ -1,33 +1,37 @@
 ---
-name: Bug report
-about: Report a bug or unexpected behavior
-title: "[BUG] "
+name: "🐛 Bug Report"
+about: Create a report to help us improve.
 labels: bug
-assignees: ""
+assignees: ''
 ---
 
-## Description
-A clear and concise description of the problem.
+## 🔗 Related User Story / Issue
+*Link the relevant User Story or Epic here.*
 
-## Steps to Reproduce
+## 🛑 Problem Description
+*A clear and concise description of what the bug is.*
+
+## 🧪 Steps to Reproduce
 1. Go to '...'
-2. Run command '...'
-3. See error
+2. Click on '....'
+3. Scroll down to '....'
+4. See error
 
-## Expected Behavior
-What you expected to happen.
+## 📉 Expected Behavior
+*A clear and concise description of what you expected to happen.*
 
-## Actual Behavior
-What actually happened.
+## 🚩 Actual Behavior
+*What actually happens? (Include error logs or screenshots if possible).*
 
-## Environment
-- OS:
-- Browser (if applicable):
-- Docker version:
-- Branch/commit:
+## 💻 Environment
+- **OS:** (e.g., Ubuntu 22.04, macOS)
+- **Docker version:**
+- **Browser (if applicable):**
 
-## Logs / Screenshots
-Attach relevant logs or screenshots if available.
+## ✅ Checklist
+- [ ] Bug reproducible in Docker environment
+- [ ] Logs attached
+- [ ] Screenshots provided if applicable
 
-## Additional Context
-Any additional information that may help diagnose the issue.
+## 📎 Additional Context
+*Add any other context about the problem here (e.g., relevant logs from `docker compose logs`).*

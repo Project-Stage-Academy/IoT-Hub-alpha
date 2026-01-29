@@ -1,12 +1,12 @@
 import importlib
 import logging
+import time
 import uuid
 
 from django.conf import settings
 
-from .logging import bind_request_context, clear_request_context
-
-logger = logging.getLogger("request.lifecycle")
+from .logging import bind_request_context
+from .metrics import REQUEST_COUNT, REQUEST_LATENCY
 
 
 class RequestContextMiddleware:
@@ -21,7 +21,7 @@ class RequestContextMiddleware:
         generator_path = getattr(
             settings,
             "REQUEST_ID_GENERATOR",
-            "request_id.generators.uuid4",
+            "request_id.uuid4",
         )
         try:
             module_name, func_name = generator_path.rsplit(".", 1)
@@ -36,17 +36,30 @@ class RequestContextMiddleware:
 
     def __call__(self, request):
         request.request_id = self._get_request_id(request)
-        context_bound = False
-        try:
-            bind_request_context(request)
-            context_bound = True
-            response = self.get_response(request)
-            request_id = getattr(request, "request_id", None)
-            if request_id:
-                header = getattr(settings, "REQUEST_ID_RESPONSE_HEADER", "X-Request-ID")
-                response[header] = request_id
+        bind_request_context(request)
 
-            return response
-        finally:
-            if context_bound:
-                clear_request_context()
+        # Record request start time for metrics
+        start_time = time.time()
+
+        response = self.get_response(request)
+
+        # Record request latency
+        latency = time.time() - start_time
+        REQUEST_LATENCY.labels(
+            method=request.method,
+            endpoint=request.path,
+        ).observe(latency)
+
+        # Increment request counter
+        REQUEST_COUNT.labels(
+            method=request.method,
+            endpoint=request.path,
+            status=response.status_code,
+        ).inc()
+
+        request_id = getattr(request, "request_id", None)
+        if request_id:
+            header = getattr(settings, "REQUEST_ID_RESPONSE_HEADER", "X-Request-ID")
+            response[header] = request_id
+
+        return response
