@@ -32,7 +32,7 @@ The `vulnerability-scan` job will display a table of vulnerabilities with `CRITI
 When a vulnerability is reported, follow these steps to triage it:
 
 1.  **Assess the impact:** Determine if the vulnerability is exploitable in our environment. Consider the context of our application and how the vulnerable package is used.
-2.  **Check for a fix:** Look for a fixed version of the apackage. If a fix is available, create a pull request to update the dependency.
+2.  **Check for a fix:** Look for a fixed version of the package. If a fix is available, create a pull request to update the dependency.
 3.  **Mitigate the risk:** If a fix is not yet available, explore other mitigation options. This could involve disabling a feature, adding extra validation, or applying a patch.
 4.  **Ignore the vulnerability:** If the vulnerability is not exploitable and there is no immediate fix, you can temporarily ignore it by adding a comment to the PR with a justification. However, this should be used sparingly and with a plan to address the vulnerability in the future.
 
