@@ -84,44 +84,56 @@ class DeviceSerializer:
 
         cleaned: dict[str, Any] = {}
 
-        # 1) Required fields logic
+        self._require_fields()
+        self._copy_allowed_fields(cleaned)
+        self._normalize_strings(cleaned)
+        self._validate_name(cleaned)
+        self._validate_serial(cleaned)
+        self._validate_serial_unique(cleaned)
+        self._validate_status(cleaned)
+        self._resolve_device_type(cleaned)
+
+        if self.errors:
+            raise ApiValidationError(self.errors, status_code=400)
+
+        return cleaned
+
+    def _require_fields(self) -> None:
         required = {"name", "serial_number", "device_type_id"}
         for f in required:
             if not self.partial and f not in self.data:
                 self.errors[f] = "This field is required."
 
-        # 2) Copy allowed fields
+    def _copy_allowed_fields(self, cleaned: dict[str, Any]) -> None:
         for k in self.write_fields:
             if k in self.data:
                 cleaned[k] = self.data.get(k)
 
-        # 3) Normalize strings
-        if "name" in cleaned and isinstance(cleaned["name"], str):
-            cleaned["name"] = cleaned["name"].strip()
+    def _normalize_strings(self, cleaned: dict[str, Any]) -> None:
+        for k in ("name", "serial_number", "location"):
+            if k in cleaned and isinstance(cleaned[k], str):
+                cleaned[k] = cleaned[k].strip()
 
-        if "serial_number" in cleaned and isinstance(cleaned["serial_number"], str):
-            cleaned["serial_number"] = cleaned["serial_number"].strip()
-
-        if "location" in cleaned and isinstance(cleaned["location"], str):
-            cleaned["location"] = cleaned["location"].strip()
-
-        # 4) Field validation
+    def _validate_name(self, cleaned: dict[str, Any]) -> None:
         if "name" in cleaned and _is_blank(cleaned["name"]):
             self.errors["name"] = "Device name cannot be blank."
 
+    def _validate_serial(self, cleaned: dict[str, Any]) -> None:
         if "serial_number" in cleaned and _is_blank(cleaned["serial_number"]):
             self.errors["serial_number"] = "Serial number cannot be blank."
 
-        # 4.1) Uniqueness check for serial_number
-        if "serial_number" in cleaned and not _is_blank(cleaned["serial_number"]):
-            qs = Device.objects.filter(serial_number=cleaned["serial_number"])
+    def _validate_serial_unique(self, cleaned: dict[str, Any]) -> None:
+        serial = cleaned.get("serial_number")
+        if not _is_blank(serial):
+            qs = Device.objects.filter(serial_number=serial)
             if self.instance is not None:
                 qs = qs.exclude(pk=self.instance.pk)
             if qs.exists():
                 self.errors["serial_number"] = (
                     "Device with this serial number already exists"
                 )
-        # 5) Status choices validation
+
+    def _validate_status(self, cleaned: dict[str, Any]) -> None:
         if "status" in cleaned:
             allowed = {c[0] for c in Device._meta.get_field("status").choices}
             if cleaned["status"] not in allowed:
@@ -129,7 +141,7 @@ class DeviceSerializer:
                     f"Invalid status. Allowed: {', '.join(sorted(allowed))}"
                 )
 
-        # 6) device_type_id -> DeviceType instance
+    def _resolve_device_type(self, cleaned: dict[str, Any]) -> None:
         if "device_type_id" in cleaned:
             dt_id = cleaned["device_type_id"]
             try:
@@ -141,11 +153,6 @@ class DeviceSerializer:
                 self.errors["device_type_id"] = "DeviceType not found or invalid id."
             finally:
                 cleaned.pop("device_type_id", None)
-
-        if self.errors:
-            raise ApiValidationError(self.errors, status_code=400)
-
-        return cleaned
 
     @transaction.atomic
     def save(self) -> Device:
