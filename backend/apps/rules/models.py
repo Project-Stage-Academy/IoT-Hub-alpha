@@ -78,3 +78,9 @@ class Rule(models.Model):
 
     def __str__(self):
         return f"{self.name} - {self.device.name}"
+
+
+class TelemetryCursor(models.Model):
+    name = models.CharField(max_length=64, unique=True)
+    last_id = models.BigIntegerField(default=0)
+    updated_at = models.DateTimeField(auto_now=True)
