@@ -107,11 +107,29 @@ Booleans: true/false
 
 Envelopes present on pagination, for more information go to [Pagination](#8-pagination)
 
+### `6.4 Telemetry Ingest Example`
+
+Request:
+```http
+POST /api/v1/telemetry
+Content-Type: application/json
+X-Device-Serial-Number: SN2224412
+```
+```json
+{
+  "value": 2432,
+  "schema_version": "1.0"
+}
+```
+
+Rules:
+- `X-Device-Serial-Number` header is REQUIRED
+- Device identifiers MUST NOT appear in the request body
+- Requests missing the header MUST return `400 Bad Request`
+
 ## `7) Authentication & Authorization`
 
 Auth type: JWT
-
-### Telemetry post ingest endpoint does NOT use auth and is open, validation will be done using the ssn provided
 
 How to send(Header): 
 ```
@@ -130,6 +148,22 @@ Example:
 ```http
 GET /api/v1/devices
 Authorization: Bearer <token>
+```
+
+### Telemetry ingest endpoint (POST /telemetry)
+
+The telemetry ingest endpoint **does NOT require JWT authentication**.
+
+Device identity is provided via the request header:
+
+X-Device-Serial-Number
+
+The backend validates the device based on this header value.
+
+```
+POST /api/v1/telemetry
+X-Device-Serial-Number: SN2224412
+Content-Type: application/json
 ```
 
 ## `8) Pagination`
@@ -294,7 +328,10 @@ Standard shape:
 
 Create returns: 201 + created resource (or location header) 
 
-telemetry POST requests returns 202 with no body
+Telemetry POST requests return `202 Accepted` with no response body.
+
+The device identity MUST be provided via the `X-Device-Serial-Number` header.
+The request body MUST contain only telemetry data (no device identifiers).
 
 ## `11) Resource Representations`
 
@@ -304,7 +341,10 @@ telemetry POST requests returns 202 with no body
 
 - Fields are explicitly defined (no magic / undocumented fields)
 
-- Avoid abbreviations unless domain-standard (id, ts, ssn)
+- Avoid abbreviations unless domain-standard (id, ts)
+
+Device serial numbers are NOT included in telemetry request bodies.
+They are provided via the `X-Device-Serial-Number` request header.
 
 ### Common type representation
 
@@ -312,9 +352,14 @@ telemetry POST requests returns 202 with no body
 
 - Numbers - integers are used for telemetry data which may represent floats
 for example, a thermometer will send its value(31.4) in such a way:
+
+Headers:
+```
+"X-Device-Serial-Number": "SN222331"
+```
+Body:
 ```
 {
-"ssn": "sn222432"
 "value": 3140
 }
 ``` 
@@ -322,6 +367,10 @@ for example, a thermometer will send its value(31.4) in such a way:
 - IDs - UUID for all API operations
 
 ## `12) Filtering, Searching, Sorting`
+
+Note:
+The device serial number MAY be included in telemetry responses for identification purposes.
+However, it MUST NOT be included in telemetry POST request bodies.
 
 Resource access is currently supported on:
 - devices endpoint using a url parameter of {id}

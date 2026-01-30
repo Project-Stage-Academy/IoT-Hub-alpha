@@ -52,6 +52,8 @@ paths:
       summary: Ingest for telemetry collection
       operationId: TelemetrySubmit
       tags: [telemetry]
+      parameters:
+        - $ref: "#/components/parameters/DeviceSerialHeader"
       requestBody:
         required: true
         content:
@@ -173,6 +175,14 @@ components:
         minimum: 1
         maximum: 1000
       example: 10
+    DeviceSerialHeader:
+      name: X-Device-Serial-Number
+      in: header
+      required: true
+      description: Unique device serial number identifying the reporting device
+      schema:
+        type: string
+      example: SN2224443
   schemas:
     PaginationMeta:
       type: object
@@ -262,7 +272,6 @@ components:
     TelemetryPost:
       type: object
       required:
-        - ssn
         - value
         - schema_version
       properties:
@@ -270,10 +279,6 @@ components:
           type: string
           description: Telemetry payload schema version
           example: "1.0"
-        ssn:
-          type: string
-          description: "Device serial number (must match a registered device)"
-          example: SN222443
         value:
           type: integer
           minimum: -50000

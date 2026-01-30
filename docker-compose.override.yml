@@ -1,7 +1,7 @@
 services:
   web:
     volumes:
-      - backend-web-data:/app
+      - ./backend:/app
     environment:
       DJANGO_SETTINGS_MODULE: config.settings.local
   worker:
@@ -16,6 +16,5 @@ services:
       DJANGO_SETTINGS_MODULE: config.settings.local
 
 volumes:
-  backend-web-data:
   backend-worker-data:
   backend-migrate-data:
