@@ -1,0 +1,65 @@
+[
+      {
+      "name": "CNC Mill #2 1",
+      "data": {
+        "schema_version": "1.0",
+        "ssn": "TEMP-SN-002",
+        "value": 4442
+      },
+      "expected": 202
+    },
+          {
+      "name": "CNC Mill #2 2",
+      "data": {
+        "schema_version": "1.0",
+        "ssn": "TEMP-SN-002",
+        "value": 2543
+      },
+      "expected": 202
+    },
+          {
+      "name": "CNC Mill #2 3",
+      "data": {
+        "schema_version": "1.0",
+        "ssn": "TEMP-SN-002",
+        "value": 7785
+      },
+      "expected": 202
+    },
+          {
+      "name": "CNC Mill #2 4",
+      "data": {
+        "schema_version": "1.0",
+        "ssn": "TEMP-SN-002",
+        "value": 9950
+      },
+      "expected": 202
+    },
+              {
+      "name": "CNC Mill #2 5",
+      "data": {
+        "schema_version": "1.0",
+        "ssn": "TEMP-SN-002",
+        "value": 2308
+      },
+      "expected": 202
+    },
+              {
+      "name": "CNC Mill #2 6",
+      "data": {
+        "schema_version": "1.0",
+        "ssn": "TEMP-SN-002",
+        "value": 5555
+      },
+      "expected": 202
+    },
+              {
+      "name": "CNC Mill #2 7",
+      "data": {
+        "schema_version": "1.0",
+        "ssn": "TEMP-SN-002",
+        "value": 1686
+      },
+      "expected": 202
+    }
+  ]

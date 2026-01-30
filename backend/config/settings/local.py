@@ -4,7 +4,7 @@ from .base import *  # noqa: F403, F401
 
 DEBUG = True
 
-ALLOWED_HOSTS = ["localhost", "127.0.0.1", "0.0.0.0"]
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", "0.0.0.0", "web"]
 
 if "default" in DATABASES:  # noqa: F405
     DATABASES["default"]["CONN_MAX_AGE"] = 0  # noqa: F405

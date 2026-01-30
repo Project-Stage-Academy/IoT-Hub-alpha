@@ -234,4 +234,4 @@ sim_log.jsonl
 
 .vscode/settings.json
 
-devops/auth/.htpasswd
+develop/apt-repo/auth/.htpasswd
