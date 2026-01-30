@@ -36,6 +36,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r backend/requirements.txt
           pip install -r backend/requirements-dev.txt
+          pip install yamllint
 
       - name: Lint (black)
         run: black --check backend
@@ -54,9 +55,37 @@ jobs:
           name: openapi-spec
           path: docs/api.yaml
 
+  config-validation:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install validation tools
+        run: |
+          pip install yamllint
+
+      - name: Validate Prometheus YAML
+        run: yamllint devops/prometheus.yml
+
+      - name: Validate Grafana Datasources YAML
+        run: yamllint devops/grafana/provisioning/datasources/
+
+      - name: Validate Grafana Dashboards JSON
+        run: |
+          for file in devops/grafana/provisioning/dashboards/*.json; do
+            python3 -m json.tool "$file" > /dev/null || (echo "Invalid JSON in $file" && exit 1)
+          done
+
+      - name: Validate Grafana Provisioning Config YAML
+        run: yamllint devops/grafana/provisioning/dashboards/
+
   tests:
     runs-on: ubuntu-latest
-    needs: lint
+    needs: [lint, config-validation]
     services:
       postgres:
         image: postgres:15
