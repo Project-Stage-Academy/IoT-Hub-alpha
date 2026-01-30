@@ -72,11 +72,11 @@ jobs:
           --health-timeout=5s
           --health-retries=5
     env:
-      SECRET_KEY: ${{ secrets.SECRET_KEY }}
+      SECRET_KEY: ${{ secrets.SECRET_KEY || 'ci-secret-key' }}
       DJANGO_SETTINGS_MODULE: config.settings.base
       DB_NAME: iot_hub_alpha_db
       DB_USER: postgres
-      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD || 'postgres' }}
       DB_HOST: localhost
       DB_PORT: "5432"
       DB_CONN_MAX_AGE: "0"
