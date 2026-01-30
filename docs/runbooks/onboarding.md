@@ -66,6 +66,21 @@ This will start the following services:
 
 ![example-up](../images/onboarding-03-up.png)
 
+Verify stack health (smoke test):
+```
+./scripts/smoke-test.sh
+```
+
+Expected output:
+```commandline
+  Expected output:                                                                                                                                           
+  === IoT Hub Smoke Tests ===                                                                                                                                
+  Checking: Seed data valid... PASS                                                                                                                          
+  Checking: Metrics endpoint... PASS                                                                                                                         
+                                                                                                                                                             
+  === Results: 2 passed, 0 failed ===
+```
+
 ## 4) Create a Django superuser
 Use a strong password (min 12 chars, mixed case, numbers, symbols).
 To access the Django Admin UI, create a superuser():
