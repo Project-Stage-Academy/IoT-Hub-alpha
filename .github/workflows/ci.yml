@@ -3,12 +3,12 @@ name: CI
 on:
   push:
     branches: ["main", "develop"]
-  pull_request: 
-    branches: 
-      - 'main'
-      - 'develop'
-      - 'feature/**'
-      - 'task-**'
+  pull_request:
+    branches:
+      - "main"
+      - "develop"
+      - "feature/**"
+      - "task-**"
 
 jobs:
   lint:
@@ -101,11 +101,11 @@ jobs:
           --health-timeout=5s
           --health-retries=5
     env:
-      SECRET_KEY: "ci-secret-key"
+      SECRET_KEY: ${{ secrets.SECRET_KEY || 'ci-secret-key' }}
       DJANGO_SETTINGS_MODULE: config.settings.base
       DB_NAME: iot_hub_alpha_db
       DB_USER: postgres
-      DB_PASSWORD: postgres
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD || 'postgres' }}
       DB_HOST: localhost
       DB_PORT: "5432"
       DB_CONN_MAX_AGE: "0"
@@ -131,8 +131,8 @@ jobs:
           pip install -r requirements-dev.txt
       - name: Run tests
         working-directory: backend
-        
-        run:  pytest -q --cov=. --cov-report=xml:coverage.xml --cov-report=html:htmlcov
+
+        run: pytest -q --cov=. --cov-report=xml:coverage.xml --cov-report=html:htmlcov
 
       - name: Upload coverage XML artifact
         if: matrix.python-version == '3.13'
@@ -158,3 +158,13 @@ jobs:
           docker build -f backend/Dockerfile \
             --cache-from iot-hub-backend:ci \
             -t iot-hub-backend:ci backend
+
+      - name: Run Trivy scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: "iot-hub-backend:ci"
+          format: "table"
+          exit-code: "0"
+          ignore-unfixed: true
+          vuln-type: "os,library"
+          severity: "CRITICAL,HIGH"

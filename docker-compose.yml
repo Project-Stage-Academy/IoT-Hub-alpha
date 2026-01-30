@@ -40,8 +40,8 @@ services:
       - .env
     volumes:
       - ./backend:/app
-    ports:
-      - "8000:8000"
+    # ports:
+    #   - "8000:8000"
     depends_on:
       db:
         condition: service_healthy
@@ -55,6 +55,21 @@ services:
     networks:
       - iot_hub_net
     # TODO: add production server (gunicorn) and static/media handling
+
+  proxy:
+    build:
+      context: ./nginx
+    container_name: iot_hub_proxy
+    restart: unless-stopped
+    ports:
+      - "443:443"
+      - "80:80"
+    volumes:
+      - ./nginx/certs:/etc/ssl/certs:ro
+    depends_on:
+      - web
+    networks:
+      - iot_hub_net
 
   migrate:
     build: ./backend

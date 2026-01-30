@@ -4,9 +4,13 @@ import time
 import uuid
 
 from django.conf import settings
+from django.core.cache import cache
+from django.http import JsonResponse
 
-from .logging import bind_request_context
+from .logging import bind_request_context, clear_request_context
 from .metrics import REQUEST_COUNT, REQUEST_LATENCY
+
+logger = logging.getLogger("request.lifecycle")
 
 
 class RequestContextMiddleware:
@@ -66,3 +70,45 @@ class RequestContextMiddleware:
             response[header] = request_id
 
         return response
+
+
+class RateLimitingMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        if not getattr(settings, "RATE_LIMIT_ENABLED", False):
+            return self.get_response(request)
+
+        ip_address = self.get_client_ip(request)
+        if not ip_address:
+            logger.warning(
+                "rate_limit_ip_missing",
+                extra={"path": request.path},
+            )
+            return JsonResponse(
+                {"error": "Unable to determine client IP."},
+                status=400,
+            )
+
+        if request.path.startswith("/admin"):
+            limit_count = getattr(settings, "RATE_LIMIT_ADMIN_COUNT", 60)
+            limit_period = getattr(settings, "RATE_LIMIT_ADMIN_PERIOD", 60)
+        elif "telemetry" in request.path:
+            limit_count = getattr(settings, "RATE_LIMIT_DEVICE_COUNT", 100)
+            limit_period = getattr(settings, "RATE_LIMIT_DEVICE_PERIOD", 60)
+        else:
+            limit_count = getattr(settings, "RATE_LIMIT_DEFAULT_COUNT", 60)
+            limit_period = getattr(settings, "RATE_LIMIT_DEFAULT_PERIOD", 60)
+
+        cache_key = f"rate_limit_{ip_address}_{request.path}"
+
+        current_count = cache.get(cache_key)
+        if current_count is None:
+            cache.set(cache_key, 1, timeout=limit_period)
+        else:
+            if current_count >= limit_count:
+                return JsonResponse({"error": "Too many requests."}, status=429)
+            cache.incr(cache_key)
+
+        return self.get_response(request)
