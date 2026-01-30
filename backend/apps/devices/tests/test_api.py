@@ -47,7 +47,7 @@ class DeviceApiTests(TestCase):
         self.assertIn("errors", body)
         self.assertIn("page_size", body["errors"])
 
-    def test_create_device_happy_path(self):
+    def test_create_device(self):
         payload = {
             "name": "Sensor 1",
             "serial_number": "SN-001",

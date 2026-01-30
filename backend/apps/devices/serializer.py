@@ -67,11 +67,9 @@ class DeviceSerializer:
         payload = model_to_dict(self.instance, fields=self.read_fields)
         payload["id"] = str(self.instance.id)
 
-        # device_type віддаємо як обʼєкт + id (зручно клієнту)
         payload["device_type"] = DeviceTypeSerializer(
             self.instance.device_type
         ).to_dict()
-        payload["device_type_id"] = str(self.instance.device_type_id)
 
         # datetimes -> ISO
         for k in ("last_seen", "created_at", "updated_at"):
@@ -114,7 +112,16 @@ class DeviceSerializer:
         if "serial_number" in cleaned and _is_blank(cleaned["serial_number"]):
             self.errors["serial_number"] = "Serial number cannot be blank."
 
-        # 5) Status choices validation (якщо передали)
+        # 4.1) Uniqueness check for serial_number
+        if "serial_number" in cleaned and not _is_blank(cleaned["serial_number"]):
+            qs = Device.objects.filter(serial_number=cleaned["serial_number"])
+            if self.instance is not None:
+                qs = qs.exclude(pk=self.instance.pk)
+            if qs.exists():
+                self.errors["serial_number"] = (
+                    "Device with this serial number already exists"
+                )
+        # 5) Status choices validation
         if "status" in cleaned:
             allowed = {c[0] for c in Device._meta.get_field("status").choices}
             if cleaned["status"] not in allowed:
@@ -151,8 +158,6 @@ class DeviceSerializer:
             for k, v in cleaned.items():
                 setattr(obj, k, v)
 
-        # Важливо: full_clean() запускає model validation
-        # (max_length, choices, unique і т.д.)
         obj.full_clean()
         obj.save()
         return obj

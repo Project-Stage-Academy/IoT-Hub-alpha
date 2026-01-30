@@ -1,6 +1,6 @@
 import json
 
-from django.http import JsonResponse, HttpRequest
+from django.http import JsonResponse, HttpRequest, HttpResponse
 from django.views import View
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
@@ -90,7 +90,6 @@ class DeviceListView(View):
         except ApiValidationError as e:
             return JsonResponse({"errors": e.errors}, status=e.status_code)
         except DjangoValidationError as e:
-            # якщо full_clean() кинув помилки моделі
             return JsonResponse({"errors": e.message_dict}, status=400)
 
 
@@ -115,7 +114,7 @@ class DeviceDetailView(View):
         try:
             obj = Device.objects.get(id=device_id)
             obj.delete()
-            return JsonResponse({}, status=204)
+            return HttpResponse(status=204)
         except Device.DoesNotExist:
             return JsonResponse({"detail": "Not found."}, status=404)
 
