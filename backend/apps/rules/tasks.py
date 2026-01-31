@@ -20,7 +20,8 @@ COMPARATORS = {
 
 BATCH_SIZE = os.getenv("CELERY_RULE_BATCH_SIZE", 1000)
 
-@shared_task(bind=True)
+
+@shared_task(bind=True, name="apps.rules.tasks.process_telemetry")
 def process_telemetry(
     self,
     cursor_start: int | None = None,
@@ -84,6 +85,7 @@ def process_telemetry(
                 else:
                     trigger_aggregation[rule.id] = AggregateStructure(
                         rule_id=rule.id,
+                        device=telemetry.device_id,
                         values=[value],
                         start=telemetry.timestamp,
                         end=telemetry.timestamp,

@@ -50,7 +50,7 @@ ROOT_URLCONF = "config.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [BASE_DIR / "templates"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -109,6 +109,16 @@ CELERY_TASK_SERIALIZER = "json"
 
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 
+CELERY_TIMER = int(os.getenv("CELERY_RUN_PROCESS_TELEMETRY_TIMER_MINUTES", 5))*60
+CELERY_TIMER_OVERLOOK = CELERY_TIMER + 60
+
+CELERY_BEAT_SCHEDULE = {
+    "run-rule-processor-every-5m": {
+        "task": "apps.rules.tasks.process_telemetry",
+        "schedule": CELERY_TIMER,
+        "kwargs": {"lookback_seconds": CELERY_TIMER_OVERLOOK},
+    }
+}
 
 LANGUAGE_CODE = "en-us"
 

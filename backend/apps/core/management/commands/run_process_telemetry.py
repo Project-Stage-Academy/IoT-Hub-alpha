@@ -10,6 +10,7 @@ from apps.telemetry.models import Telemetry
 
 BATCH_SIZE = os.getenv("CELERY_RULE_BATCH_SIZE", 1000)
 
+
 class Command(BaseCommand):
     help = "Manually enqueue telemetry parser + rule evaluation task"
 

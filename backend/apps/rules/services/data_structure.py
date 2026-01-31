@@ -8,6 +8,7 @@ class AggregateStructure(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
     values: list[float]
     rule_id: UUID
+    device: UUID
     start: datetime
     end: datetime
 
