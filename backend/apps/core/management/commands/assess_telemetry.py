@@ -1,12 +1,14 @@
+import os
 import argparse
 from django.core.management.base import BaseCommand, CommandError
 from django.db.models import Max
 from django.utils import timezone
 from typing import Any
-
 from apps.rules.tasks import process_telemetry
 from apps.telemetry.models import Telemetry
 
+
+BATCH_SIZE = os.getenv("CELERY_RULE_BATCH_SIZE", 1000)
 
 class Command(BaseCommand):
     help = "Manually enqueue telemetry parser + rule evaluation task"
@@ -21,7 +23,7 @@ class Command(BaseCommand):
         parser.add_argument(
             "--batch-size",
             type=int,
-            default=1000,
+            default=int(BATCH_SIZE),
             help="How many telemetry rows to process this run.",
         )
         parser.add_argument(

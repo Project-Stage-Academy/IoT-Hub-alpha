@@ -1,3 +1,4 @@
+import os
 from functools import lru_cache
 from django.utils import timezone
 from datetime import timedelta
@@ -7,7 +8,7 @@ from apps.events.models import Event
 from apps.rules.models import Rule
 from apps.rules.services.data_structure import NormalizedRecipient
 
-COOLDOWN_TIMER_MINUTES = 60
+COOLDOWN_TIMER_MINUTES = os.getenv("DJANGO_RULE_COOLDOWN_MINUTES", 60)
 
 
 class EventCooldownActive(Exception):
@@ -113,7 +114,7 @@ def event_handler(
     :rtype: Event
     """
 
-    one_hour_ago = timezone.now() - timedelta(minutes=COOLDOWN_TIMER_MINUTES)
+    one_hour_ago = timezone.now() - timedelta(minutes=int(COOLDOWN_TIMER_MINUTES))
 
     event_exists = (
         Event.objects.filter(rule=rule, timestamp__gte=one_hour_ago)

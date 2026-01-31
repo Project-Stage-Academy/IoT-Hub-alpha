@@ -1,3 +1,4 @@
+import os
 from celery import shared_task
 from uuid import UUID
 from django.db.models import Max
@@ -17,12 +18,13 @@ COMPARATORS = {
     "ne": ne,
 }
 
+BATCH_SIZE = os.getenv("CELERY_RULE_BATCH_SIZE", 1000)
 
 @shared_task(bind=True)
 def process_telemetry(
     self,
     cursor_start: int | None = None,
-    batch_size: int = 1000,
+    batch_size: int = int(BATCH_SIZE),
     record_cursor: bool = True,
 ) -> None:
     """
