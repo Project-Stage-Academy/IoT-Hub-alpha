@@ -1,9 +1,7 @@
 import uuid
-
 from django.db import models
 from django.contrib.postgres.indexes import GinIndex
 from django.core.exceptions import ValidationError
-
 from apps.devices.models import Device
 
 

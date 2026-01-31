@@ -1,21 +1,22 @@
-from pydantic import BaseModel, UUID4, ConfigDict, model_validator
+from pydantic import BaseModel, ConfigDict, model_validator
 from datetime import datetime
 from typing import Literal
-from apps.rules.models import Rule
+from uuid import UUID
+
 
 class AggregateStructure(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
     values: list[float]
-    rule: Rule
+    rule_id: UUID
     start: datetime
     end: datetime
-    
-class ActionConfig():
-    type: str
-    recipients: str | None = None
-    url: str | None = None
-    url: str | None = None
-    template_id: int
+
+
+class ActionConfig(BaseModel):
+    type: Literal["notification", "stop_machine"]
+    recipients: list[str] | None = None
+    template_id: int | None = None
+
 
 class NormalizedRecipient(BaseModel):
     type: Literal["sms", "email", "webhook"]
@@ -24,12 +25,9 @@ class NormalizedRecipient(BaseModel):
 
     @model_validator(mode="before")
     @classmethod
-    def derive_target(cls, data):
-        # data is the raw input (usually a dict)
-        if not isinstance(data, dict):
-            return data
+    def derive_target(cls, data: dict[str, str]) -> dict[str, str]:
 
-        t = data.get("type")
+        t: str | None = data.get("type")
         key_map = {"sms": "phone", "email": "address", "webhook": "url"}
 
         key = key_map.get(t)

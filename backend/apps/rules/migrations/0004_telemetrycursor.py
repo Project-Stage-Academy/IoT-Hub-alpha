@@ -6,17 +6,25 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('rules', '0003_remove_rule_cooldown_minutes'),
+        ("rules", "0003_remove_rule_cooldown_minutes"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='TelemetryCursor',
+            name="TelemetryCursor",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=64, unique=True)),
-                ('last_id', models.BigIntegerField(default=0)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("name", models.CharField(max_length=64, unique=True)),
+                ("last_id", models.BigIntegerField(default=0)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
             ],
         ),
     ]

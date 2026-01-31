@@ -1,9 +1,12 @@
 from celery import shared_task
+from uuid import UUID
 from django.db.models import Max
 from operator import gt, ge, lt, le, eq, ne
+from collections import defaultdict
 from apps.telemetry.models import Telemetry
 from .models import Rule, TelemetryCursor
 from .services.trigger_engine import trigger_engine
+from .services.data_structure import AggregateStructure
 
 COMPARATORS = {
     "gt": gt,
@@ -14,17 +17,33 @@ COMPARATORS = {
     "ne": ne,
 }
 
+
 @shared_task(bind=True)
-def process_telemetry(self, cursor_start: int | None = None, batch_size: int = 1000) -> None:
+def process_telemetry(
+    self,
+    cursor_start: int | None = None,
+    batch_size: int = 1000,
+    record_cursor: bool = True,
+) -> None:
+    """
+    Get telemetry from DB and compare to set rules, manage cursor
+
+    :param self: Description
+    :param cursor_start: Description
+    :type cursor_start: int | None
+    :param batch_size: Description
+    :type batch_size: int
+    :param record_cursor: Description
+    :type record_cursor: bool
+    """
     cursor = (
-        TelemetryCursor.objects
-        .aggregate(last_id=Max("last_id"))
-        .get("last_id") or 0
-    ) if not cursor_start else cursor_start
+        (TelemetryCursor.objects.aggregate(last_id=Max("last_id")).get("last_id") or 0)
+        if not cursor_start
+        else cursor_start
+    )
 
     telemetry_qs = (
-        Telemetry.objects
-        .filter(id__gt=cursor)
+        Telemetry.objects.filter(id__gt=cursor)
         .select_related("device")
         .order_by("id")[:batch_size]
     )
@@ -32,39 +51,43 @@ def process_telemetry(self, cursor_start: int | None = None, batch_size: int = 1
     if not telemetry_qs.exists():
         return
 
-    last_processed_id = cursor
+    rules = Rule.objects.filter(is_enabled=True).only(
+        "id", "comparison_operator", "threshold", "device_id"
+    )
 
-    trigger_aggregation = {}
+    rules_by_device: dict[UUID, list[Rule]] = defaultdict(list)
+    for rule in rules:
+        rules_by_device[rule.device_id].append(rule)
+
+    trigger_aggregation: dict[UUID, AggregateStructure] = {}
     for telemetry in telemetry_qs.iterator():
         payload = telemetry.payload
-        value = payload.get("value")
-        device_ssn = telemetry.device.id
+        value: float = payload.get("value")
 
-        rules = (
-            Rule.objects
-            .filter(is_enabled=True, device=telemetry.device)
-            .only("id", "comparison_operator", "threshold")
-        )
+        if value is None:
+            continue
 
-        for rule in rules:
+        device_rules = rules_by_device.get(telemetry.device_id, [])
+
+        for rule in device_rules:
             comparator = COMPARATORS.get(rule.comparison_operator)
             if not comparator:
                 continue
 
             if comparator(value, rule.threshold):
                 if rule.id in trigger_aggregation:
-                    trigger_aggregation[rule.id]['values'].append(value)
-                    trigger_aggregation[rule.id]['end'] = telemetry.timestamp
+                    agg = trigger_aggregation[rule.id]
+                    agg.values.append(value)
+                    agg.end = telemetry.timestamp
                 else:
-                    trigger_aggregation[rule.id] = {
-                        "device": device_ssn,
-                        "rule": rule,
-                        "values": [value],
-                        "start": telemetry.timestamp,
-                    }
-        last_processed_id = telemetry.id
+                    trigger_aggregation[rule.id] = AggregateStructure(
+                        rule_id=rule.id,
+                        values=[value],
+                        start=telemetry.timestamp,
+                        end=telemetry.timestamp,
+                    )
+        cursor = telemetry.id
     trigger_engine(trigger_aggregation)
 
-    TelemetryCursor.objects.update_or_create(
-        defaults={"last_id": last_processed_id}
-    )
+    if record_cursor:
+        TelemetryCursor.objects.update_or_create(defaults={"last_id": cursor})
