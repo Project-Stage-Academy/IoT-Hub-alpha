@@ -114,11 +114,12 @@ def event_handler(
     """
 
     one_hour_ago = timezone.now() - timedelta(minutes=COOLDOWN_TIMER_MINUTES)
-    new = Event.EventStatus.NEW
 
-    event_exists = Event.objects.filter(
-        rule=rule, timestamp__gte=one_hour_ago, status=new
-    ).exists()
+    event_exists = (
+        Event.objects.filter(rule=rule, timestamp__gte=one_hour_ago)
+        .exclude(status=Event.EventStatus.RESOLVED)
+        .exists()
+    )
 
     if event_exists:
         raise EventCooldownActive

@@ -38,7 +38,7 @@ def process_telemetry(
     """
     cursor = (
         (TelemetryCursor.objects.aggregate(last_id=Max("last_id")).get("last_id") or 0)
-        if not cursor_start
+        if cursor_start is None
         else cursor_start
     )
 
