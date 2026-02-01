@@ -18,7 +18,7 @@ def task_prerun_handler(sender=None, task_id=None, task=None, **kwargs):
     from config.metrics import CELERY_TASKS_TOTAL
 
     # Store start time on task for duration calculation in postrun
-    task._start_time = time.time()
+    task._start_time = time.perf_counter()
 
 
 @signals.task_postrun.connect
@@ -34,7 +34,7 @@ def task_postrun_handler(sender=None, task_id=None, task=None, state=None, **kwa
 
     # Record task duration if start time was recorded
     if hasattr(task, "_start_time"):
-        duration = time.time() - task._start_time
+        duration = time.perf_counter() - task._start_time
         CELERY_TASK_DURATION_SECONDS.labels(
             task_name=task.name,
         ).observe(duration)

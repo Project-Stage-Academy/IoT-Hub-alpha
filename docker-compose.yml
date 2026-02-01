@@ -40,22 +40,36 @@ services:
       - .env
     volumes:
       - ./backend:/app
-    ports:
-      - "8000:8000"
+    # ports:
+    #   - "8000:8000"
     depends_on:
-      redis:
-        condition: service_healthy
       db:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "--fail", "http://localhost:8000/health/"]
-      interval: 90s
-      timeout: 10s
-      retries: 5
+      test: ["CMD", "/app/scripts/healthcheck.sh"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     logging: *default-logging
     networks:
       - iot_hub_net
     # TODO: add production server (gunicorn) and static/media handling
+
+  proxy:
+    build:
+      context: ./nginx
+    container_name: iot_hub_proxy
+    restart: unless-stopped
+    ports:
+      - "443:443"
+      - "80:80"
+    volumes:
+      - ./nginx/certs:/etc/ssl/certs:ro
+    depends_on:
+      - web
+    networks:
+      - iot_hub_net
 
   migrate:
     build: ./backend
@@ -65,8 +79,6 @@ services:
     env_file:
       - .env
     depends_on:
-      redis:
-        condition: service_healthy
       db:
         condition: service_healthy
     logging: *default-logging
@@ -132,9 +144,14 @@ services:
     image: grafana/grafana:11.2.0
     container_name: iot_hub_grafana
     profiles: ["monitoring"]
-    # TODO: provision datasources and dashboards
+    ports:
+      - "3000:3000"
     volumes:
       - grafana_data:/var/lib/grafana
+      - ./devops/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./devops/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+    env_file:
+      - .env
     depends_on:
       - prometheus
     logging: *default-logging
