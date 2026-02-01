@@ -1,12 +1,12 @@
 import json
+from functools import wraps
 
 from django.http import JsonResponse, HttpRequest, HttpResponse
 from django.views import View
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.core.exceptions import ValidationError as DjangoValidationError
-from math import ceil
-from django.core.paginator import Paginator, EmptyPage
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
 from .models import Device
 from .serializer import DeviceSerializer, ApiValidationError
@@ -21,76 +21,67 @@ def _json_body(request: HttpRequest) -> dict:
         raise ApiValidationError({"detail": "Invalid JSON body."}, status_code=400)
 
 
+def handle_api_errors(view_func):
+    @wraps(view_func)
+    def wrapper(*args, **kwargs):
+        try:
+            return view_func(*args, **kwargs)
+        except ApiValidationError as e:
+            return JsonResponse({"errors": e.errors}, status=e.status_code)
+        except DjangoValidationError as e:
+            return JsonResponse({"errors": e.message_dict}, status=400)
+        except ValueError as e:
+            return JsonResponse({"detail": str(e)}, status=400)
+
+    return wrapper
+
+
 @method_decorator(csrf_exempt, name="dispatch")
 class DeviceListView(View):
     def get(self, request):
         qs = Device.objects.all().order_by("-created_at")
 
-        page_raw = request.GET.get("page", "1")
-        page_size_raw = request.GET.get("page_size", "10")
-
-        # parse + validate
-        try:
-            page = int(page_raw)
-            page_size = int(page_size_raw)
-        except ValueError:
-            return JsonResponse(
-                {"errors": {"pagination": "page and page_size must be integers"}},
-                status=400,
-            )
-
-        if page < 1:
-            return JsonResponse({"errors": {"page": "page must be >= 1"}}, status=400)
-
-        if page_size < 1 or page_size > 1000:
-            return JsonResponse(
-                {"errors": {"page_size": "page_size must be between 1 and 1000"}},
-                status=400,
-            )
-
-        total = qs.count()
-        total_pages = ceil(total / page_size) if total > 0 else 0
-
+        page_number = request.GET.get("page", 1)
+        page_size = 10
         paginator = Paginator(qs, page_size)
 
         try:
-            page_obj = paginator.page(page)
-            items = page_obj.object_list
-        except EmptyPage:
-            items = []
-            page_obj = None
+            page_obj = paginator.page(page_number)
+        except (PageNotAnInteger, EmptyPage):
+            return JsonResponse({"errors": {"page": "Invalid page"}}, status=400)
 
-        data = [DeviceSerializer(instance=obj).to_dict() for obj in items]
-
-        next_page = (page + 1) if page < total_pages else None
-        prev_page = (page - 1) if page > 1 and total_pages > 0 else None
+        data = [
+            DeviceSerializer(instance=obj).to_dict() for obj in page_obj.object_list
+        ]
 
         return JsonResponse(
             {
                 "data": data,
                 "pagination": {
-                    "page": page,
+                    "page": page_obj.number,
                     "page_size": page_size,
-                    "total": total,
-                    "total_pages": total_pages,
-                    "next_page": next_page,
-                    "prev_page": prev_page,
+                    "total": paginator.count,
+                    "total_pages": paginator.num_pages,
+                    "next_page": (
+                        page_obj.next_page_number() if page_obj.has_next() else None
+                    ),
+                    "prev_page": (
+                        page_obj.previous_page_number()
+                        if page_obj.has_previous()
+                        else None
+                    ),
                 },
             },
             status=200,
         )
 
+    @handle_api_errors
     def post(self, request: HttpRequest):
-        try:
-            payload = _json_body(request)
-            device = DeviceSerializer(data=payload, partial=False).save()
-            return JsonResponse(
-                {"data": DeviceSerializer(instance=device).to_dict()}, status=201
-            )
-        except ApiValidationError as e:
-            return JsonResponse({"errors": e.errors}, status=e.status_code)
-        except DjangoValidationError as e:
-            return JsonResponse({"errors": e.message_dict}, status=400)
+        payload = _json_body(request)
+        device = DeviceSerializer(data=payload, partial=False).save()
+        return JsonResponse(
+            {"data": DeviceSerializer(instance=device).to_dict()}, status=201
+        )
 
 
 @method_decorator(csrf_exempt, name="dispatch")
@@ -118,21 +109,15 @@ class DeviceDetailView(View):
         except Device.DoesNotExist:
             return JsonResponse({"detail": "Not found."}, status=404)
 
+    @handle_api_errors
     def _update(self, request: HttpRequest, device_id, partial: bool):
         try:
             obj = Device.objects.get(id=device_id)
         except Device.DoesNotExist:
             return JsonResponse({"detail": "Not found."}, status=404)
 
-        try:
-            payload = _json_body(request)
-            updated = DeviceSerializer(
-                instance=obj, data=payload, partial=partial
-            ).save()
-            return JsonResponse(
-                {"data": DeviceSerializer(instance=updated).to_dict()}, status=200
-            )
-        except ApiValidationError as e:
-            return JsonResponse({"errors": e.errors}, status=e.status_code)
-        except DjangoValidationError as e:
-            return JsonResponse({"errors": e.message_dict}, status=400)
+        payload = _json_body(request)
+        updated = DeviceSerializer(instance=obj, data=payload, partial=partial).save()
+        return JsonResponse(
+            {"data": DeviceSerializer(instance=updated).to_dict()}, status=200
+        )

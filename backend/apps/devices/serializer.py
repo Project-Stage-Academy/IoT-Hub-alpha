@@ -59,49 +59,58 @@ class DeviceSerializer:
     )
 
     errors: dict[str, Any] = field(default_factory=dict)
+    _cached_dict: Optional[dict[str, Any]] = field(default=None, init=False)
 
     def to_dict(self) -> dict[str, Any]:
-        if not self.instance:
-            raise ValueError("DeviceSerializer(instance=...) is required for to_dict()")
+        if self._cached_dict is None:
+            if not self.instance:
+                raise ValueError(
+                    "DeviceSerializer(instance=...) is required for to_dict()"
+                )
 
-        payload = model_to_dict(self.instance, fields=self.read_fields)
-        payload["id"] = str(self.instance.id)
+            payload = model_to_dict(self.instance, fields=self.read_fields)
+            payload["id"] = str(self.instance.id)
 
-        payload["device_type"] = DeviceTypeSerializer(
-            self.instance.device_type
-        ).to_dict()
+            payload["device_type"] = DeviceTypeSerializer(
+                self.instance.device_type
+            ).to_dict()
 
-        # datetimes -> ISO
-        for k in ("last_seen", "created_at", "updated_at"):
-            dt = getattr(self.instance, k, None)
-            payload[k] = dt.isoformat() if dt else None
+            # datetimes -> ISO
+            for k in ("last_seen", "created_at", "updated_at"):
+                dt = getattr(self.instance, k, None)
+                payload[k] = dt.isoformat() if dt else None
 
-        return payload
+            self._cached_dict = payload
+        return self._cached_dict
 
     def validate(self) -> dict[str, Any]:
         if self.data is None:
             raise ValueError("DeviceSerializer(data=...) is required for validate()")
-
-        cleaned: dict[str, Any] = {}
-
-        self._require_fields()
-        self._copy_allowed_fields(cleaned)
-        self._normalize_strings(cleaned)
-        self._validate_name(cleaned)
-        self._validate_serial(cleaned)
-        self._validate_serial_unique(cleaned)
-        self._validate_status(cleaned)
-        self._resolve_device_type(cleaned)
+        cleaned = self._parse_and_clean()
+        self._validate_business_rules(cleaned)
 
         if self.errors:
             raise ApiValidationError(self.errors, status_code=400)
 
         return cleaned
 
+    def _parse_and_clean(self) -> dict[str, Any]:
+        cleaned: dict[str, Any] = {}
+        self._require_fields()
+        self._copy_allowed_fields(cleaned)
+        self._normalize_strings(cleaned)
+
+    def _validate_business_rules(self, cleaned: dict[str, Any]) -> None:
+        self._validate_name(cleaned)
+        self._validate_serial(cleaned)
+        self._validate_serial_unique(cleaned)
+        self._validate_status(cleaned)
+        self._resolve_device_type(cleaned)
+
     def _require_fields(self) -> None:
-        required = {"name", "serial_number", "device_type_id"}
+        required = set(self.write_fields) if not self.partial else set()
         for f in required:
-            if not self.partial and f not in self.data:
+            if f not in self.data:
                 self.errors[f] = "This field is required."
 
     def _copy_allowed_fields(self, cleaned: dict[str, Any]) -> None:
