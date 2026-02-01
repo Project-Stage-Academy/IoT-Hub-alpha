@@ -68,17 +68,49 @@ This will start the following services:
 
 Verify stack health (smoke test):
 ```
-./scripts/smoke-test.sh
+./docs/demos/run_smoke.sh
 ```
 
 Expected output:
 ```commandline
-  Expected output:                                                                                                                                           
-  === IoT Hub Smoke Tests ===                                                                                                                                
-  Checking: Seed data valid... PASS                                                                                                                          
-  Checking: Metrics endpoint... PASS                                                                                                                         
-                                                                                                                                                             
-  === Results: 2 passed, 0 failed ===
+MacBook-Air-Aleksandr:IoT-Hub-alpha oleksandr$ ./docs/demos/run_smoke.sh
+=== Infrastructure Checks ===
+Checking: Health endpoint... PASS
+Checking: Metrics endpoint... PASS
+
+=== Application Smoke Tests ===
+==> Running: smoke/smoke1_seed_data.sh
+Seeding demo data...
+Seed summary
+Devices - created: 0, updated: 8
+Device Types - created: 0, updated: 6
+Rules: created - 0, updated: 9
+Notification templates - created: 0, updated: 5
+Telemetry: created - 0, updated: 3
+Asserting core objects exist...
+13 objects imported automatically (use -v 2 for details).
+
+OK counts: device_types= 6 devices= 8 templates= 5 rules= 9
+Taking counts before re-seed...
+Re-running seed...
+Seed summary
+Devices - created: 0, updated: 8
+Device Types - created: 0, updated: 6
+Rules: created - 0, updated: 9
+Notification templates - created: 0, updated: 5
+Telemetry: created - 0, updated: 3
+Taking counts after re-seed...
+
+Idempotency verified - counts unchanged after re-seed:
+DeviceTypes:            6
+Devices:                8
+NotificationTemplates:  5
+Rules:                  9
+
+
+=== Results: 3 passed, 0 failed ===
+All smoke checks passed.
+
 ```
 
 ## 4) Create a Django superuser
