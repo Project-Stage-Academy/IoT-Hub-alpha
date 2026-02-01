@@ -1,0 +1,7 @@
+Origin: IoT Hub Dev
+Label: IoT Hub Dev Repo
+Codename: jammy
+Architectures: amd64
+Components: main
+Description: Internal development APT repository for IoT Hub
+SignWith: no

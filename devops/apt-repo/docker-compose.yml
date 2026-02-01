@@ -1,0 +1,11 @@
+services:
+  apt-repo:
+    build: .
+    container_name: apt-repo-dev
+    volumes:
+      - ./apt:/repo/apt
+      - ./auth:/repo/auth
+      - ./conf:/repo/conf
+    ports:
+      - "8080:80"
+    restart: "no" 
