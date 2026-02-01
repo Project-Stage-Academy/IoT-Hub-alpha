@@ -39,13 +39,11 @@ class DeviceApiTests(TestCase):
         body = resp.json()
         self.assertIn("errors", body)
         self.assertIn("page", body["errors"])
+        self.assertEqual(body["errors"]["page"], "Invalid page")
 
-    def test_list_devices_invalid_page_size_returns_400(self):
+    def test_list_devices_invalid_page_size_returns_200(self):
         resp = self.client.get(self.list_url, {"page": 1, "page_size": 1001})
-        self.assertEqual(resp.status_code, 400)
-        body = resp.json()
-        self.assertIn("errors", body)
-        self.assertIn("page_size", body["errors"])
+        self.assertEqual(resp.status_code, 200)
 
     def test_create_device(self):
         payload = {

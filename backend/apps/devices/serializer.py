@@ -99,6 +99,7 @@ class DeviceSerializer:
         self._require_fields()
         self._copy_allowed_fields(cleaned)
         self._normalize_strings(cleaned)
+        return cleaned
 
     def _validate_business_rules(self, cleaned: dict[str, Any]) -> None:
         self._validate_name(cleaned)
