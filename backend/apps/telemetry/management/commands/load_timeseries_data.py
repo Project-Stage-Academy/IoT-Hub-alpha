@@ -203,13 +203,10 @@ class Command(BaseCommand):
 
                     # Divide time range across batches
                     batch_progress = batch_num / total_batches
-                    batch_start = (
-                        start_time + (end_time - start_time) * batch_progress
-                    )
+                    batch_start = start_time + (end_time - start_time) * batch_progress
                     batch_end = (
                         start_time
-                        + (end_time - start_time) * (batch_num + 1)
-                        / total_batches
+                        + (end_time - start_time) * (batch_num + 1) / total_batches
                     )
 
                     # DEBUG: Show time range for selected batches

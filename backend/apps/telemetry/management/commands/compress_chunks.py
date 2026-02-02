@@ -194,8 +194,6 @@ class Command(BaseCommand):
                 f"Total size reduction: {total_before - total_after:.2f} MB"
             )
             if total_before > 0:
-                reduction_pct = (
-                    ((total_before - total_after) / total_before * 100)
-                )
+                reduction_pct = (total_before - total_after) / total_before * 100
                 self.stdout.write(f"Overall reduction: {reduction_pct:.1f}%")
             self.stdout.write(f"{'=' * 80}\n")
