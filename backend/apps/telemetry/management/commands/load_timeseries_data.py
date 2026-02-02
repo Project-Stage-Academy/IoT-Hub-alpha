@@ -15,7 +15,8 @@ Usage:
   python manage.py load_timeseries_data --count=200000 --days-back=180 --batch-size=5000
 
 Docker:
-  docker compose exec -T web python manage.py load_timeseries_data --count=100000 --days-back=90
+  docker compose exec -T web \
+    python manage.py load_timeseries_data --count=100000 --days-back=90
 """
 
 import sys
@@ -98,13 +99,13 @@ class Command(BaseCommand):
         devices = []
         for i in range(3):
             for metric_type in ["temperature", "vibration", "pressure"]:
-                device_name = f"Load-Test-{metric_type.title()}-{i+1}"
+                device_name = f"Load-Test-{metric_type.title()}-{i + 1}"
                 device, created = Device.objects.get_or_create(
-                    serial_number=f"LOADTEST-{metric_type.upper()}-{i+1}",
+                    serial_number=f"LOADTEST-{metric_type.upper()}-{i + 1}",
                     defaults={
                         "name": device_name,
                         "device_type": device_types[metric_type],
-                        "location": f"Test Rack {i+1}",
+                        "location": f"Test Rack {i + 1}",
                         "status": Device.DeviceStatus.ACTIVE,
                     },
                 )
@@ -173,9 +174,9 @@ class Command(BaseCommand):
         end_time = timezone.now()
         start_time = end_time - timedelta(days=days_back)
 
-        self.log(f"\n{'='*70}")
-        self.log(f"Telemetry Data Load Configuration")
-        self.log(f"{'='*70}")
+        self.log(f"\n{'=' * 70}")
+        self.log("Telemetry Data Load Configuration")
+        self.log(f"{'=' * 70}")
         self.log(f"Total Records to Generate: {total_count:,}")
         self.log(f"Batch Size: {batch_size:,}")
         self.log(
@@ -186,7 +187,7 @@ class Command(BaseCommand):
         self.log(f"Number of Test Devices: {len(devices)}")
         records_per_device = total_count // len(devices)
         self.log(f"Records per Device (approx): {records_per_device:,}")
-        self.log(f"{'='*70}\n")
+        self.log(f"{'=' * 70}\n")
 
         # Generate and insert in batches
         total_batches = (total_count + batch_size - 1) // batch_size
@@ -202,10 +203,13 @@ class Command(BaseCommand):
 
                     # Divide time range across batches
                     batch_progress = batch_num / total_batches
-                    batch_start = start_time + (end_time - start_time) * batch_progress
+                    batch_start = (
+                        start_time + (end_time - start_time) * batch_progress
+                    )
                     batch_end = (
                         start_time
-                        + (end_time - start_time) * (batch_num + 1) / total_batches
+                        + (end_time - start_time) * (batch_num + 1)
+                        / total_batches
                     )
 
                     # DEBUG: Show time range for selected batches
@@ -250,19 +254,20 @@ class Command(BaseCommand):
                     progress = (batch_num + 1) / total_batches * 100
                     self.log(
                         f"[{progress:6.1f}%] Batch {batch_num + 1}/{total_batches}: "
-                        f"Created {len(all_telemetry):,} records. Total: {telemetry_created:,}"
+                        f"Created {len(all_telemetry):,} records. "
+                        f"Total: {telemetry_created:,}"
                     )
 
-            self.log(f"\n{'='*70}")
-            self.log(f"✓ Data Load Complete")
-            self.log(f"{'='*70}")
+            self.log(f"\n{'=' * 70}")
+            self.log("✓ Data Load Complete")
+            self.log(f"{'=' * 70}")
             self.log(f"Total Records Created: {telemetry_created:,}")
             self.log(f"Time Range: {start_time.date()} to {end_time.date()}")
             self.log(f"Devices: {len(devices)}")
-            self.log(f"\nNext Steps:")
-            self.log(f"  1. View chunks: python manage.py show_chunks")
-            self.log(f"  2. Compress: python manage.py compress_chunks")
-            self.log(f"{'='*70}\n")
+            self.log("\nNext Steps:")
+            self.log("  1. View chunks: python manage.py show_chunks")
+            self.log("  2. Compress: python manage.py compress_chunks")
+            self.log(f"{'=' * 70}\n")
 
         except Exception as e:
             self.stderr.write(self.style.ERROR(f"Error during data load: {e}"))
