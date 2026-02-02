@@ -55,10 +55,10 @@ def process_telemetry(
     telemetry_by_device: dict[UUID, list[TelemetryPoint]] = defaultdict(list)
     
     for rule in rules:
-        rules_by_device[rule.device_id].append(rule)
+        rules_by_device[rule.device_id].append(rule)  # type: ignore[attr-defined]
 
     for telemetry in telemetry_qs.iterator():
-        telemetry_by_device[telemetry.device_id].append(
+        telemetry_by_device[telemetry.device_id].append(  # type: ignore[attr-defined]
             TelemetryPoint(
             ts = telemetry.timestamp,
             value = telemetry.payload.get("value")
@@ -69,9 +69,14 @@ def process_telemetry(
     for device, rules in rules_by_device.items():
         for rule in rules:
             condition = Condition.model_validate(rule.condition)
-            rule_aggregation[rule.id] = eval_rule(condition, telemetry_by_device[rule.device_id], EvalResults(trigger=False, values=[]), rule.device_id)
-            print(rule_aggregation[rule.id] if rule_aggregation[rule.id].trigger else None)
-    #trigger_engine(trigger_aggregation)
+            result = eval_rule(condition,
+                               telemetry_by_device[rule.device_id],  # type: ignore[attr-defined]
+                               EvalResults(trigger=False, values=[]),
+                               rule.device_id)  # type: ignore[attr-defined]
+            if result.trigger:
+                rule_aggregation[rule.id] = result
+
+    trigger_engine(rule_aggregation)
 
     if record_cursor:
         TelemetryCursor.objects.update_or_create(defaults={"last_id": cursor})

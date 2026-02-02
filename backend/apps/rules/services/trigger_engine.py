@@ -1,10 +1,11 @@
 from uuid import UUID
-from .data_structure import AggregateStructure, ActionConfig
+from .data_structure import ActionConfig
+from .rule_eval import EvalResults
 from .actions import action_dispatch
 from apps.rules.models import Rule
 
 
-def trigger_engine(trigger_aggregation: dict[UUID, AggregateStructure]) -> None:
+def trigger_engine(trigger_aggregation: dict[UUID, EvalResults]) -> None:
     """
     Dispatch action config per rules
 

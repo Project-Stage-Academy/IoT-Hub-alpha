@@ -1,8 +1,8 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import os
 from uuid import UUID
 from datetime import datetime, timedelta
-from typing import Literal
+from typing import Any
 from django.utils import timezone
 from .data_structure import Condition, AggregateStructure
 from apps.telemetry.models import Telemetry
@@ -30,13 +30,20 @@ class TelemetryPoint:
 @dataclass()
 class EvalResults:
     trigger: bool
-    values: list[float | None]
+    values: list[float] = field(default_factory=list)
     start: datetime | None = None
     end: datetime | None = None
     
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "values": self.values,
+            "start": self.start.isoformat() if self.start else None,
+            "end": self.end.isoformat() if self.end else None,
+        }
+    
 
 def _eval_condition(operator: str, threshold: float, telemetry_chunk: list[TelemetryPoint], aggregate_trigger: EvalResults) -> EvalResults:
-    trigger_values: list[float | None] = []
+    trigger_values: list[float] = []
     start = None
     end = None
     for telemetry in telemetry_chunk:

@@ -1,9 +1,12 @@
 import os
+import json
+from dataclasses import asdict
 from functools import lru_cache
 from django.utils import timezone
 from datetime import timedelta
 from apps.notifications.models import NotificationTemplate
-from .data_structure import AggregateStructure, ActionConfig
+from .data_structure import ActionConfig
+from .rule_eval import EvalResults
 from apps.events.models import Event
 from apps.rules.models import Rule
 from apps.rules.services.data_structure import NormalizedRecipient
@@ -16,7 +19,7 @@ class EventCooldownActive(Exception):
 
 
 def action_dispatch(
-    action_config: ActionConfig, rule: Rule, aggregate: AggregateStructure
+    action_config: ActionConfig, rule: Rule, aggregate: EvalResults
 ) -> None:
     """
     Dispatch types of action config
@@ -42,7 +45,7 @@ def action_dispatch(
 
 
 def dispatch_msg(
-    action_config: ActionConfig, rule: Rule, aggregate: AggregateStructure
+    action_config: ActionConfig, rule: Rule, aggregate: EvalResults
 ) -> None:
     """
     Handle event creation, message formatting and dispatch to actual
@@ -65,7 +68,7 @@ def dispatch_msg(
         value=max(aggregate.values),
         unit=rule.device.device_type.metric_unit,
     )
-
+    print(message)
     try:
         event = event_handler(aggregate, rule, message, notif_template)  # noqa: F841
     except EventCooldownActive:
@@ -93,7 +96,7 @@ def stop_machine(action_config, rule, aggregate):
 
 
 def event_handler(
-    aggregate: AggregateStructure,
+    aggregate: EvalResults,
     rule: Rule,
     message: str,
     notif_template: NotificationTemplate,
@@ -131,7 +134,7 @@ def event_handler(
         message=message,
         execution_results={"status": "new"},
         rule=rule,
-        telemetry_snapshot=aggregate.model_dump(mode="json"),
+        telemetry_snapshot=aggregate.to_dict(),
     )
     new_event.save()
     return new_event
