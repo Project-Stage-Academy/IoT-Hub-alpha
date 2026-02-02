@@ -205,16 +205,14 @@ class Command(BaseCommand):
                     batch_progress = batch_num / total_batches
                     batch_start = start_time + (end_time - start_time) * batch_progress
                     batch_end = (
-                        start_time
-                        + (end_time - start_time) * (batch_num + 1) / total_batches
+                        start_time +
+                        (end_time - start_time) * (batch_num + 1) / total_batches
                     )
 
                     # DEBUG: Show time range for selected batches
-                    if (
-                        batch_num == 0
-                        or batch_num == total_batches // 2
-                        or batch_num == total_batches - 1
-                    ):
+                    if (batch_num == 0 or
+                            batch_num == total_batches // 2 or
+                            batch_num == total_batches - 1):
                         self.vlog(f"Batch {batch_num}: {batch_start} → {batch_end}")
 
                     all_telemetry = []
