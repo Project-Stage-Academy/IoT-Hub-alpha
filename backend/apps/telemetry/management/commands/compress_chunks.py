@@ -28,28 +28,29 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument(
-            '--older-than-days',
+            "--older-than-days",
             type=int,
             default=30,
-            help='Only compress chunks older than N days (default: 30)'
+            help="Only compress chunks older than N days (default: 30)",
         )
         parser.add_argument(
-            '--dry-run',
-            action='store_true',
-            help='Show what would be compressed without actually compressing'
+            "--dry-run",
+            action="store_true",
+            help="Show what would be compressed without actually compressing",
         )
 
     def handle(self, *args, **options):
         """Compress chunks."""
 
-        older_than_days = options['older_than_days']
-        dry_run = options['dry_run']
+        older_than_days = options["older_than_days"]
+        dry_run = options["dry_run"]
 
         with connection.cursor() as cursor:
             # Get uncompressed chunks
             cutoff_time = timezone.now() - timedelta(days=older_than_days)
 
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT
                     chunk_name,
                     range_start::timestamp as chunk_start,
@@ -60,14 +61,18 @@ class Command(BaseCommand):
                     AND NOT is_compressed
                     AND range_end::timestamp < %s
                 ORDER BY range_start
-            """, [cutoff_time])
+            """,
+                [cutoff_time],
+            )
 
             chunks = cursor.fetchall()
 
             if not chunks:
-                self.stdout.write(self.style.SUCCESS(
-                    f"No uncompressed chunks older than {older_than_days} days found."
-                ))
+                self.stdout.write(
+                    self.style.SUCCESS(
+                        f"No uncompressed chunks older than {older_than_days} days found."
+                    )
+                )
                 return
 
             self.stdout.write(f"\n{'='*80}")
@@ -75,21 +80,28 @@ class Command(BaseCommand):
             self.stdout.write(f"{'='*80}\n")
 
             if dry_run:
-                self.stdout.write(self.style.WARNING("DRY RUN - No changes will be made\n"))
+                self.stdout.write(
+                    self.style.WARNING("DRY RUN - No changes will be made\n")
+                )
 
-            self.stdout.write(f"Chunks to compress (older than {older_than_days} days):\n")
+            self.stdout.write(
+                f"Chunks to compress (older than {older_than_days} days):\n"
+            )
 
             total_before = 0
             for chunk_name, start, end, compressed in chunks:
                 # Get chunk size before compression
-                cursor.execute("""
+                cursor.execute(
+                    """
                     SELECT pg_total_relation_size(
                         format('%I.%I', chunk_schema, %s)::regclass
                     ) as size
                     FROM timescaledb_information.chunks
                     WHERE chunk_name = %s
                     LIMIT 1
-                """, [chunk_name, chunk_name])
+                """,
+                    [chunk_name, chunk_name],
+                )
 
                 size_before = cursor.fetchone()[0] / (1024 * 1024)  # Convert to MB
                 total_before += size_before
@@ -99,9 +111,11 @@ class Command(BaseCommand):
                 self.stdout.write(f"    Size before: {size_before:.2f} MB\n")
 
             if dry_run:
-                self.stdout.write(self.style.WARNING(
-                    f"\nDRY RUN: Would compress {len(chunks)} chunks ({total_before:.2f} MB total)\n"
-                ))
+                self.stdout.write(
+                    self.style.WARNING(
+                        f"\nDRY RUN: Would compress {len(chunks)} chunks ({total_before:.2f} MB total)\n"
+                    )
+                )
                 self.stdout.write(f"{'='*80}\n")
                 return
 
@@ -112,12 +126,15 @@ class Command(BaseCommand):
             for chunk_name, start, end, compressed in chunks:
                 try:
                     # Get chunk full name (schema.name)
-                    cursor.execute("""
+                    cursor.execute(
+                        """
                         SELECT format('%I.%I', chunk_schema, chunk_name)::text
                         FROM timescaledb_information.chunks
                         WHERE chunk_name = %s
                         LIMIT 1
-                    """, [chunk_name])
+                    """,
+                        [chunk_name],
+                    )
 
                     full_chunk_name = cursor.fetchone()[0]
 
@@ -125,41 +142,54 @@ class Command(BaseCommand):
                     cursor.execute(f"SELECT compress_chunk('{full_chunk_name}')")
 
                     # Get size after compression
-                    cursor.execute(f"""
+                    cursor.execute(
+                        f"""
                         SELECT pg_total_relation_size('{full_chunk_name}'::regclass) as size
-                    """)
+                    """
+                    )
 
                     size_after = cursor.fetchone()[0] / (1024 * 1024)  # Convert to MB
                     total_after += size_after
 
                     # Get size before for comparison
-                    cursor.execute("""
+                    cursor.execute(
+                        """
                         SELECT pg_total_relation_size(
                             format('%I.%I', chunk_schema, %s)::regclass
                         ) as size
                         FROM timescaledb_information.chunks
                         WHERE chunk_name = %s
                         LIMIT 1
-                    """, [chunk_name, chunk_name])
+                    """,
+                        [chunk_name, chunk_name],
+                    )
 
                     size_before = cursor.fetchone()[0] / (1024 * 1024)
 
-                    reduction = ((size_before - size_after) / size_before * 100) if size_before > 0 else 0
+                    reduction = (
+                        ((size_before - size_after) / size_before * 100)
+                        if size_before > 0
+                        else 0
+                    )
 
                     self.stdout.write(
-                        self.style.SUCCESS(f"✓ {chunk_name}: {size_before:.2f}MB → {size_after:.2f}MB ({reduction:.1f}% reduction)")
+                        self.style.SUCCESS(
+                            f"✓ {chunk_name}: {size_before:.2f}MB → {size_after:.2f}MB ({reduction:.1f}% reduction)"
+                        )
                     )
 
                 except Exception as e:
-                    self.stdout.write(
-                        self.style.ERROR(f"✗ {chunk_name}: {str(e)}")
-                    )
+                    self.stdout.write(self.style.ERROR(f"✗ {chunk_name}: {str(e)}"))
 
             self.stdout.write(f"\n{'='*80}")
             self.stdout.write(f"Compression Complete")
             self.stdout.write(f"{'='*80}")
             self.stdout.write(f"Chunks compressed: {len(chunks)}")
-            self.stdout.write(f"Total size reduction: {total_before - total_after:.2f} MB")
+            self.stdout.write(
+                f"Total size reduction: {total_before - total_after:.2f} MB"
+            )
             if total_before > 0:
-                self.stdout.write(f"Overall reduction: {((total_before - total_after) / total_before * 100):.1f}%")
+                self.stdout.write(
+                    f"Overall reduction: {((total_before - total_after) / total_before * 100):.1f}%"
+                )
             self.stdout.write(f"{'='*80}\n")

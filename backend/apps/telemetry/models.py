@@ -22,14 +22,10 @@ class Telemetry(models.Model):
         indexes = [
             # Composite index for device + timestamp queries (most common pattern)
             models.Index(
-                fields=["device", "-timestamp"],
-                name="idx_telemetry_device_time"
+                fields=["device", "-timestamp"], name="idx_telemetry_device_time"
             ),
             # Index for timestamp range queries
-            models.Index(
-                fields=["-timestamp"],
-                name="idx_telemetry_timestamp"
-            ),
+            models.Index(fields=["-timestamp"], name="idx_telemetry_timestamp"),
             # GIN index for JSONB payload queries
             GinIndex(fields=["payload"], name="idx_telemetry_payload_gin"),
         ]

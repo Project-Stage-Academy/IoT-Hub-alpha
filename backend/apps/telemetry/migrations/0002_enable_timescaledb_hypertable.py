@@ -88,9 +88,7 @@ def disable_timescaledb(apps, schema_editor):
     """
     with connection.cursor() as cursor:
         # Drop hypertable (converts back to regular table)
-        cursor.execute(
-            "SELECT timescaledb_pre_restore() FROM (SELECT 1) AS _"
-        )
+        cursor.execute("SELECT timescaledb_pre_restore() FROM (SELECT 1) AS _")
         cursor.execute(
             "SELECT detach_tablespace('timescaledb_tablespace', 'telemetry', if_attached => true)"
         )
@@ -99,7 +97,7 @@ def disable_timescaledb(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('telemetry', '0001_initial'),
+        ("telemetry", "0001_initial"),
     ]
 
     operations = [
