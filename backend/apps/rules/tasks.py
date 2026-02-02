@@ -2,21 +2,13 @@ import os
 from celery import shared_task
 from uuid import UUID
 from django.db.models import Max
-from operator import gt, ge, lt, le, eq, ne
 from collections import defaultdict
+from datetime import datetime
 from apps.telemetry.models import Telemetry
 from .models import Rule, TelemetryCursor
+from .services.rule_eval import eval_rule, TelemetryPoint, EvalResults
 from .services.trigger_engine import trigger_engine
-from .services.data_structure import AggregateStructure
-
-COMPARATORS = {
-    "gt": gt,
-    "gte": ge,
-    "lt": lt,
-    "lte": le,
-    "eq": eq,
-    "ne": ne,
-}
+from .services.data_structure import AggregateStructure, Condition
 
 BATCH_SIZE = os.getenv("CELERY_RULE_BATCH_SIZE", 1000)
 
@@ -56,43 +48,30 @@ def process_telemetry(
         return
 
     rules = Rule.objects.filter(is_enabled=True).only(
-        "id", "comparison_operator", "threshold", "device_id"
+        "id", "condition", "action_config", "device_id"
     )
 
     rules_by_device: dict[UUID, list[Rule]] = defaultdict(list)
+    telemetry_by_device: dict[UUID, list[TelemetryPoint]] = defaultdict(list)
+    
     for rule in rules:
         rules_by_device[rule.device_id].append(rule)
 
-    trigger_aggregation: dict[UUID, AggregateStructure] = {}
     for telemetry in telemetry_qs.iterator():
-        payload = telemetry.payload
-        value: float = payload.get("value")
+        telemetry_by_device[telemetry.device_id].append(
+            TelemetryPoint(
+            ts = telemetry.timestamp,
+            value = telemetry.payload.get("value")
+        ))
 
-        if value is None:
-            continue
-
-        device_rules = rules_by_device.get(telemetry.device_id, [])
-
-        for rule in device_rules:
-            comparator = COMPARATORS.get(rule.comparison_operator)
-            if not comparator:
-                continue
-
-            if comparator(value, rule.threshold):
-                if rule.id in trigger_aggregation:
-                    agg = trigger_aggregation[rule.id]
-                    agg.values.append(value)
-                    agg.end = telemetry.timestamp
-                else:
-                    trigger_aggregation[rule.id] = AggregateStructure(
-                        rule_id=rule.id,
-                        device=telemetry.device_id,
-                        values=[value],
-                        start=telemetry.timestamp,
-                        end=telemetry.timestamp,
-                    )
-        cursor = telemetry.id
-    trigger_engine(trigger_aggregation)
+    rule_aggregation: dict[UUID, EvalResults] = defaultdict()
+    
+    for device, rules in rules_by_device.items():
+        for rule in rules:
+            condition = Condition.model_validate(rule.condition)
+            rule_aggregation[rule.id] = eval_rule(condition, telemetry_by_device[rule.device_id], EvalResults(trigger=False, values=[]), rule.device_id)
+            print(rule_aggregation[rule.id] if rule_aggregation[rule.id].trigger else None)
+    #trigger_engine(trigger_aggregation)
 
     if record_cursor:
         TelemetryCursor.objects.update_or_create(defaults={"last_id": cursor})
