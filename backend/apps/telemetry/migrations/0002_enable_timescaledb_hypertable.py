@@ -24,9 +24,11 @@ def enable_timescaledb(apps, schema_editor):
                 "SELECT EXISTS(SELECT 1 FROM pg_extension WHERE extname = 'timescaledb')"
             )
             result = cursor.fetchone()
-            if result and not result[0]:
-                print("⚠ TimescaleDB extension not found, creating...")
-                cursor.execute("CREATE EXTENSION IF NOT EXISTS timescaledb CASCADE")
+            if not result or not result[0]:
+                # Extension not available, skip TimescaleDB setup
+                print("ℹ TimescaleDB extension not available")
+                print("  Table remains as regular PostgreSQL table")
+                return
 
             # 2. Drop primary key constraint (required for hypertable)
             cursor.execute(
@@ -89,9 +91,7 @@ def enable_timescaledb(apps, schema_editor):
                 print(f"ℹ Compression policy not added: {e}")
 
         except Exception as e:
-            # TimescaleDB not available (e.g., test environment)
-            # or other database-level errors
-            connection.rollback()  # Rollback failed transaction
+            # TimescaleDB operations failed (shouldn't happen if extension check passed)
             error_msg = str(e).lower()
             if "extension" in error_msg or "timescaledb" in error_msg:
                 print(f"ℹ TimescaleDB setup skipped (extension not available)")
@@ -100,6 +100,7 @@ def enable_timescaledb(apps, schema_editor):
             else:
                 print(f"ℹ TimescaleDB setup skipped: {e}")
             print("  Table remains as regular PostgreSQL table")
+            # Note: Cannot call connection.rollback() inside atomic transaction
 
 
 def disable_timescaledb(apps, schema_editor):
