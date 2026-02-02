@@ -2,6 +2,7 @@
 
 from django.db import migrations
 from django.db import connection
+from django.db.utils import DatabaseError
 
 
 def enable_timescaledb(apps, schema_editor):
@@ -85,12 +86,12 @@ def enable_timescaledb(apps, schema_editor):
                     """
                 )
                 print("✓ Compression policy added: compress chunks after 30 days")
-            except Exception as e:
-                # Catch any errors during compression policy setup
+            except DatabaseError as e:
+                # Catch database errors during compression policy setup
                 # (e.g., columnstore issues, policy already exists, etc.)
                 print(f"ℹ Compression policy not added: {e}")
 
-        except Exception as e:
+        except DatabaseError as e:
             # TimescaleDB operations failed (shouldn't happen if extension check passed)
             error_msg = str(e).lower()
             if "extension" in error_msg or "timescaledb" in error_msg:
@@ -100,7 +101,6 @@ def enable_timescaledb(apps, schema_editor):
             else:
                 print(f"ℹ TimescaleDB setup skipped: {e}")
             print("  Table remains as regular PostgreSQL table")
-            # Note: Cannot call connection.rollback() inside atomic transaction
 
 
 def disable_timescaledb(apps, schema_editor):
