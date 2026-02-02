@@ -1,16 +1,24 @@
-from pydantic import BaseModel, ConfigDict, model_validator, Field
-from datetime import datetime
-from typing import Literal, Annotated
 from uuid import UUID
+from datetime import datetime
+from dataclasses import dataclass, field
+from pydantic import BaseModel, ConfigDict, model_validator, Field
+from typing import Literal, Any
 
 
-class AggregateStructure(BaseModel):
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-    values: list[float]
-    rule_id: UUID
-    device: UUID
-    start: datetime
-    end: datetime
+
+@dataclass()
+class EvalResults:
+    trigger: bool = False
+    values: list[float] = field(default_factory=list)
+    start: datetime | None = None
+    end: datetime | None = None
+    
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "values": self.values,
+            "start": self.start.isoformat() if self.start else None,
+            "end": self.end.isoformat() if self.end else None,
+        }
 
 
 class ActionConfig(BaseModel):

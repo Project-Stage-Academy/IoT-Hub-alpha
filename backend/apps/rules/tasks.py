@@ -1,4 +1,5 @@
 import os
+import logging
 from celery import shared_task
 from uuid import UUID
 from django.db.models import Max
@@ -6,13 +7,13 @@ from collections import defaultdict
 from datetime import datetime
 from apps.telemetry.models import Telemetry
 from .models import Rule, TelemetryCursor
-from .services.rule_eval import eval_rule, TelemetryPoint, EvalResults
+from .services.rule_eval import eval_rule, TelemetryPoint
 from .services.trigger_engine import trigger_engine
-from .services.data_structure import AggregateStructure, Condition
+from .services.data_structure import Condition, EvalResults
 
 BATCH_SIZE = os.getenv("CELERY_RULE_BATCH_SIZE", 1000)
 
-
+logger = logging.getLogger("apps.rules")
 
 @shared_task(bind=True, name="apps.rules.tasks.process_telemetry")
 def process_telemetry(
@@ -32,11 +33,21 @@ def process_telemetry(
     :param record_cursor: Description
     :type record_cursor: bool
     """
+    
+    # logger = logging.getLogger(__name__)
+    # root = logging.getLogger()
+
+    # logger.info("logger_handlers", extra={"event": {"handlers": [type(h).__name__ for h in logger.handlers]}})
+    # root.info("root_handlers", extra={"event": {"handlers": [type(h).__name__ for h in root.handlers]}})
+    
+    
     cursor = (
         (TelemetryCursor.objects.aggregate(last_id=Max("last_id")).get("last_id") or 0)
         if cursor_start is None
         else cursor_start
     )
+
+    last_id = cursor
 
     telemetry_qs = (
         Telemetry.objects.filter(id__gt=cursor)
@@ -63,6 +74,7 @@ def process_telemetry(
             ts = telemetry.timestamp,
             value = telemetry.payload.get("value")
         ))
+        last_id += 1
 
     rule_aggregation: dict[UUID, EvalResults] = defaultdict()
     
@@ -71,12 +83,24 @@ def process_telemetry(
             condition = Condition.model_validate(rule.condition)
             result = eval_rule(condition,
                                telemetry_by_device[rule.device_id],  # type: ignore[attr-defined]
-                               EvalResults(trigger=False, values=[]),
+                               EvalResults(),
                                rule.device_id)  # type: ignore[attr-defined]
             if result.trigger:
                 rule_aggregation[rule.id] = result
+                logger.info(
+                    "rule_fired", extra={
+                        "event":{
+                            "rule": rule_aggregation[rule.id],
+                        "rule_type": condition.type,
+                        "device_id": rule.device_id,  # type: ignore[attr-defined]
+                        "telemetry_id": cursor,
+                        "evaluated_at": datetime.now().isoformat(),
+                        "reason": f"{', '.join(str(result.values))} {condition.type} {condition.threshold}"
+                        }
+                    }
+                )
 
     trigger_engine(rule_aggregation)
 
     if record_cursor:
-        TelemetryCursor.objects.update_or_create(defaults={"last_id": cursor})
+        TelemetryCursor.objects.update_or_create(defaults={"last_id": last_id})

@@ -189,6 +189,10 @@ LOGGING_BASE = {
             "level": "INFO",
             "propagate": True,
         },
+        "apps.rules": {
+            "level": "INFO",
+            "propagate": True,
+        },
     },
 }
 

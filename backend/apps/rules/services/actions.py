@@ -6,10 +6,9 @@ from django.utils import timezone
 from datetime import timedelta
 from apps.notifications.models import NotificationTemplate
 from .data_structure import ActionConfig
-from .rule_eval import EvalResults
 from apps.events.models import Event
 from apps.rules.models import Rule
-from apps.rules.services.data_structure import NormalizedRecipient
+from apps.rules.services.data_structure import NormalizedRecipient, EvalResults
 
 COOLDOWN_TIMER_MINUTES = os.getenv("DJANGO_RULE_COOLDOWN_MINUTES", 60)
 
@@ -68,7 +67,6 @@ def dispatch_msg(
         value=max(aggregate.values),
         unit=rule.device.device_type.metric_unit,
     )
-    print(message)
     try:
         event = event_handler(aggregate, rule, message, notif_template)  # noqa: F841
     except EventCooldownActive:

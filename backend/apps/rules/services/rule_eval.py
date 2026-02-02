@@ -1,15 +1,14 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 import os
 from uuid import UUID
 from datetime import datetime, timedelta
-from typing import Any
-from django.utils import timezone
-from .data_structure import Condition, AggregateStructure
-from apps.telemetry.models import Telemetry
 from operator import gt, ge, lt, le, eq, ne
+from django.utils import timezone
 from django.db.models import Min, Max
 from django.db.models import FloatField
 from django.db.models.functions import Cast
+from .data_structure import Condition, EvalResults
+from apps.telemetry.models import Telemetry
 
 COMPARATORS = {
     "gt": gt,
@@ -26,21 +25,7 @@ CELERY_PROCESS_TIMER = os.getenv("CELERY_RUN_PROCESS_TELEMETRY_TIMER_MINUTES", 5
 class TelemetryPoint:
     ts: datetime
     value: float
-    
-@dataclass()
-class EvalResults:
-    trigger: bool
-    values: list[float] = field(default_factory=list)
-    start: datetime | None = None
-    end: datetime | None = None
-    
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "values": self.values,
-            "start": self.start.isoformat() if self.start else None,
-            "end": self.end.isoformat() if self.end else None,
-        }
-    
+
 
 def _eval_condition(operator: str, threshold: float, telemetry_chunk: list[TelemetryPoint], aggregate_trigger: EvalResults) -> EvalResults:
     trigger_values: list[float] = []
@@ -143,22 +128,23 @@ def eval_rule(condition: Condition,
         if not condition.conditions:
             raise KeyError(f"Malformed condition: {condition}")
         child_results = [
-            eval_rule(c, telemetry_chunks, aggregate_trigger, device_id)
+            eval_rule(c, telemetry_chunks, EvalResults(), device_id)
             for c in condition.conditions
         ]
         aggregate_trigger.trigger = all(r.trigger for r in child_results)
-        aggregate_trigger.values = [v for r in child_results for v in r.values]
+        if aggregate_trigger.trigger:
+            aggregate_trigger.values = child_results[0].values
         return aggregate_trigger
 
     if type == "or":
         if not condition.conditions:
             raise KeyError(f"Malformed condition: {condition}")
         child_results = [
-            eval_rule(c, telemetry_chunks, aggregate_trigger, device_id)
+            eval_rule(c, telemetry_chunks, EvalResults(), device_id)
             for c in condition.conditions
         ]
         aggregate_trigger.trigger = any(r.trigger for r in child_results)
-        aggregate_trigger.values = [v for r in child_results if r.trigger for v in r.values]
+        aggregate_trigger.values = child_results[0 if child_results[0].trigger else 1].values
         return aggregate_trigger
 
     return aggregate_trigger
