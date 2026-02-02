@@ -29,46 +29,54 @@ def enable_timescaledb(apps, schema_editor):
         )
 
         # 3. Create hypertable from existing table
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT create_hypertable(
                 'telemetry',
                 'timestamp',
                 if_not_exists => TRUE,
                 migrate_data => TRUE
             )
-            """)
+            """
+        )
 
         # Note: Indexes are created by Django from model Meta.indexes (see models.py)
         # They will be created in the next migration step automatically
 
         # 3.5. Enable columnstore (required for compression)
-        cursor.execute("""
+        cursor.execute(
+            """
             ALTER TABLE telemetry SET (
                 timescaledb.compress,
                 timescaledb.compress_segmentby = 'device_id',
                 timescaledb.compress_orderby = 'timestamp DESC'
             )
-            """)
+            """
+        )
         print("✓ Columnstore enabled on telemetry hypertable")
 
         # 4. Add retention policy (365 days)
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT add_retention_policy(
                 'telemetry',
                 INTERVAL '365 days',
                 if_not_exists => TRUE
             )
-            """)
+            """
+        )
 
         # 5. Add compression policy (30 days) - now that columnstore is enabled
         try:
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT add_compression_policy(
                     'telemetry',
                     INTERVAL '30 days',
                     if_not_exists => TRUE
                 )
-                """)
+                """
+            )
             print("✓ Compression policy added: compress chunks after 30 days")
         except Exception as e:
             print(f"ℹ Compression policy not added: {e}")

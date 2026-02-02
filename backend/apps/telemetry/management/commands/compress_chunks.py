@@ -144,11 +144,13 @@ class Command(BaseCommand):
                     cursor.execute(f"SELECT compress_chunk('{full_chunk_name}')")
 
                     # Get size after compression
-                    cursor.execute(f"""
+                    cursor.execute(
+                        f"""
                         SELECT pg_total_relation_size(
                             '{full_chunk_name}'::regclass
                         ) as size
-                    """)
+                    """
+                    )
 
                     size_after = cursor.fetchone()[0] / (1024 * 1024)  # Convert to MB
                     total_after += size_after
