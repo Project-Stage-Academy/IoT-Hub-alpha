@@ -11,6 +11,8 @@ info:
     email: "support@industry.com"
   description: IoT Service for industrial use
 tags:
+  - name: rules
+    description: Rules for accessing telemetry data
   - name: devices
     description: Devices reporting telemetry data
   - name: telemetry
@@ -134,6 +136,75 @@ paths:
           $ref: "#/components/responses/NotFoundError"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
+  /rules:
+    get:
+      description: get list of rules
+      summary: Get paginated rule data
+      operationId: RuleList
+      tags: [rules]
+      parameters:
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/PageSizeParam"
+      responses:
+        "200":
+          description: a paginated list of rules
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RuleListResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+    post:
+      description: create a new rule
+      summary: Create a new rule
+      operationId: RuleSubmit
+      tags: [rules]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RuleCreate"
+      responses:
+        "201":
+          description: rule created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Rules"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+  /rules/{id}:
+    get:
+      description: get a specific rule by id
+      summary: Get a specific rule based on id in url paths
+      operationId: RuleGet
+      tags: [rules]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Get rule data of specific rule by id
+          schema:
+            type: string
+            example: 29e31015-4733-49f3-855a-ef7f30e6c147
+      responses:
+        "200":
+          description: rule information by id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Rules"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
   /auth/fake:
     get: 
       security: []
@@ -230,6 +301,16 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Devices"
+        pagination:
+          $ref: "#/components/schemas/PaginationMeta"
+    RuleListResponse:
+      type: object
+      required: [data, pagination]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Rules"
         pagination:
           $ref: "#/components/schemas/PaginationMeta"
     Error:
@@ -347,6 +428,98 @@ components:
           type: string
           enum: [C, K, F, psi, wh]
           example: C
+    Rules:
+      type: object
+      required:
+        - name
+        - description
+        - comparison_operator
+        - threshold
+        - action_config
+        - last_triggered_at
+        - is_enabled
+      properties:
+        name:
+          type: string
+          example: Low Vibration Alert Lathe
+        description:
+          type: string
+          description: "Device serial number (must match a registered device)"
+          example: Alerts maintenance when vibration drops below expected operating range
+        comparison_operator:
+          type: string
+          enum: [gt, lt, gte, lte, eq, neq]
+          example: gt
+        threshold:
+          type: number
+          format: float
+          example: 15.3
+        action_config:
+          type: array
+          description: List of action configuration objects
+          items:
+            type: object
+            additionalProperties: true
+          example:
+            - type: notification
+              recipients: ["test@test.com"]
+              template_id: 5
+            - type: stop_machine
+              machine_id: CNC-002
+        last_triggered_at:
+          type: string
+          format: date-time
+          example: 2026-01-16T17:30:00Z
+        is_enabled:
+          type: boolean
+          description: is the rule enabled
+          example: true
+    RuleCreate:
+      type: object
+      required:
+        - name
+        - description
+        - comparison_operator
+        - threshold
+        - action_config
+        - is_enabled
+        - device_id
+      properties:
+        name:
+          type: string
+          example: Low Vibration Alert Lathe
+        description:
+          type: string
+          description: "Device serial number (must match a registered device)"
+          example: Alerts maintenance when vibration drops below expected operating range
+        comparison_operator:
+          type: string
+          enum: [gt, lt, gte, lte, eq, neq]
+          example: gt
+        threshold:
+          type: number
+          format: float
+          example: 15.3
+        action_config:
+          type: array
+          description: List of action configuration objects
+          items:
+            type: object
+            additionalProperties: true
+          example:
+            - type: notification
+              recipients: ["test@test.com"]
+              template_id: 5
+            - type: stop_machine
+              machine_id: CNC-002
+        is_enabled:
+          type: boolean
+          description: is the rule enabled
+          example: true
+        device_id:
+          type: string
+          description: UUID of device ID assosiated with the rule
+          example: a80031eb-189a-49d5-93ab-11bd465143e9
   responses:
     UnauthorizedError:
       description: No or invalid JWT token provided

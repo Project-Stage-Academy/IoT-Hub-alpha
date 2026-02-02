@@ -110,10 +110,13 @@
   "rules": [
     {
       "device": "VIB-SN-001",
-      "name": "Low Vibration Alert – Lathe #1",
+      "name": "Low Vibration Alert Lathe #1",
       "description": "Alerts maintenance when vibration drops below expected operating range",
-      "comparison_operator": "lt",
-      "threshold": 15.3,
+      "condition": {
+        "type": "leaf",
+        "operator": "gt",
+        "threshold": 15.0
+      },
       "action_config": [
         {
           "type": "notification",
@@ -127,8 +130,11 @@
       "device": "TEMP-SN-002",
       "name": "Critical Temperature – CNC Mill #2",
       "description": "Stops the machine if temperature exceeds the critical threshold",
-      "comparison_operator": "gt",
-      "threshold": 100.8,
+      "condition": {
+        "type": "leaf",
+        "operator": "gt",
+        "threshold": 100.0
+      },
       "action_config": [
         {
           "type": "stop_machine",
@@ -146,8 +152,11 @@
       "device": "PWR-SN-003",
       "name": "High Power Consumption Warning",
       "description": "Alerts energy management when power consumption exceeds normal levels",
-      "comparison_operator": "gt",
-      "threshold": 80.5,
+      "condition": {
+        "type": "leaf",
+        "operator": "lt",
+        "threshold": 12.2
+      },
       "action_config": [
         {
           "type": "notification",
@@ -161,8 +170,21 @@
       "device": "FLW-SN-001",
       "name": "High Flow Rate Warning",
       "description": "Alerts management when flow rate exceeds safe operating limits",
-      "comparison_operator": "gt",
-      "threshold": 300.0,
+      "condition": {
+        "type": "or",
+        "conditions": [
+          {
+            "type": "leaf",
+            "operator": "gt",
+            "threshold": 300.2
+          },
+          {
+            "type": "leaf",
+            "operator": "lt",
+            "threshold": 20.0
+          }
+        ]
+      },
       "action_config": [
         {
           "type": "notification",
@@ -176,8 +198,11 @@
       "device": "FLW-SN-001",
       "name": "Low Flow Rate Warning",
       "description": "Alerts management when flow rate drops below minimum required levels",
-      "comparison_operator": "lt",
-      "threshold": 50.0,
+      "condition": {
+        "type": "leaf",
+        "operator": "lt",
+        "threshold": 17.4
+      },
       "action_config": [
         {
           "type": "notification",
@@ -191,8 +216,23 @@
       "device": "HMD-SN-001",
       "name": "High Humidity Warning",
       "description": "Alerts management when humidity exceeds acceptable levels",
-      "comparison_operator": "gt",
-      "threshold": 70,
+      "condition": {
+        "type": "or",
+        "conditions": [
+          {
+            "type": "leaf",
+            "operator": "gt",
+            "threshold": 80
+          },
+          {
+            "type": "leaf",
+            "operator": "gt",
+            "threshold": 60.5,
+            "occurrences": 5,
+            "window_seconds": 300
+          }
+        ]
+      },
       "action_config": [
         {
           "type": "notification",
@@ -206,8 +246,11 @@
       "device": "CUR-SN-001",
       "name": "High Current Draw Warning",
       "description": "Alerts management when electrical current draw is abnormally high",
-      "comparison_operator": "gt",
-      "threshold": 160,
+      "condition": {
+        "type": "leaf",
+        "operator": "gt",
+        "threshold": 120.2
+      },
       "action_config": [
         {
           "type": "notification",
@@ -221,13 +264,20 @@
       "device": "CUR-SN-001",
       "name": "Critical Current Draw Alert",
       "description": "Alerts multiple stakeholders when current draw reaches critical levels",
-      "comparison_operator": "gt",
-      "threshold": 190,
+      "condition": {
+        "type": "leaf",
+        "operator": "gt",
+        "threshold": 150.4
+      },
       "action_config": [
         {
           "type": "notification",
           "template_id": "Power Consumption Warning",
-          "recipients": ["management@factory.com", "energy@support.com", "supervisor@factory.com"]
+          "recipients": [
+            "management@factory.com",
+            "energy@support.com",
+            "supervisor@factory.com"
+          ]
         }
       ],
       "is_enabled": true
@@ -236,8 +286,11 @@
       "device": "CUR-SN-003",
       "name": "Unexpected Low Current Alert",
       "description": "Alerts management when current draw indicates possible machine shutdown",
-      "comparison_operator": "lt",
-      "threshold": 20,
+      "condition": {
+        "type": "leaf",
+        "operator": "gt",
+        "threshold": 14.1
+      },
       "action_config": [
         {
           "type": "notification",
@@ -309,23 +362,22 @@
     {
       "device": "VIB-SN-001",
       "payload": {
-      "schema_version": "1.0",
-      "value": 2000
+        "schema_version": "1.0",
+        "value": 2000
       }
     },
     {
       "device": "TEMP-SN-002",
-      "payload": 
-      {
-      "schema_version": "1.0",
-      "value": 9033
+      "payload": {
+        "schema_version": "1.0",
+        "value": 9033
       }
     },
     {
       "device": "PWR-SN-003",
       "payload": {
-      "schema_version": "1.0",
-      "value": 6543
+        "schema_version": "1.0",
+        "value": 6543
       }
     }
   ]

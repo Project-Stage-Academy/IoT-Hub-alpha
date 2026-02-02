@@ -21,6 +21,7 @@ COMPARATORS = {
 BATCH_SIZE = os.getenv("CELERY_RULE_BATCH_SIZE", 1000)
 
 
+
 @shared_task(bind=True, name="apps.rules.tasks.process_telemetry")
 def process_telemetry(
     self,

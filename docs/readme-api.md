@@ -183,6 +183,7 @@ Pagination applies to collection endpoints such as:
 
 - `GET /api/v1/devices`
 - `GET /api/v1/telemetry`
+- `GET /api/v1/rules`
 
 ---
 
