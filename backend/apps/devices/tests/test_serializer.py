@@ -1,7 +1,11 @@
 from django.test import TestCase
 
 from apps.devices.models import DeviceType, Device
-from apps.devices.serializer import DeviceSerializer, ApiValidationError
+from apps.devices.serializer import (
+    DeviceRepository,
+    DeviceValidator,
+    ApiValidationError,
+)
 
 
 class DeviceSerializerTests(TestCase):
@@ -20,7 +24,8 @@ class DeviceSerializerTests(TestCase):
             "status": "active",
             "location": "Lab",
         }
-        d = DeviceSerializer(data=payload, partial=False).save()
+        cleaned = DeviceValidator(data=payload, partial=False).validate()
+        d = DeviceRepository.save(cleaned)
         self.assertTrue(Device.objects.filter(id=d.id).exists())
         self.assertEqual(d.device_type_id, self.dt.id)
 
@@ -31,7 +36,7 @@ class DeviceSerializerTests(TestCase):
             "device_type_id": str(self.dt.id),
         }
         with self.assertRaises(ApiValidationError) as ctx:
-            DeviceSerializer(data=payload, partial=False).save()
+            DeviceValidator(data=payload, partial=False).validate()
         self.assertIn("name", ctx.exception.errors)
 
     def test_serializer_rejects_invalid_device_type_id(self):
@@ -41,7 +46,7 @@ class DeviceSerializerTests(TestCase):
             "device_type_id": "00000000-0000-0000-0000-000000000000",
         }
         with self.assertRaises(ApiValidationError) as ctx:
-            DeviceSerializer(data=payload, partial=False).save()
+            DeviceValidator(data=payload, partial=False).validate()
         self.assertIn("device_type_id", ctx.exception.errors)
 
     def test_serializer_rejects_invalid_status(self):
@@ -52,5 +57,5 @@ class DeviceSerializerTests(TestCase):
             "status": "INVALID",  # не в choices
         }
         with self.assertRaises(ApiValidationError) as ctx:
-            DeviceSerializer(data=payload, partial=False).save()
+            DeviceValidator(data=payload, partial=False).validate()
         self.assertIn("status", ctx.exception.errors)

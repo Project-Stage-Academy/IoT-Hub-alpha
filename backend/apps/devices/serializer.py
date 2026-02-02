@@ -9,14 +9,7 @@ from django.db import transaction
 from django.forms.models import model_to_dict
 
 from .models import Device, DeviceType
-
-
-class ApiValidationError(Exception):
-
-    def __init__(self, errors: dict[str, Any], status_code: int = 400):
-        super().__init__("Validation error")
-        self.errors = errors
-        self.status_code = status_code
+from .exceptions import ApiValidationError
 
 
 def _is_blank(value: Any) -> bool:
@@ -37,8 +30,6 @@ class DeviceTypeSerializer:
 @dataclass
 class DeviceSerializer:
     instance: Optional[Device] = None
-    data: Optional[dict[str, Any]] = None
-    partial: bool = False
 
     read_fields = (
         "id",
@@ -50,6 +41,32 @@ class DeviceSerializer:
         "created_at",
         "updated_at",
     )
+
+    def to_dict(self) -> dict[str, Any]:
+        if not self.instance:
+            raise ValueError("DeviceSerializer(instance=...) is required for to_dict()")
+
+        payload = model_to_dict(self.instance, fields=self.read_fields)
+        payload["id"] = str(self.instance.id)
+
+        payload["device_type"] = DeviceTypeSerializer(
+            self.instance.device_type
+        ).to_dict()
+
+        # datetimes -> ISO
+        for k in ("last_seen", "created_at", "updated_at"):
+            dt = getattr(self.instance, k, None)
+            payload[k] = dt.isoformat() if dt else None
+
+        return payload
+
+
+@dataclass
+class DeviceValidator:
+    data: Optional[dict[str, Any]] = None
+    partial: bool = False
+    instance: Optional[Device] = None
+
     write_fields = (
         "name",
         "serial_number",
@@ -59,33 +76,11 @@ class DeviceSerializer:
     )
 
     errors: dict[str, Any] = field(default_factory=dict)
-    _cached_dict: Optional[dict[str, Any]] = field(default=None, init=False)
-
-    def to_dict(self) -> dict[str, Any]:
-        if self._cached_dict is None:
-            if not self.instance:
-                raise ValueError(
-                    "DeviceSerializer(instance=...) is required for to_dict()"
-                )
-
-            payload = model_to_dict(self.instance, fields=self.read_fields)
-            payload["id"] = str(self.instance.id)
-
-            payload["device_type"] = DeviceTypeSerializer(
-                self.instance.device_type
-            ).to_dict()
-
-            # datetimes -> ISO
-            for k in ("last_seen", "created_at", "updated_at"):
-                dt = getattr(self.instance, k, None)
-                payload[k] = dt.isoformat() if dt else None
-
-            self._cached_dict = payload
-        return self._cached_dict
 
     def validate(self) -> dict[str, Any]:
+        self.errors = {}
         if self.data is None:
-            raise ValueError("DeviceSerializer(data=...) is required for validate()")
+            raise ValueError("DeviceValidator(data=...) is required for validate()")
         cleaned = self._parse_and_clean()
         self._validate_business_rules(cleaned)
 
@@ -145,11 +140,9 @@ class DeviceSerializer:
 
     def _validate_status(self, cleaned: dict[str, Any]) -> None:
         if "status" in cleaned:
-            allowed = {c[0] for c in Device._meta.get_field("status").choices}
+            allowed = Device.DeviceStatus.values
             if cleaned["status"] not in allowed:
-                self.errors["status"] = (
-                    f"Invalid status. Allowed: {', '.join(sorted(allowed))}"
-                )
+                self.errors["status"] = f"Invalid status. Allowed: {', '.join(allowed)}"
 
     def _resolve_device_type(self, cleaned: dict[str, Any]) -> None:
         if "device_type_id" in cleaned:
@@ -161,17 +154,18 @@ class DeviceSerializer:
                 cleaned["device_type"] = device_type
             except (ValueError, ObjectDoesNotExist):
                 self.errors["device_type_id"] = "DeviceType not found or invalid id."
-            finally:
+            else:
                 cleaned.pop("device_type_id", None)
 
-    @transaction.atomic
-    def save(self) -> Device:
-        cleaned = self.validate()
 
-        if self.instance is None:
+class DeviceRepository:
+    @staticmethod
+    @transaction.atomic
+    def save(cleaned: dict[str, Any], instance: Optional[Device] = None) -> Device:
+        if instance is None:
             obj = Device(**cleaned)
         else:
-            obj = self.instance
+            obj = instance
             for k, v in cleaned.items():
                 setattr(obj, k, v)
 
