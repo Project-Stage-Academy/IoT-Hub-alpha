@@ -91,6 +91,7 @@ def enable_timescaledb(apps, schema_editor):
         except Exception as e:
             # TimescaleDB not available (e.g., test environment)
             # or other database-level errors
+            connection.rollback()  # Rollback failed transaction
             error_msg = str(e).lower()
             if "extension" in error_msg or "timescaledb" in error_msg:
                 print(f"ℹ TimescaleDB setup skipped (extension not available)")
