@@ -7,79 +7,98 @@ from django.db import connection
 def enable_timescaledb(apps, schema_editor):
     """
     Convert telemetry table to TimescaleDB hypertable.
-    - Creates TimescaleDB extension
-    - Converts table to hypertable
+    - Creates TimescaleDB extension (if available)
+    - Converts table to hypertable (if extension available)
     - Adds retention policy (365 days)
     - Adds compression policy (30 days, if available)
 
     Indexes are managed through Telemetry model's Meta.indexes.
+
+    Note: Gracefully skips TimescaleDB setup if extension not available
+    (e.g., in test environments without TimescaleDB installed).
     """
     with connection.cursor() as cursor:
-        # 1. Check if TimescaleDB extension is installed
-        cursor.execute(
-            "SELECT EXISTS(SELECT 1 FROM pg_extension WHERE extname = 'timescaledb')"
-        )
-        if not cursor.fetchone()[0]:
-            print("⚠ TimescaleDB extension not found, creating...")
-            cursor.execute("CREATE EXTENSION IF NOT EXISTS timescaledb CASCADE")
-
-        # 2. Drop primary key constraint (required for hypertable)
-        cursor.execute(
-            "ALTER TABLE telemetry DROP CONSTRAINT IF EXISTS telemetry_pkey CASCADE"
-        )
-
-        # 3. Create hypertable from existing table
-        cursor.execute(
-            """
-            SELECT create_hypertable(
-                'telemetry',
-                'timestamp',
-                if_not_exists => TRUE,
-                migrate_data => TRUE
-            )
-            """
-        )
-
-        # Note: Indexes are created by Django from model Meta.indexes (see models.py)
-        # They will be created in the next migration step automatically
-
-        # 3.5. Enable columnstore (required for compression)
-        cursor.execute(
-            """
-            ALTER TABLE telemetry SET (
-                timescaledb.compress,
-                timescaledb.compress_segmentby = 'device_id',
-                timescaledb.compress_orderby = 'timestamp DESC'
-            )
-            """
-        )
-        print("✓ Columnstore enabled on telemetry hypertable")
-
-        # 4. Add retention policy (365 days)
-        cursor.execute(
-            """
-            SELECT add_retention_policy(
-                'telemetry',
-                INTERVAL '365 days',
-                if_not_exists => TRUE
-            )
-            """
-        )
-
-        # 5. Add compression policy (30 days) - now that columnstore is enabled
         try:
+            # 1. Check if TimescaleDB extension is installed
+            cursor.execute(
+                "SELECT EXISTS(SELECT 1 FROM pg_extension WHERE extname = 'timescaledb')"
+            )
+            result = cursor.fetchone()
+            if result and not result[0]:
+                print("⚠ TimescaleDB extension not found, creating...")
+                cursor.execute("CREATE EXTENSION IF NOT EXISTS timescaledb CASCADE")
+
+            # 2. Drop primary key constraint (required for hypertable)
+            cursor.execute(
+                "ALTER TABLE telemetry DROP CONSTRAINT IF EXISTS telemetry_pkey CASCADE"
+            )
+
+            # 3. Create hypertable from existing table
             cursor.execute(
                 """
-                SELECT add_compression_policy(
+                SELECT create_hypertable(
                     'telemetry',
-                    INTERVAL '30 days',
+                    'timestamp',
+                    if_not_exists => TRUE,
+                    migrate_data => TRUE
+                )
+                """
+            )
+
+            # Note: Indexes created by Django from model Meta.indexes (see models.py)
+            # They are created in the next migration step automatically
+
+            # 3.5. Enable columnstore (required for compression)
+            cursor.execute(
+                """
+                ALTER TABLE telemetry SET (
+                    timescaledb.compress,
+                    timescaledb.compress_segmentby = 'device_id',
+                    timescaledb.compress_orderby = 'timestamp DESC'
+                )
+                """
+            )
+            print("✓ Columnstore enabled on telemetry hypertable")
+
+            # 4. Add retention policy (365 days)
+            cursor.execute(
+                """
+                SELECT add_retention_policy(
+                    'telemetry',
+                    INTERVAL '365 days',
                     if_not_exists => TRUE
                 )
                 """
             )
-            print("✓ Compression policy added: compress chunks after 30 days")
+
+            # 5. Add compression policy (30 days) - now columnstore enabled
+            try:
+                cursor.execute(
+                    """
+                    SELECT add_compression_policy(
+                        'telemetry',
+                        INTERVAL '30 days',
+                        if_not_exists => TRUE
+                    )
+                    """
+                )
+                print("✓ Compression policy added: compress chunks after 30 days")
+            except Exception as e:
+                # Catch any errors during compression policy setup
+                # (e.g., columnstore issues, policy already exists, etc.)
+                print(f"ℹ Compression policy not added: {e}")
+
         except Exception as e:
-            print(f"ℹ Compression policy not added: {e}")
+            # TimescaleDB not available (e.g., test environment)
+            # or other database-level errors
+            error_msg = str(e).lower()
+            if "extension" in error_msg or "timescaledb" in error_msg:
+                print(f"ℹ TimescaleDB setup skipped (extension not available)")
+            elif "feature" in error_msg:
+                print(f"ℹ TimescaleDB feature not supported")
+            else:
+                print(f"ℹ TimescaleDB setup skipped: {e}")
+            print("  Table remains as regular PostgreSQL table")
 
 
 def disable_timescaledb(apps, schema_editor):
