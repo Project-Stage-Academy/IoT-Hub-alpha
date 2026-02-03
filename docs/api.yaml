@@ -68,7 +68,7 @@ paths:
         **Batch Constraints:**
         - Maximum batch size: 1000 records (configurable via `TELEMETRY_MAX_BATCH_SIZE`)
         - All-or-nothing semantics: if any record fails validation, entire batch is rejected
-      summary: Ingest telemetry data (single or batch)
+      summary: Ingest telemetry data
       operationId: TelemetrySubmit
       tags: [telemetry]
       parameters:
@@ -128,7 +128,7 @@ paths:
                     device_id: "a1b2c3d4-e5f6-7890-1234-567890abcdef"
                     timestamp: "2026-02-03T12:37:27.594815+00:00"
                 batch:
-                  summary: Batch created (all-or-nothing)
+                  summary: Batch created
                   value:
                     status: "created"
                     count: 3
@@ -145,7 +145,7 @@ paths:
                 $ref: "#/components/schemas/TelemetryAcceptedAsync"
               examples:
                 accepted:
-                  summary: Single or batch accepted (queued to Celery)
+                  summary: Single or batch accepted
                   value:
                     status: "accepted"
                     request_id: "a3f5b8c2-1234-5678-90ab-cdef12345678"
@@ -169,7 +169,7 @@ paths:
                     details:
                       device_id: ["This field is required."]
                 batch_failed:
-                  summary: Batch ingestion failed (all-or-nothing)
+                  summary: Batch ingestion failed
                   value:
                     error: "Batch ingestion failed"
                     details:
@@ -180,8 +180,6 @@ paths:
                       errors:
                         - index: 1
                           error: "Validation failed"
-                          details:
-                            schema_version: ["This field is required."]
   /devices:
     get:
       description: get list of devices
@@ -227,14 +225,14 @@ paths:
   /devices/{id}:
     get:
       description: get a specific device by id
-      summary: Get a specific device based on id in url paths
+      summary: Get a specific device based on ID in URL path
       operationId: DeviceGet
       tags: [devices]
       parameters:
         - name: id
           in: path
           required: true
-          description: Get telemetry data of specific device by id
+          description: get telemetry data of specific device by id
           schema:
             type: string
             example: a1b2c3d4-e5f6-7890-1234-567890abcdef
@@ -433,7 +431,7 @@ paths:
   /auth/fake:
     get: 
       security: []
-      description: Fake JWT token
+      description: fake jwt token
       summary: Obtain a test token
       operationId: TokenFake
       tags: [auth]
@@ -457,7 +455,7 @@ components:
     PageParam:
       name: page
       in: query
-      description: Page number (1-based)
+      description: page number (1-based)
       schema:
         type: integer
         minimum: 1
@@ -465,7 +463,7 @@ components:
     PageSizeParam:
       name: page_size
       in: query
-      description: Number of items per page
+      description: number of items per page
       schema:
         type: integer
         minimum: 1
