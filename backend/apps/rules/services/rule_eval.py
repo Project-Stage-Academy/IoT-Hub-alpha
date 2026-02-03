@@ -43,7 +43,12 @@ def _eval_condition(
         try:
             trigger = COMPARATORS[operator](telemetry.value, threshold)
         except KeyError:
-            raise ValueError(f"Unknown operator: {operator}")
+            logger.warning(
+                "Unknown operator",
+                extra={
+                    "event": {"error": f"Unknown operator detected: {COMPARATORS[operator]}"}
+                },
+            )
         if trigger:
             trigger_values.append(telemetry.value)
             if not start:
