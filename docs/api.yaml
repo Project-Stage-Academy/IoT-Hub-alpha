@@ -208,7 +208,7 @@ paths:
     patch:
       description: update a rule to enable/disable it
       summary: Update activation of rule
-      operationID: RulePatch
+      operationId: RulePatch
       tags: [rules]
       parameters:
         - name: id
@@ -245,7 +245,7 @@ paths:
     delete:
       description: delete a rule by id
       summary: Delete a specific rule based by id
-      operationId: RuleGet
+      operationId: RuleDelete
       tags: [rules]
       parameters:
         - name: id
