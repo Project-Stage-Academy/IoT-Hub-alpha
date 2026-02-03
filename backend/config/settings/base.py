@@ -36,6 +36,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "request_id.middleware.RequestIdMiddleware",
     "django.middleware.security.SecurityMiddleware",
+    "config.middleware.RateLimitingMiddleware",
     "config.middleware.RequestContextMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -88,17 +89,14 @@ if os.getenv("DB_CONN_HEALTH_CHECKS", "False").lower() == "true":
 
 AUTH_PASSWORD_VALIDATORS = [
     {
-        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
+        "NAME": (
+            "django.contrib.auth.password_validation"
+            ".UserAttributeSimilarityValidator"
+        ),
     },
-    {
-        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
-    },
-    {
-        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
-    },
-    {
-        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
-    },
+    {"NAME": ("django.contrib.auth.password_validation" ".MinimumLengthValidator",)},
+    {"NAME": ("django.contrib.auth.password_validation" ".CommonPasswordValidator",)},
+    {"NAME": ("django.contrib.auth.password_validation" ".NumericPasswordValidator",)},
 ]
 
 
@@ -224,3 +222,23 @@ elif setup_celery_logging_context is not None:
         "logging.setup_celery_logging_context_not_callable",
         extra={"type": type(setup_celery_logging_context).__name__},
     )
+
+RATE_LIMIT_ENABLED = os.getenv("RATE_LIMIT_ENABLED", "False").lower() in (
+    "true",
+    "1",
+    "yes",
+)
+
+# Default limits for most API endpoints
+RATE_LIMIT_DEFAULT_COUNT = int(os.getenv("RATE_LIMIT_DEFAULT_COUNT", "60"))
+RATE_LIMIT_DEFAULT_PERIOD = int(
+    os.getenv("RATE_LIMIT_DEFAULT_PERIOD", "60")
+)  # in seconds
+
+# Stricter limits for admin login and other sensitive admin actions
+RATE_LIMIT_ADMIN_COUNT = int(os.getenv("RATE_LIMIT_ADMIN_COUNT", "20"))
+RATE_LIMIT_ADMIN_PERIOD = int(os.getenv("RATE_LIMIT_ADMIN_PERIOD", "60"))
+
+# Generous limits for high-frequency device telemetry ingestion
+RATE_LIMIT_DEVICE_COUNT = int(os.getenv("RATE_LIMIT_DEVICE_COUNT", "100"))
+RATE_LIMIT_DEVICE_PERIOD = int(os.getenv("RATE_LIMIT_DEVICE_PERIOD", "60"))
