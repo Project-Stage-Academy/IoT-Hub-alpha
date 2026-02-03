@@ -6,13 +6,17 @@ from django.views import View
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.core.exceptions import ValidationError
-from django.db import transaction
+from django.db import transaction, DatabaseError, IntegrityError
 from django.conf import settings
 
 from .serializer import TelemetrySerializer
 from .models import Telemetry
 from .tasks import ingest_telemetry_batch_async
-from .utils import extract_validation_errors
+from .services import (
+    TelemetryValidator,
+    TelemetryBatchProcessor,
+    TelemetryResponseFormatter,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -55,163 +59,97 @@ class TelemetryIngestView(View):
         else:
             return self._handle_single_sync(data, idempotency_key)
 
+    def _handle_db_errors(self, error: Exception, context: str) -> JsonResponse:
+        """Handle database errors with appropriate status codes and logging."""
+        if isinstance(error, IntegrityError):
+            logger.error(f"Database integrity error in {context}", exc_info=True)
+            return JsonResponse(
+                {"error": "Data integrity error", "details": str(error)}, status=409
+            )
+        elif isinstance(error, DatabaseError):
+            logger.error(f"Database error in {context}", exc_info=True)
+            return JsonResponse(
+                {"error": "Database error", "details": str(error)}, status=503
+            )
+        elif isinstance(error, (ValueError, TypeError)):
+            logger.error(f"Invalid data type in {context}", exc_info=True)
+            return JsonResponse(
+                {"error": "Invalid data format", "details": str(error)}, status=400
+            )
+        else:
+            logger.exception(f"Unexpected error in {context}")
+            return JsonResponse(
+                {"error": "Internal server error", "details": str(error)}, status=500
+            )
+
     def _handle_single_sync(self, data: dict, idempotency_key: str | None):
+        validated, error = TelemetryValidator.validate_single(data)
+        if error:
+            return JsonResponse(error, status=400)
+
         try:
-            serializer = TelemetrySerializer(data=data)
-            validated = serializer.validate_for_bulk()
-
-            with transaction.atomic():
-                telemetry = Telemetry.objects.create(**validated)
-
-            response_data = {
-                "status": "created",
-                "id": telemetry.id,
-                "device_id": str(telemetry.device.id),
-                "timestamp": telemetry.timestamp.isoformat(),
-            }
-
-            if idempotency_key:
-                response_data["idempotency_key"] = idempotency_key
-
-            return JsonResponse(response_data, status=201)
-
-        except ValidationError as e:
-            return JsonResponse(
-                {"error": "Validation failed", "details": extract_validation_errors(e)},
-                status=400,
+            telemetry = TelemetryBatchProcessor.process_single(validated)
+            response = TelemetryResponseFormatter.format_single_created(
+                telemetry, idempotency_key
             )
-        except Exception as e:
-            logger.exception("Unexpected error in single sync ingestion")
-            return JsonResponse(
-                {"error": "Internal server error", "details": str(e)}, status=500
-            )
+            return JsonResponse(response, status=201)
+        except (IntegrityError, DatabaseError, ValueError, TypeError) as e:
+            return self._handle_db_errors(e, "single sync ingestion")
 
     def _handle_batch_sync(self, data: list, idempotency_key: str | None):
-        validated_items = []
-        errors = []
-
-        for idx, item in enumerate(data):
-            try:
-                serializer = TelemetrySerializer(data=item)
-                validated = serializer.validate_for_bulk()
-                validated_items.append(validated)
-            except ValidationError as e:
-                errors.append(
-                    {
-                        "index": idx,
-                        "error": "Validation failed",
-                        "details": extract_validation_errors(e),
-                    }
-                )
-            except Exception as e:
-                errors.append({"index": idx, "error": str(e)})
+        validated_items, errors = TelemetryValidator.validate_batch(data)
 
         if errors:
-            return JsonResponse(
-                {
-                    "error": "Batch ingestion failed",
-                    "details": {
-                        "summary": {
-                            "total": len(data),
-                            "successful": 0,
-                            "failed": len(errors),
-                        },
-                        "errors": errors,
-                    },
-                },
-                status=400,
+            error_response = TelemetryResponseFormatter.format_validation_error(
+                errors, len(data), is_batch=True
             )
+            return JsonResponse(error_response, status=400)
 
         try:
-            with transaction.atomic():
-                telemetry_objects = [
-                    Telemetry(**validated) for validated in validated_items
-                ]
-                created = Telemetry.objects.bulk_create(telemetry_objects)
-
-            created_ids = [obj.id for obj in created]
-
-            response_data = {
-                "status": "created",
-                "count": len(created_ids),
-                "ids": created_ids,
-                "summary": {
-                    "total": len(data),
-                    "successful": len(created_ids),
-                    "failed": 0,
-                },
-            }
-
-            if idempotency_key:
-                response_data["idempotency_key"] = idempotency_key
-
-            return JsonResponse(response_data, status=201)
-
-        except Exception as e:
-            logger.exception("Unexpected error in batch sync ingestion")
-            return JsonResponse(
-                {"error": "Internal server error", "details": str(e)}, status=500
+            created = TelemetryBatchProcessor.process_batch(validated_items)
+            response = TelemetryResponseFormatter.format_batch_created(
+                created, len(data), idempotency_key
             )
+            return JsonResponse(response, status=201)
+        except (IntegrityError, DatabaseError, ValueError, TypeError) as e:
+            return self._handle_db_errors(e, "batch sync ingestion")
 
     def _handle_async(self, data, is_batch: bool, idempotency_key: str | None):
         request_id = str(uuid.uuid4())
         count = len(data) if is_batch else 1
-
-        validated_items = []
-        errors = []
-
         items_to_validate = data if is_batch else [data]
 
-        for idx, item in enumerate(items_to_validate):
-            try:
-                serializer = TelemetrySerializer(data=item)
-                serializer.validate()
-                validated_items.append(item)
-            except ValidationError as e:
-                errors.append(
-                    {
-                        "index": idx,
-                        "error": "Validation failed",
-                        "details": extract_validation_errors(e),
-                    }
-                )
-            except Exception as e:
-                errors.append({"index": idx, "error": str(e)})
+        validated_items, errors = TelemetryValidator.validate_batch(items_to_validate)
 
         if errors:
-            return JsonResponse(
-                {
-                    "error": "Validation failed",
-                    "details": {
-                        "summary": {
-                            "total": count,
-                            "successful": 0,
-                            "failed": len(errors),
-                        },
-                        "errors": errors,
-                    },
-                },
-                status=400,
+            error_response = TelemetryResponseFormatter.format_validation_error(
+                errors, count, is_batch=False
             )
+            return JsonResponse(error_response, status=400)
 
         try:
-            task = ingest_telemetry_batch_async.delay(validated_items, request_id)
+            task = ingest_telemetry_batch_async.delay(items_to_validate, request_id)
             task_id = task.id
-        except Exception as e:
-            logger.exception("Failed to queue telemetry ingestion task")
+        except (ConnectionError, TimeoutError) as e:
+            logger.error(
+                "Failed to connect to task queue",
+                extra={"request_id": request_id, "error": str(e)},
+            )
             return JsonResponse(
-                {"error": "Failed to queue ingestion task", "details": str(e)},
+                {"error": "Task queue unavailable", "details": str(e)},
+                status=503,
+            )
+        except (ValueError, TypeError) as e:
+            logger.error(
+                "Invalid task parameters",
+                extra={"request_id": request_id, "error": str(e)},
+            )
+            return JsonResponse(
+                {"error": "Failed to queue task", "details": str(e)},
                 status=500,
             )
 
-        response_data = {
-            "status": "accepted",
-            "request_id": request_id,
-            "count": count,
-            "task_id": task_id,
-        }
-
-        if idempotency_key:
-            response_data["idempotency_key"] = idempotency_key
-
-        return JsonResponse(response_data, status=202)
+        response = TelemetryResponseFormatter.format_async_accepted(
+            request_id, task_id, count, idempotency_key
+        )
+        return JsonResponse(response, status=202)

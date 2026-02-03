@@ -116,7 +116,7 @@ class TestTelemetryIngestionSyncMode:
         data = response.json()
         assert "schema_version" in data["details"]
 
-    def test_single_ingestion_nonexistent_device(self, client):
+    def test_single_ingestion_nonexistent_device(self, sync_mode, client):
         payload = {
             "device_id": "00000000-0000-0000-0000-000000000000",
             "schema_version": "0.0.1",
