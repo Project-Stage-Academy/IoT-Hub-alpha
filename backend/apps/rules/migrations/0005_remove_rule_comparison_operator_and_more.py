@@ -24,7 +24,7 @@ class Migration(migrations.Migration):
             name="condition",
             field=models.JSONField(
                 default=None,
-                help_text='Schema: [{"type": "notification", "template_id": 5}, {"type": "stop_machine", "machine_id": "M-123"}]',
+                help_text='Schema: {"type": "leaf", "operator": "gt", "threshold": 15.2}',
                 validators=[apps.rules.models.validate_condition],
             ),
             preserve_default=False,
