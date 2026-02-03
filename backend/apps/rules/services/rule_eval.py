@@ -46,7 +46,9 @@ def _eval_condition(
             logger.warning(
                 "Unknown operator",
                 extra={
-                    "event": {"error": f"Unknown operator detected: {COMPARATORS[operator]}"}
+                    "event": {
+                        "error": f"Unknown operator detected: {COMPARATORS[operator]}"
+                    }
                 },
             )
             continue
