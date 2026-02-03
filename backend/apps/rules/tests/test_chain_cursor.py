@@ -22,13 +22,18 @@ def rule(device, db):
         action_config=[{"type": "notification", "template_id": 1}],
     )
 
+
 @pytest.mark.django_db
 def test_persisted_cursor_should_move_forward(device, rule):
     """
     Test telemetry cursor lock
     """
-    t1 = Telemetry.objects.create(device=device, timestamp=timezone.now(), payload={"value": 50.0})
-    t2 = Telemetry.objects.create(device=device, timestamp=timezone.now(), payload={"value": 120.0})
+    t1 = Telemetry.objects.create(
+        device=device, timestamp=timezone.now(), payload={"value": 50.0}
+    )
+    t2 = Telemetry.objects.create(
+        device=device, timestamp=timezone.now(), payload={"value": 120.0}
+    )
 
     with patch("apps.rules.tasks.trigger_engine") as mock_trigger:
         process_telemetry(cursor_start=0, batch_size=100, record_cursor=True)
@@ -36,13 +41,18 @@ def test_persisted_cursor_should_move_forward(device, rule):
         cur = TelemetryCursor.objects.latest("id")
         assert cur.last_id == max(t1.id, t2.id)
 
+
 @pytest.mark.django_db
 def test_first_run_processes_batch_and_triggers(device, rule):
     """
     Test aggregation trigger correctness
     """
-    Telemetry.objects.create(device=device, timestamp=timezone.now(), payload={"value": 50.0})
-    Telemetry.objects.create(device=device, timestamp=timezone.now(), payload={"value": 120.0})
+    Telemetry.objects.create(
+        device=device, timestamp=timezone.now(), payload={"value": 50.0}
+    )
+    Telemetry.objects.create(
+        device=device, timestamp=timezone.now(), payload={"value": 120.0}
+    )
 
     with patch("apps.rules.tasks.trigger_engine") as mock_trigger:
         process_telemetry(cursor_start=0, batch_size=100, record_cursor=False)
@@ -60,8 +70,12 @@ def test_second_run_does_not_reprocess_old_telemetry_when_cursor_advances(device
     """
     Test second run dosent write cursor with recor_cursor = False
     """
-    t0 = Telemetry.objects.create(device=device, timestamp=timezone.now(), payload={"value": 120.0})
-    t1 = Telemetry.objects.create(device=device, timestamp=timezone.now(), payload={"value": 130.0})
+    t0 = Telemetry.objects.create(
+        device=device, timestamp=timezone.now(), payload={"value": 120.0}
+    )
+    t1 = Telemetry.objects.create(
+        device=device, timestamp=timezone.now(), payload={"value": 130.0}
+    )
 
     with patch("apps.rules.tasks.trigger_engine") as mock_trigger:
 
@@ -69,8 +83,12 @@ def test_second_run_does_not_reprocess_old_telemetry_when_cursor_advances(device
         assert mock_trigger.call_count == 1
         mock_trigger.reset_mock()
 
-        t2 = Telemetry.objects.create(device=device, timestamp=timezone.now(), payload={"value": 90.0})
-        t3 = Telemetry.objects.create(device=device, timestamp=timezone.now(), payload={"value": 150.0})
+        t2 = Telemetry.objects.create(
+            device=device, timestamp=timezone.now(), payload={"value": 90.0}
+        )
+        t3 = Telemetry.objects.create(
+            device=device, timestamp=timezone.now(), payload={"value": 150.0}
+        )
 
         process_telemetry(cursor_start=t1.id, batch_size=100, record_cursor=False)
 

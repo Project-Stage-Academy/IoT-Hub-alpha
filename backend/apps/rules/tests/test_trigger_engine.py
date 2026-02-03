@@ -11,8 +11,12 @@ def test_trigger_engine_no_triggers_does_nothing():
     """
     Tests trigger engine does nothing with no triggers provided
     """
-    with patch("apps.rules.services.trigger_engine.Rule.objects.in_bulk", return_value={}) as mock_in_bulk, \
-         patch("apps.rules.services.trigger_engine.action_dispatch") as mock_dispatch:
+    with (
+        patch(
+            "apps.rules.services.trigger_engine.Rule.objects.in_bulk", return_value={}
+        ) as mock_in_bulk,
+        patch("apps.rules.services.trigger_engine.action_dispatch") as mock_dispatch,
+    ):
         trigger_engine({})
 
     mock_in_bulk.assert_not_called()
@@ -32,8 +36,13 @@ def test_trigger_engine_dispatches_each_action_config_for_each_triggered_rule():
         {"type": "stop_machine"},
     ]
 
-    with patch("apps.rules.services.trigger_engine.Rule.objects.in_bulk", return_value={rule_id: fake_rule}) as mock_in_bulk, \
-         patch("apps.rules.services.trigger_engine.action_dispatch") as mock_dispatch:
+    with (
+        patch(
+            "apps.rules.services.trigger_engine.Rule.objects.in_bulk",
+            return_value={rule_id: fake_rule},
+        ) as mock_in_bulk,
+        patch("apps.rules.services.trigger_engine.action_dispatch") as mock_dispatch,
+    ):
         trigger_engine({rule_id: aggregate})
 
     mock_in_bulk.assert_called_once_with({rule_id})
@@ -56,12 +65,13 @@ def test_trigger_engine_multiple_rules_calls_dispatch_for_each_rule():
     rule2 = Mock()
     rule2.action_config = [{"type": "notification", "template_id": 1}]
 
-    with patch(
-        "apps.rules.services.trigger_engine.Rule.objects.in_bulk",
-        return_value={rule_id_1: rule1, rule_id_2: rule2},
-    ) as mock_in_bulk, patch(
-        "apps.rules.services.trigger_engine.action_dispatch"
-    ) as mock_dispatch:
+    with (
+        patch(
+            "apps.rules.services.trigger_engine.Rule.objects.in_bulk",
+            return_value={rule_id_1: rule1, rule_id_2: rule2},
+        ) as mock_in_bulk,
+        patch("apps.rules.services.trigger_engine.action_dispatch") as mock_dispatch,
+    ):
         trigger_engine({rule_id_1: agg1, rule_id_2: agg2})
 
     mock_in_bulk.assert_called_once()
@@ -79,14 +89,14 @@ def test_trigger_engine_logs_warning_and_returns_on_malformed_action_config():
     fake_rule.id = rule_id
     fake_rule.action_config = [{"type": "nope"}]
 
-    with patch(
-        "apps.rules.services.trigger_engine.Rule.objects.in_bulk",
-        return_value={rule_id: fake_rule},
-    ), patch(
-        "apps.rules.services.trigger_engine.action_dispatch"
-    ) as mock_dispatch, patch.object(
-        logging, "warning"
-    ) as mock_warning:
+    with (
+        patch(
+            "apps.rules.services.trigger_engine.Rule.objects.in_bulk",
+            return_value={rule_id: fake_rule},
+        ),
+        patch("apps.rules.services.trigger_engine.action_dispatch") as mock_dispatch,
+        patch.object(logging, "warning") as mock_warning,
+    ):
         ret = trigger_engine({rule_id: agg})
 
     assert ret is None
@@ -112,23 +122,24 @@ def test_trigger_engine_missing_rule_id_in_bulk_logs_warning():
     rule_id = uuid4()
     aggregate = EvalResults(trigger=True, values=[123.0])
 
-    with patch(
-        "apps.rules.services.trigger_engine.Rule.objects.in_bulk",
-        return_value={},
-    ), patch(
-        "apps.rules.services.trigger_engine.action_dispatch"
-    ) as mock_dispatch, patch.object(
-        logging, "warning"
-    ) as mock_warning:
+    with (
+        patch(
+            "apps.rules.services.trigger_engine.Rule.objects.in_bulk",
+            return_value={},
+        ),
+        patch("apps.rules.services.trigger_engine.action_dispatch") as mock_dispatch,
+        patch.object(logging, "warning") as mock_warning,
+    ):
         trigger_engine({rule_id: aggregate})
-        
+
         mock_warning.assert_called_once()
         args, kwargs = mock_warning.call_args
         assert args[0] == "Rules not found for devices"
         assert "extra" in kwargs
         assert "event" in kwargs["extra"]
         assert "error" in kwargs["extra"]["event"]
-        
+
+
 def test_trigger_engine_empty_aggregate_logs_info():
     """
     Missing rule ID in DB but aggregate present should return and log warning
@@ -136,16 +147,16 @@ def test_trigger_engine_empty_aggregate_logs_info():
     rule_id = uuid4()
     aggregate = EvalResults(trigger=True, values=[123.0])
 
-    with patch(
-        "apps.rules.services.trigger_engine.Rule.objects.in_bulk",
-        return_value={},
-    ), patch(
-        "apps.rules.services.trigger_engine.action_dispatch"
-    ) as mock_dispatch, patch.object(
-        logging, "info"
-    ) as mock_info:
+    with (
+        patch(
+            "apps.rules.services.trigger_engine.Rule.objects.in_bulk",
+            return_value={},
+        ),
+        patch("apps.rules.services.trigger_engine.action_dispatch") as mock_dispatch,
+        patch.object(logging, "info") as mock_info,
+    ):
         trigger_engine({})
-        
+
         mock_info.assert_called_once()
         args, kwargs = mock_info.call_args
         assert args[0] == "No offending telemetry"

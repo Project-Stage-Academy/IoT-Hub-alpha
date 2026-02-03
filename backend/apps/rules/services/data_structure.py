@@ -5,14 +5,13 @@ from pydantic import BaseModel, ConfigDict, model_validator, Field
 from typing import Literal, Any
 
 
-
 @dataclass()
 class EvalResults:
     trigger: bool = False
     values: list[float] = field(default_factory=list)
     start: datetime | None = None
     end: datetime | None = None
-    
+
     def to_dict(self) -> dict[str, Any]:
         return {
             "values": self.values,

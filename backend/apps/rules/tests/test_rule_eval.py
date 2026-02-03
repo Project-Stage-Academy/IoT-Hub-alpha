@@ -21,7 +21,9 @@ def test_evalresults_to_dict_serializes_iso_datetimes():
     Test correct serialization for DB write
     """
     t0 = datetime(2026, 2, 2, 12, 0, tzinfo=timezone.utc)
-    res = EvalResults(trigger=True, values=[1.0], start=t0, end=t0 + timedelta(seconds=5))
+    res = EvalResults(
+        trigger=True, values=[1.0], start=t0, end=t0 + timedelta(seconds=5)
+    )
 
     d = res.to_dict()
 
@@ -108,7 +110,8 @@ def test_and_condition_fails_if_any_child_fails_():
     res = eval_rule(cond, points, EvalResults(), device_id)
     assert res.trigger is False
     assert res.values == []
-    
+
+
 def test_and_condition_fails_if_right_child_fails_():
     """
     AND fails when left child fails
@@ -130,6 +133,7 @@ def test_and_condition_fails_if_right_child_fails_():
     res = eval_rule(cond, points, EvalResults(), device_id)
     assert res.trigger is False
     assert res.values == []
+
 
 def test_and_condition_fails_if_left_child_fails_():
     """
@@ -153,6 +157,7 @@ def test_and_condition_fails_if_left_child_fails_():
     assert res.trigger is False
     assert res.values == []
 
+
 def test_or_condition_triggers_if_right_child_triggers():
     """
     OR triggers if right child triggers
@@ -174,7 +179,8 @@ def test_or_condition_triggers_if_right_child_triggers():
     res = eval_rule(cond, points, EvalResults(), device_id)
     assert res.trigger is True
     assert res.values == [15.0]
-    
+
+
 def test_or_condition_triggers_if_left_child_triggers():
     """
     OR triggers if left child triggers
@@ -196,6 +202,7 @@ def test_or_condition_triggers_if_left_child_triggers():
     res = eval_rule(cond, points, EvalResults(), device_id)
     assert res.trigger is True
     assert res.values == [15.0]
+
 
 def test_or_condition_triggers_if_both_child_triggers():
     """
@@ -219,12 +226,13 @@ def test_or_condition_triggers_if_both_child_triggers():
     assert res.trigger is True
     assert res.values == [15.0]
 
+
 def test_window_eval_in_memory_triggers_when_n_points_in_window(monkeypatch):
     """
     Triggered points when window exceeds Celery's cooldown
     This forces celery to query telemetry instead of relying on batch data.
     """
-    
+
     monkeypatch.setattr(
         "apps.rules.services.rule_eval.CELERY_PROCESS_TIMER",
         9999,
@@ -256,12 +264,13 @@ def test_window_eval_in_memory_triggers_when_n_points_in_window(monkeypatch):
     assert res.start == t0 + timedelta(seconds=1)
     assert res.end == t0 + timedelta(seconds=9)
 
+
 def test_window_eval_in_memory_fails_when_n_points_not_in_window(monkeypatch):
     """
     Does not trigger points when window exceeds Celery's cooldown and points are too far apart
     This forces celery to query telemetry instead of relying on batch data.
     """
-    
+
     monkeypatch.setattr(
         "apps.rules.services.rule_eval.CELERY_PROCESS_TIMER",
         9999,
@@ -288,6 +297,7 @@ def test_window_eval_in_memory_fails_when_n_points_not_in_window(monkeypatch):
 
     res = eval_rule(cond, points, EvalResults(), device_id)
     assert res.trigger is False
+
 
 def test_window_eval_in_memory_does_not_trigger_if_count_not_met(monkeypatch):
     """
@@ -316,8 +326,11 @@ def test_window_eval_in_memory_does_not_trigger_if_count_not_met(monkeypatch):
     res = eval_rule(cond, points, EvalResults(), device_id)
     assert res.trigger is False
     assert res.values == []
-    
-def test_window_eval_in_memory_dosent_trigger_within_latest_celery_cooldown(monkeypatch):
+
+
+def test_window_eval_in_memory_dosent_trigger_within_latest_celery_cooldown(
+    monkeypatch,
+):
     """
     Does not trigger points when window is within Celery's cooldown and points are insufficient
     This uses telemetry from current batch
@@ -344,6 +357,7 @@ def test_window_eval_in_memory_dosent_trigger_within_latest_celery_cooldown(monk
     assert res.trigger is False
     assert res.values == []
 
+
 def test_window_eval_in_memory_triggers_within_latest_celery_cooldown(monkeypatch):
     """
     Does not trigger points when window is within Celery's cooldown and points are too far apart
@@ -366,6 +380,120 @@ def test_window_eval_in_memory_triggers_within_latest_celery_cooldown(monkeypatc
             "occurrences": 3,
             "operator": "gt",
             "threshold": 0.0,
+        }
+    )
+
+    res = eval_rule(cond, points, EvalResults(), device_id)
+    assert res.trigger is False
+
+
+def test_nested_or_logic_pass():
+    """
+    OR triggers if both children trigger
+    """
+    device_id = uuid4()
+    t0 = datetime(2026, 2, 2, 12, 0, tzinfo=timezone.utc)
+    points = [tp(t0, 18.0)]
+
+    cond = Condition.model_validate(
+        {
+            "type": "or",
+            "conditions": [
+                {"type": "leaf", "operator": "lt", "threshold": 10.0},
+                {
+                    "type": "or",
+                    "conditions": [
+                        {"type": "leaf", "operator": "lt", "threshold": 15.0},
+                        {"type": "leaf", "operator": "lt", "threshold": 20.0},
+                    ],
+                },
+            ],
+        }
+    )
+
+    res = eval_rule(cond, points, EvalResults(), device_id)
+    assert res.trigger is True
+    assert res.values == [18.0]
+
+
+def test_nested_or_logic_fail():
+    """
+    OR triggers if both children trigger
+    """
+    device_id = uuid4()
+    t0 = datetime(2026, 2, 2, 12, 0, tzinfo=timezone.utc)
+    points = [tp(t0, 8.0)]
+
+    cond = Condition.model_validate(
+        {
+            "type": "or",
+            "conditions": [
+                {"type": "leaf", "operator": "gt", "threshold": 10.0},
+                {
+                    "type": "or",
+                    "conditions": [
+                        {"type": "leaf", "operator": "gt", "threshold": 15.0},
+                        {"type": "leaf", "operator": "gt", "threshold": 20.0},
+                    ],
+                },
+            ],
+        }
+    )
+
+    res = eval_rule(cond, points, EvalResults(), device_id)
+    assert res.trigger is False
+
+
+def test_nested_and_logic_pass():
+    """
+    OR triggers if both children trigger
+    """
+    device_id = uuid4()
+    t0 = datetime(2026, 2, 2, 12, 0, tzinfo=timezone.utc)
+    points = [tp(t0, 18.0)]
+
+    cond = Condition.model_validate(
+        {
+            "type": "and",
+            "conditions": [
+                {"type": "leaf", "operator": "gt", "threshold": 10.0},
+                {
+                    "type": "and",
+                    "conditions": [
+                        {"type": "leaf", "operator": "gt", "threshold": 15.0},
+                        {"type": "leaf", "operator": "lt", "threshold": 20.0},
+                    ],
+                },
+            ],
+        }
+    )
+
+    res = eval_rule(cond, points, EvalResults(), device_id)
+    assert res.trigger is True
+    assert res.values == [18.0]
+
+
+def test_nested_and_logic_fail():
+    """
+    OR triggers if both children trigger
+    """
+    device_id = uuid4()
+    t0 = datetime(2026, 2, 2, 12, 0, tzinfo=timezone.utc)
+    points = [tp(t0, 8.0)]
+
+    cond = Condition.model_validate(
+        {
+            "type": "and",
+            "conditions": [
+                {"type": "leaf", "operator": "gt", "threshold": 10.0},
+                {
+                    "type": "and",
+                    "conditions": [
+                        {"type": "leaf", "operator": "lt", "threshold": 15.0},
+                        {"type": "leaf", "operator": "lt", "threshold": 20.0},
+                    ],
+                },
+            ],
         }
     )
 

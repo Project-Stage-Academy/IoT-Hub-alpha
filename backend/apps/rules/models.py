@@ -39,6 +39,7 @@ def validate_action_config(value):
 def validate_condition(condition):
     Condition.model_validate(condition)
 
+
 class Rule(models.Model):
     class RuleOperator(models.TextChoices):
         GT = "gt", "Greater Than (>)"
@@ -64,7 +65,8 @@ class Rule(models.Model):
         help_text=(
             'Schema: [{"type": "notification", "template_id": 5}, '
             '{"type": "stop_machine", "machine_id": "M-123"}]'
-        ),)
+        ),
+    )
     last_triggered_at = models.DateTimeField(null=True, blank=True)
     is_enabled = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)

@@ -275,7 +275,9 @@ class Command(BaseCommand):
                 device=device_map[rule.device],
                 defaults={
                     "description": rule.description,
-                    "condition": rule.condition.model_dump(mode="json", exclude_none=True),
+                    "condition": rule.condition.model_dump(
+                        mode="json", exclude_none=True
+                    ),
                     "action_config": action_config_payload,
                     "is_enabled": rule.is_enabled,
                 },

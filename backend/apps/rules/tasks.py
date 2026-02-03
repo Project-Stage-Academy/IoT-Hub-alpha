@@ -15,6 +15,7 @@ BATCH_SIZE = os.getenv("CELERY_RULE_BATCH_SIZE", 1000)
 
 logger = logging.getLogger("apps.rules")
 
+
 @shared_task(bind=True, name="apps.rules.tasks.process_telemetry")
 def process_telemetry(
     self,
@@ -33,14 +34,15 @@ def process_telemetry(
     :param record_cursor: Description
     :type record_cursor: bool
     """
-    
-    # logger = logging.getLogger(__name__)
+
     # root = logging.getLogger()
 
-    # logger.info("logger_handlers", extra={"event": {"handlers": [type(h).__name__ for h in logger.handlers]}})
-    # root.info("root_handlers", extra={"event": {"handlers": [type(h).__name__ for h in root.handlers]}})
-    
-    
+    # logger.info("logger_handlers", extra=
+    # {"event":
+    # {"handlers": [type(h).__name__ for h in logger.handlers]}})
+    # root.info("root_handlers", extra=
+    # {"event": {"handlers": [type(h).__name__ for h in root.handlers]}})
+
     cursor = (
         (TelemetryCursor.objects.aggregate(last_id=Max("last_id")).get("last_id") or 0)
         if cursor_start is None
@@ -56,6 +58,9 @@ def process_telemetry(
     )
 
     if not telemetry_qs.exists():
+        logger.info(
+            "logger_handlers", extra={"event": {"msg": "No telemetry detected"}}
+        )
         return
 
     rules = Rule.objects.filter(is_enabled=True).only(
@@ -64,40 +69,42 @@ def process_telemetry(
 
     rules_by_device: dict[UUID, list[Rule]] = defaultdict(list)
     telemetry_by_device: dict[UUID, list[TelemetryPoint]] = defaultdict(list)
-    
+
     for rule in rules:
         rules_by_device[rule.device_id].append(rule)  # type: ignore[attr-defined]
 
     for telemetry in telemetry_qs.iterator():
         telemetry_by_device[telemetry.device_id].append(  # type: ignore[attr-defined]
-            TelemetryPoint(
-            ts = telemetry.timestamp,
-            value = telemetry.payload.get("value")
-        ))
+            TelemetryPoint(ts=telemetry.timestamp, value=telemetry.payload.get("value"))
+        )
         last_id += 1
 
     rule_aggregation: dict[UUID, EvalResults] = defaultdict()
-    
+
     for device, rules in rules_by_device.items():
         for rule in rules:
             condition = Condition.model_validate(rule.condition)
-            result = eval_rule(condition,
-                               telemetry_by_device[rule.device_id],  # type: ignore[attr-defined]
-                               EvalResults(),
-                               rule.device_id)  # type: ignore[attr-defined]
+            result = eval_rule(
+                condition,
+                telemetry_by_device[rule.device_id],  # type: ignore[attr-defined]
+                EvalResults(),
+                rule.device_id,
+            )  # type: ignore[attr-defined]
             if result.trigger:
                 rule_aggregation[rule.id] = result
                 logger.info(
-                    "rule_fired", extra={
-                        "event":{
+                    "rule_fired",
+                    extra={
+                        "event": {
                             "rule": rule_aggregation[rule.id],
-                        "rule_type": condition.type,
-                        "device_id": rule.device_id,  # type: ignore[attr-defined]
-                        "telemetry_id": cursor,
-                        "evaluated_at": datetime.now().isoformat(),
-                        "reason": f"{', '.join(str(result.values))} {condition.type} {condition.threshold}"
+                            "rule_type": condition.type,
+                            "device_id": rule.device_id,  # type: ignore[attr-defined]
+                            "telemetry_id": cursor,
+                            "evaluated_at": datetime.now().isoformat(),
+                            "reason": f"{', '.join(str(result.values))}"
+                            f" {condition.type} {condition.threshold}",
                         }
-                    }
+                    },
                 )
 
     trigger_engine(rule_aggregation)

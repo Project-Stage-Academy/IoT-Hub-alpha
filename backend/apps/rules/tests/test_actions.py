@@ -10,7 +10,6 @@ from apps.rules.services.actions import (
 from apps.rules.services.data_structure import ActionConfig, EvalResults
 
 
-
 def test_action_dispatch_calls_notification_dispatch():
     """
     Test notification being called by action_dispatch
@@ -43,6 +42,7 @@ def test_action_dispatch_unknown_type_is_noop():
     """
     Tests unknown type dosent go through
     """
+
     class Dummy:
         type = "unknown"
 
@@ -80,8 +80,12 @@ def test_dispatch_msg_formats_message_and_calls_event_handler():
         def get_priority_display(self):
             return "HIGH"
 
-    with patch("apps.rules.services.actions.get_template", return_value=DummyTemplate()) as mock_get_template, \
-         patch("apps.rules.services.actions.event_handler") as mock_event_handler:
+    with (
+        patch(
+            "apps.rules.services.actions.get_template", return_value=DummyTemplate()
+        ) as mock_get_template,
+        patch("apps.rules.services.actions.event_handler") as mock_event_handler,
+    ):
         dispatch_msg(cfg, rule, agg)
 
     mock_get_template.assert_called_once_with(tid=1)
@@ -122,9 +126,15 @@ def test_dispatch_msg_returns_on_cooldown():
         def get_priority_display(self):
             return "LOW"
 
-    with patch("apps.rules.services.actions.get_template", return_value=DummyTemplate()), \
-         patch("apps.rules.services.actions.event_handler", side_effect=EventCooldownActive), \
-         patch("apps.rules.services.actions.NormalizedRecipient.model_validate") as mock_validate:
+    with (
+        patch("apps.rules.services.actions.get_template", return_value=DummyTemplate()),
+        patch(
+            "apps.rules.services.actions.event_handler", side_effect=EventCooldownActive
+        ),
+        patch(
+            "apps.rules.services.actions.NormalizedRecipient.model_validate"
+        ) as mock_validate,
+    ):
         dispatch_msg(cfg, rule, agg)
 
     mock_validate.assert_not_called()
@@ -161,17 +171,22 @@ def test_dispatch_msg_validates_each_recipient():
         def get_priority_display(self):
             return "LOW"
 
-    with patch("apps.rules.services.actions.get_template", return_value=DummyTemplate()), \
-         patch("apps.rules.services.actions.event_handler", return_value=object()), \
-         patch("apps.rules.services.actions.NormalizedRecipient.model_validate") as mock_validate:
+    with (
+        patch("apps.rules.services.actions.get_template", return_value=DummyTemplate()),
+        patch("apps.rules.services.actions.event_handler", return_value=object()),
+        patch(
+            "apps.rules.services.actions.NormalizedRecipient.model_validate"
+        ) as mock_validate,
+    ):
         dispatch_msg(cfg, rule, agg)
 
     assert mock_validate.call_count == 2
 
 
-
 @pytest.mark.django_db
-def test_event_handler_creates_event_when_no_recent_events(rule_model, notif_template_model):
+def test_event_handler_creates_event_when_no_recent_events(
+    rule_model, notif_template_model
+):
     """
     Tests event handler created an event when not on cooldown
     """
@@ -188,7 +203,9 @@ def test_event_handler_creates_event_when_no_recent_events(rule_model, notif_tem
 
 
 @pytest.mark.django_db
-def test_event_handler_raises_on_cooldown(rule_model, notif_template_model, event_model):
+def test_event_handler_raises_on_cooldown(
+    rule_model, notif_template_model, event_model
+):
     """
     Event handler raises when on cooldown and silently continues
     """
