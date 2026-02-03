@@ -76,12 +76,11 @@ def dispatch_msg(
 
     for recipient in notif_template.recipients:
         recipient_clean = NormalizedRecipient.model_validate(recipient)  # noqa: F841
-        # send_notification_with_retries.delay(
-        #     notif = recipient_clean,
-        #     msg = message,
-        #     template_id = notif_template.id,
-        #     event_id = event.id
-        #     )
+        # Add notification task here
+        logger.info(
+            "rules.notification.enqueue",
+            extra={"event_id": str(event), "rule_id": str(rule)},
+        )
 
 
 def stop_machine(action_config, rule, aggregate):
@@ -126,7 +125,7 @@ def event_handler(
     )
 
     if event_exists:
-        logging.info(
+        logger.info(
             "Event exsits and is on cooldown",
             extra={
                 "event": {

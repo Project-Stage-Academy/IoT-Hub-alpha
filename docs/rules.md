@@ -51,7 +51,11 @@ Example - Threshold Rule:
     {
       "type": "notification",
       "template_id": "2",
-      "recipients": ["management@factory.com"]
+      "recipients": [
+        { "type": "email", "address": "a@b.com" },
+        { "type": "sms", "phone": "+3800000000" },
+        { "type": "webhook", "url": "http://why.com" }
+      ]
     }
   ],
   "is_enabled": true
@@ -68,7 +72,7 @@ Evaluates a single telemetry value.
 {
   "type": "leaf",
   "operator": "gt",
-  "value": 80
+  "threshold": 80
 }
 ```
 

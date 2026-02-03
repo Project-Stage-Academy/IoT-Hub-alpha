@@ -95,7 +95,7 @@ def test_trigger_engine_logs_warning_and_returns_on_malformed_action_config():
             return_value={rule_id: fake_rule},
         ),
         patch("apps.rules.services.trigger_engine.action_dispatch") as mock_dispatch,
-        patch.object(logging, "warning") as mock_warning,
+        patch("apps.rules.services.trigger_engine.logger") as mock_logger,
     ):
         ret = trigger_engine({rule_id: agg})
 
@@ -103,8 +103,8 @@ def test_trigger_engine_logs_warning_and_returns_on_malformed_action_config():
 
     mock_dispatch.assert_not_called()
 
-    mock_warning.assert_called_once()
-    args, kwargs = mock_warning.call_args
+    mock_logger.warning.assert_called_once()
+    args, kwargs = mock_logger.warning.call_args
 
     assert args[0] == "Malformed config!"
     assert "extra" in kwargs
@@ -128,12 +128,13 @@ def test_trigger_engine_missing_rule_id_in_bulk_logs_warning():
             return_value={},
         ),
         patch("apps.rules.services.trigger_engine.action_dispatch") as mock_dispatch,
-        patch.object(logging, "warning") as mock_warning,
+        patch("apps.rules.services.trigger_engine.logger") as mock_logger,
     ):
         trigger_engine({rule_id: aggregate})
 
-        mock_warning.assert_called_once()
-        args, kwargs = mock_warning.call_args
+        mock_logger.warning.assert_called_once()
+        args, kwargs = mock_logger.warning.call_args
+
         assert args[0] == "Rules not found for devices"
         assert "extra" in kwargs
         assert "event" in kwargs["extra"]
@@ -153,12 +154,12 @@ def test_trigger_engine_empty_aggregate_logs_info():
             return_value={},
         ),
         patch("apps.rules.services.trigger_engine.action_dispatch") as mock_dispatch,
-        patch.object(logging, "info") as mock_info,
+        patch("apps.rules.services.trigger_engine.logger") as mock_logger,
     ):
         trigger_engine({})
 
-        mock_info.assert_called_once()
-        args, kwargs = mock_info.call_args
+        mock_logger.info.assert_called_once()
+        args, kwargs = mock_logger.info.call_args
         assert args[0] == "No offending telemetry"
         assert "extra" in kwargs
         assert "event" in kwargs["extra"]

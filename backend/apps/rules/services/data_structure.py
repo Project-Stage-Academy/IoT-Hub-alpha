@@ -22,7 +22,6 @@ class EvalResults:
 
 class ActionConfig(BaseModel):
     type: Literal["notification", "stop_machine"]
-    recipients: list[str] | None = None
     template_id: int | None = None
 
 

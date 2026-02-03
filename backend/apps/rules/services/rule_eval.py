@@ -145,7 +145,7 @@ def eval_rule(
 
     if type == "and":
         if not condition.conditions:
-            logging.warning(
+            logger.warning(
                 "Malformed config!",
                 extra={
                     "event": {"error": "Malformed config detected - missing conditions"}
@@ -162,7 +162,7 @@ def eval_rule(
 
     if type == "or":
         if not condition.conditions:
-            logging.warning(
+            logger.warning(
                 "Malformed config!",
                 extra={
                     "event": {"error": "Malformed config detected - missing conditions"}
@@ -173,9 +173,10 @@ def eval_rule(
             for c in condition.conditions
         ]
         aggregate_trigger.trigger = any(r.trigger for r in child_results)
-        aggregate_trigger.values = child_results[
-            0 if child_results[0].trigger else 1
-        ].values
+        for r in child_results:
+            if r.trigger:
+                aggregate_trigger.values = r.values
+                break
         return aggregate_trigger
 
     return aggregate_trigger

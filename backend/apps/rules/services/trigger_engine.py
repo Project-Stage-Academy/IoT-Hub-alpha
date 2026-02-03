@@ -17,7 +17,7 @@ def trigger_engine(trigger_aggregation: dict[UUID, EvalResults]) -> None:
     :type trigger_aggregation: dict[UUID4, AggregateStructure]
     """
     if not trigger_aggregation:
-        logging.info(
+        logger.info(
             "No offending telemetry", extra={"event": {"message": "No rules broken"}}
         )
         return
@@ -25,12 +25,12 @@ def trigger_engine(trigger_aggregation: dict[UUID, EvalResults]) -> None:
     rules = Rule.objects.in_bulk(trigger_aggregation.keys())
 
     if not rules:
-        logging.warning(
+        logger.warning(
             "Rules not found for devices",
             extra={
                 "event": {
                     "error": "Rule ids did not match any known rules:"
-                    f"{", ".join(map(str, trigger_aggregation.keys()))}"
+                    ", ".join(map(str, trigger_aggregation.keys()))
                 }
             },
         )
@@ -43,7 +43,7 @@ def trigger_engine(trigger_aggregation: dict[UUID, EvalResults]) -> None:
             try:
                 action_config = ActionConfig.model_validate(action_config)
             except ValidationError as e:
-                logging.warning(
+                logger.warning(
                     "Malformed config!",
                     extra={
                         "event": {
@@ -52,5 +52,5 @@ def trigger_engine(trigger_aggregation: dict[UUID, EvalResults]) -> None:
                         }
                     },
                 )
-                return
+                continue
             action_dispatch(action_config, rule, aggregate)

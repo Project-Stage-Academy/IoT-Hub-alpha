@@ -72,7 +72,7 @@ def process_telemetry(
         )
         last_id = telemetry.id
 
-    rule_aggregation: dict[UUID, EvalResults] = defaultdict()
+    rule_aggregation: dict[UUID, EvalResults] = {}
 
     for device, rules in rules_by_device.items():
         for rule in rules:
@@ -81,7 +81,7 @@ def process_telemetry(
                 condition,
                 telemetry_by_device[rule.device_id],  # type: ignore[attr-defined]
                 EvalResults(),
-                rule.device_id,
+                rule.device_id,  # type: ignore[attr-defined]
             )  # type: ignore[attr-defined]
             if result.trigger:
                 rule_aggregation[rule.id] = result
@@ -89,10 +89,9 @@ def process_telemetry(
                     "rule_fired",
                     extra={
                         "event": {
-                            "rule": rule_aggregation[rule.id],
+                            "rule": rule.id,
                             "rule_type": condition.type,
                             "device_id": rule.device_id,  # type: ignore[attr-defined]
-                            "telemetry_id": cursor,
                             "evaluated_at": datetime.now().isoformat(),
                             "reason": f"{result.values}"
                             f" {condition.type} {condition.threshold}",
