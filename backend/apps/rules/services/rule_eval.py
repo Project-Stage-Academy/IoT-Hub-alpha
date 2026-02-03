@@ -49,6 +49,7 @@ def _eval_condition(
                     "event": {"error": f"Unknown operator detected: {COMPARATORS[operator]}"}
                 },
             )
+            continue
         if trigger:
             trigger_values.append(telemetry.value)
             if not start:
