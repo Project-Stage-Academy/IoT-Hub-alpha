@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 from typing import Any
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
@@ -11,10 +10,19 @@ from .models import Telemetry
 from apps.devices.models import Device
 
 
-@dataclass
 class TelemetrySerializer:
-    instance: Telemetry | None = None
-    data: dict[str, Any] | None = None
+    """
+    Serializer for Telemetry model.
+    Handles validation, normalization, and conversion of telemetry data.
+    """
+
+    def __init__(
+        self,
+        instance: Telemetry | None = None,
+        data: dict[str, Any] | None = None,
+    ):
+        self.instance = instance
+        self.data = data
 
     def to_dict(self) -> dict[str, Any]:
         if not self.instance:
@@ -110,14 +118,7 @@ class TelemetrySerializer:
         return cleaned
 
     def validate_for_bulk(self) -> dict[str, Any]:
-        cleaned = self.validate()
-        prepared = {
-            "device": cleaned["device"],
-            "payload": cleaned["payload"],
-        }
-        if "timestamp" in cleaned:
-            prepared["timestamp"] = cleaned["timestamp"]
-        return prepared
+        return self.validate()
 
     def save(self) -> Telemetry:
         cleaned = self.validate()

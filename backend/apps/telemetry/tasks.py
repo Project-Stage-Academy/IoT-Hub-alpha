@@ -1,71 +1,35 @@
 import logging
 from celery import shared_task
-from django.core.exceptions import ValidationError
-from django.db import transaction
+from django.db import OperationalError, InterfaceError
+from django.db.utils import DatabaseError
 
 from .serializer import TelemetrySerializer
-from .models import Telemetry
-from .utils import extract_validation_errors
+from .services import TelemetryBatchProcessor
 
 logger = logging.getLogger(__name__)
 
 
-@shared_task(bind=True, max_retries=3)
+@shared_task(bind=True, max_retries=3, default_retry_delay=60)
 def ingest_telemetry_batch_async(self, batch_data: list, request_id: str) -> dict:
+    """
+    Persist pre-validated telemetry data to database.
+
+    Note: Validation already performed in view before queueing.
+    This task focuses on atomic DB persistence with retry logic for transient errors.
+    """
     logger.info(
         "Starting async telemetry ingestion",
         extra={"request_id": request_id, "batch_size": len(batch_data)},
     )
 
     validated_items = []
-    errors = []
-
-    for idx, item in enumerate(batch_data):
-        try:
-            serializer = TelemetrySerializer(data=item)
-            validated = serializer.validate_for_bulk()
-            validated_items.append(validated)
-        except ValidationError as e:
-            errors.append(
-                {
-                    "index": idx,
-                    "error": "Validation failed",
-                    "details": extract_validation_errors(e),
-                }
-            )
-        except Exception as e:
-            logger.exception(
-                "Unexpected validation error",
-                extra={"request_id": request_id, "index": idx},
-            )
-            errors.append({"index": idx, "error": str(e)})
-
-    if errors:
-        logger.error(
-            "Batch validation failed",
-            extra={
-                "request_id": request_id,
-                "total": len(batch_data),
-                "failed": len(errors),
-            },
-        )
-        return {
-            "status": "failed",
-            "request_id": request_id,
-            "summary": {
-                "total": len(batch_data),
-                "successful": 0,
-                "failed": len(errors),
-            },
-            "errors": errors,
-        }
+    for item in batch_data:
+        serializer = TelemetrySerializer(data=item)
+        validated = serializer.validate_for_bulk()
+        validated_items.append(validated)
 
     try:
-        with transaction.atomic():
-            telemetry_objects = [
-                Telemetry(**validated) for validated in validated_items
-            ]
-            created = Telemetry.objects.bulk_create(telemetry_objects)
+        created = TelemetryBatchProcessor.process_batch(validated_items)
 
         created_ids = [obj.id for obj in created]
 
@@ -89,9 +53,20 @@ def ingest_telemetry_batch_async(self, batch_data: list, request_id: str) -> dic
             },
         }
 
+    except (OperationalError, InterfaceError, DatabaseError) as exc:
+        logger.warning(
+            "Transient database error, retrying",
+            extra={
+                "request_id": request_id,
+                "retry_count": self.request.retries,
+                "error": str(exc),
+            },
+        )
+        raise self.retry(exc=exc, countdown=60 * (2**self.request.retries))
+
     except Exception as e:
         logger.exception(
-            "Batch ingestion database error",
+            "Batch ingestion non-retryable error",
             extra={"request_id": request_id},
         )
         return {
