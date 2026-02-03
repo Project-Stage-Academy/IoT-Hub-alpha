@@ -33,7 +33,7 @@ from apps.devices.models import DeviceType, Device
 from apps.rules.models import Rule
 from apps.notifications.models import NotificationTemplate
 print(DeviceType.objects.count(), Device.objects.count(), NotificationTemplate.objects.count(), Rule.objects.count())
-")"
+" | tail -n 1)"
 
 echo "Re-running seed..."
 docker compose exec -T "$SERVICE" $SEED_CMD
@@ -44,7 +44,20 @@ from apps.devices.models import DeviceType, Device
 from apps.rules.models import Rule
 from apps.notifications.models import NotificationTemplate
 print(DeviceType.objects.count(), Device.objects.count(), NotificationTemplate.objects.count(), Rule.objects.count())
-")"
+" | tail -n 1)"
 
-test "$before" = "$after" || { echo "❌ Not idempotent: before=$before after=$after"; exit 1; }
-echo "✅ Idempotency verified: $after"
+if [ "$before" != "$after" ]; then
+  echo "Not idempotent!"
+  echo "Before: $before"
+  echo "After:  $after"
+  exit 1
+fi
+
+# Parse counts for readable output
+read dt_count d_count nt_count r_count <<< "$after"
+echo ""
+echo "Idempotency verified - counts unchanged after re-seed:"
+echo "DeviceTypes:            $dt_count"
+echo "Devices:                $d_count"
+echo "NotificationTemplates:  $nt_count"
+echo "Rules:                  $r_count"
