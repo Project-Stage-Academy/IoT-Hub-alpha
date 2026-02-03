@@ -202,7 +202,11 @@ LOGGING = LOGGING_BASE
 CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "redis://redis:6379/0")
 CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", "redis://redis:6379/0")
 
-TELEMETRY_ASYNC_INGESTION = os.getenv("TELEMETRY_ASYNC_INGESTION", "false").lower() in ("true", "1", "yes")
+TELEMETRY_ASYNC_INGESTION = os.getenv("TELEMETRY_ASYNC_INGESTION", "false").lower() in (
+    "true",
+    "1",
+    "yes",
+)
 TELEMETRY_MAX_BATCH_SIZE = int(os.getenv("TELEMETRY_MAX_BATCH_SIZE", "1000"))
 
 REQUEST_ID_HEADER = "HTTP_X_REQUEST_ID"

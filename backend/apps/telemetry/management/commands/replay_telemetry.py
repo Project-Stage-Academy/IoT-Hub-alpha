@@ -26,11 +26,7 @@ class Command(BaseCommand):
             help="Validate data without actually creating records",
         )
 
-    def handle(self, *args, **options):
-        fixture_file = options["fixture_file"]
-        batch_size = options["batch_size"]
-        dry_run = options["dry_run"]
-
+    def _load_and_validate_fixture(self, fixture_file: str) -> list:
         fixture_path = Path(fixture_file)
         if not fixture_path.exists():
             raise CommandError(f"Fixture file not found: {fixture_file}")
@@ -47,34 +43,39 @@ class Command(BaseCommand):
             raise CommandError(
                 "Fixture file must contain a JSON array of telemetry records"
             )
+        return data
 
-        total_records = len(data)
-        self.stdout.write(f"Found {total_records} telemetry records")
-
-        if dry_run:
-            self.stdout.write(
-                self.style.WARNING("DRY RUN MODE - No records will be created")
-            )
-
+    def _process_batch_dry_run(self, batch: list, batch_num: int) -> tuple:
         successful = 0
         failed = 0
         errors = []
+        for idx, record in enumerate(batch):
+            try:
+                serializer = TelemetrySerializer(data=record)
+                serializer.validate()
+                successful += 1
+            except Exception as e:
+                failed += 1
+                errors.append(
+                    {
+                        "batch": batch_num,
+                        "index": idx,
+                        "record": record,
+                        "error": str(e),
+                    }
+                )
+        return successful, failed, errors
 
-        for i in range(0, total_records, batch_size):
-            batch = data[i : i + batch_size]
-            batch_num = (i // batch_size) + 1
-            total_batches = (total_records + batch_size - 1) // batch_size
-
-            self.stdout.write(
-                f"Processing batch {batch_num}/{total_batches} "
-                f"({len(batch)} records)..."
-            )
-
-            if dry_run:
+    def _process_batch_save(self, batch: list, batch_num: int) -> tuple:
+        successful = 0
+        failed = 0
+        errors = []
+        try:
+            with transaction.atomic():
                 for idx, record in enumerate(batch):
                     try:
                         serializer = TelemetrySerializer(data=record)
-                        serializer.validate()
+                        serializer.save()
                         successful += 1
                     except Exception as e:
                         failed += 1
@@ -86,32 +87,24 @@ class Command(BaseCommand):
                                 "error": str(e),
                             }
                         )
-            else:
-                try:
-                    with transaction.atomic():
-                        for idx, record in enumerate(batch):
-                            try:
-                                serializer = TelemetrySerializer(data=record)
-                                serializer.save()
-                                successful += 1
-                            except Exception as e:
-                                failed += 1
-                                errors.append(
-                                    {
-                                        "batch": batch_num,
-                                        "index": idx,
-                                        "record": record,
-                                        "error": str(e),
-                                    }
-                                )
-                                raise
-                except Exception:
-                    self.stdout.write(
-                        self.style.ERROR(
-                            f"Batch {batch_num} failed - rolling back. "
-                            f"Fix errors and retry."
-                        )
-                    )
+                        raise
+        except Exception:
+            self.stdout.write(
+                self.style.ERROR(
+                    f"Batch {batch_num} failed - rolling back. "
+                    f"Fix errors and retry."
+                )
+            )
+        return successful, failed, errors
+
+    def _print_summary(
+        self,
+        total_records: int,
+        successful: int,
+        failed: int,
+        errors: list,
+        dry_run: bool,
+    ) -> None:
 
         self.stdout.write("\n" + "=" * 50)
         self.stdout.write(f"Total records: {total_records}")
@@ -143,3 +136,42 @@ class Command(BaseCommand):
                 f"Replay completed with {failed} errors. "
                 f"Check the error details above."
             )
+
+    def handle(self, *args, **options):
+        fixture_file = options["fixture_file"]
+        batch_size = options["batch_size"]
+        dry_run = options["dry_run"]
+
+        data = self._load_and_validate_fixture(fixture_file)
+        total_records = len(data)
+        self.stdout.write(f"Found {total_records} telemetry records")
+
+        if dry_run:
+            self.stdout.write(
+                self.style.WARNING("DRY RUN MODE - No records will be created")
+            )
+
+        successful = 0
+        failed = 0
+        errors = []
+
+        for i in range(0, total_records, batch_size):
+            batch = data[i : i + batch_size]
+            batch_num = (i // batch_size) + 1
+            total_batches = (total_records + batch_size - 1) // batch_size
+
+            self.stdout.write(
+                f"Processing batch {batch_num}/{total_batches} "
+                f"({len(batch)} records)..."
+            )
+
+            if dry_run:
+                s, f, e = self._process_batch_dry_run(batch, batch_num)
+            else:
+                s, f, e = self._process_batch_save(batch, batch_num)
+
+            successful += s
+            failed += f
+            errors.extend(e)
+
+        self._print_summary(total_records, successful, failed, errors, dry_run)
