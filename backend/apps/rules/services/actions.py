@@ -1,5 +1,5 @@
 import os
-import json
+import logging
 from dataclasses import asdict
 from functools import lru_cache
 from django.utils import timezone
@@ -11,6 +11,8 @@ from apps.rules.models import Rule
 from apps.rules.services.data_structure import NormalizedRecipient, EvalResults
 
 COOLDOWN_TIMER_MINUTES = os.getenv("DJANGO_RULE_COOLDOWN_MINUTES", 60)
+
+logger = logging.getLogger("apps.rules")
 
 
 class EventCooldownActive(Exception):
@@ -115,15 +117,26 @@ def event_handler(
     :rtype: Event
     """
 
-    one_hour_ago = timezone.now() - timedelta(minutes=int(COOLDOWN_TIMER_MINUTES))
+    cooldown_timer = timezone.now() - timedelta(minutes=int(COOLDOWN_TIMER_MINUTES))
 
     event_exists = (
-        Event.objects.filter(rule=rule, timestamp__gte=one_hour_ago)
+        Event.objects.filter(rule=rule, timestamp__gte=cooldown_timer)
         .exclude(status=Event.EventStatus.RESOLVED)
         .exists()
     )
 
     if event_exists:
+        logging.info(
+            "Event exsits and is on cooldown",
+            extra={
+                "event": {
+                    "message": "Event raised but cooldown is active, "
+                    "no additional events triggered",
+                    "triggering telemetry": f"values: {aggregate.values} "
+                    f"start: {aggregate.start}",
+                }
+            },
+        )
         raise EventCooldownActive
 
     new_event = Event(

@@ -1,6 +1,7 @@
-from dataclasses import dataclass
 import os
+import logging
 from uuid import UUID
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from operator import gt, ge, lt, le, eq, ne
 from django.utils import timezone
@@ -20,6 +21,7 @@ COMPARATORS = {
 }
 
 CELERY_PROCESS_TIMER = os.getenv("CELERY_RUN_PROCESS_TELEMETRY_TIMER_MINUTES", 5)
+logger = logging.getLogger("apps.rules")
 
 
 @dataclass(frozen=True)
@@ -143,7 +145,12 @@ def eval_rule(
 
     if type == "and":
         if not condition.conditions:
-            raise KeyError(f"Malformed condition: {condition}")
+            logging.warning(
+                "Malformed config!",
+                extra={
+                    "event": {"error": "Malformed config detected - missing conditions"}
+                },
+            )
         child_results = [
             eval_rule(c, telemetry_chunks, EvalResults(), device_id)
             for c in condition.conditions
@@ -155,7 +162,12 @@ def eval_rule(
 
     if type == "or":
         if not condition.conditions:
-            raise KeyError(f"Malformed condition: {condition}")
+            logging.warning(
+                "Malformed config!",
+                extra={
+                    "event": {"error": "Malformed config detected - missing conditions"}
+                },
+            )
         child_results = [
             eval_rule(c, telemetry_chunks, EvalResults(), device_id)
             for c in condition.conditions

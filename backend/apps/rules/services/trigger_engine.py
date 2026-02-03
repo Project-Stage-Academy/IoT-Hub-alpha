@@ -48,7 +48,7 @@ def trigger_engine(trigger_aggregation: dict[UUID, EvalResults]) -> None:
                     extra={
                         "event": {
                             "error": "Malformed config detected"
-                            f"at: {rule.id} error: {e}"
+                            f" at: {rule.id} error: {e}"
                         }
                     },
                 )

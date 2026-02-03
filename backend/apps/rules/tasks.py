@@ -35,14 +35,6 @@ def process_telemetry(
     :type record_cursor: bool
     """
 
-    # root = logging.getLogger()
-
-    # logger.info("logger_handlers", extra=
-    # {"event":
-    # {"handlers": [type(h).__name__ for h in logger.handlers]}})
-    # root.info("root_handlers", extra=
-    # {"event": {"handlers": [type(h).__name__ for h in root.handlers]}})
-
     cursor = (
         (TelemetryCursor.objects.aggregate(last_id=Max("last_id")).get("last_id") or 0)
         if cursor_start is None
@@ -59,7 +51,8 @@ def process_telemetry(
 
     if not telemetry_qs.exists():
         logger.info(
-            "logger_handlers", extra={"event": {"msg": "No telemetry detected"}}
+            "No telemetry detected",
+            extra={"event": {"message": "No telemetry detected"}},
         )
         return
 
@@ -77,7 +70,7 @@ def process_telemetry(
         telemetry_by_device[telemetry.device_id].append(  # type: ignore[attr-defined]
             TelemetryPoint(ts=telemetry.timestamp, value=telemetry.payload.get("value"))
         )
-        last_id += 1
+        last_id = telemetry.id
 
     rule_aggregation: dict[UUID, EvalResults] = defaultdict()
 
@@ -101,7 +94,7 @@ def process_telemetry(
                             "device_id": rule.device_id,  # type: ignore[attr-defined]
                             "telemetry_id": cursor,
                             "evaluated_at": datetime.now().isoformat(),
-                            "reason": f"{', '.join(str(result.values))}"
+                            "reason": f"{result.values}"
                             f" {condition.type} {condition.threshold}",
                         }
                     },

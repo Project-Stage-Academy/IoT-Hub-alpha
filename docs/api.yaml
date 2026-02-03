@@ -205,6 +205,67 @@ paths:
           $ref: "#/components/responses/NotFoundError"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
+    patch:
+      description: update a rule to enable/disable it
+      summary: Update activation of rule
+      operationID: RulePatch
+      tags: [rules]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Get rule data of specific rule by id
+          schema:
+            type: string
+            example: 29e31015-4733-49f3-855a-ef7f30e6c147
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - enabled
+              properties:
+                enabled:
+                  type: boolean
+                  description: enable or disable rules
+                  example: true
+      responses:
+        "200":
+          description: rule is_active enabled successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Rules"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+    delete:
+      description: delete a rule by id
+      summary: Delete a specific rule based by id
+      operationId: RuleGet
+      tags: [rules]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Get rule data of specific rule by id
+          schema:
+            type: string
+            example: 29e31015-4733-49f3-855a-ef7f30e6c147
+      responses:
+        "204":
+          description: rule successfully deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Rules"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
   /auth/fake:
     get: 
       security: []
@@ -434,8 +495,7 @@ components:
         - name
         - description
         - comparison_operator
-        - threshold
-        - action_config
+        - condition
         - last_triggered_at
         - is_enabled
       properties:
@@ -446,14 +506,16 @@ components:
           type: string
           description: "Device serial number (must match a registered device)"
           example: Alerts maintenance when vibration drops below expected operating range
-        comparison_operator:
-          type: string
-          enum: [gt, lt, gte, lte, eq, neq]
-          example: gt
-        threshold:
-          type: number
-          format: float
-          example: 15.3
+        condition:
+          type: object
+          description: Condition json description
+          additionalProperties: true
+          example:
+            type: leaf
+            operator: gt
+            threshold: 5
+            window_seconds: 15
+            occurances: 3
         action_config:
           type: array
           description: List of action configuration objects
@@ -480,8 +542,7 @@ components:
         - name
         - description
         - comparison_operator
-        - threshold
-        - action_config
+        - condition
         - is_enabled
         - device_id
       properties:
@@ -492,14 +553,16 @@ components:
           type: string
           description: "Device serial number (must match a registered device)"
           example: Alerts maintenance when vibration drops below expected operating range
-        comparison_operator:
-          type: string
-          enum: [gt, lt, gte, lte, eq, neq]
-          example: gt
-        threshold:
-          type: number
-          format: float
-          example: 15.3
+        condition:
+          type: object
+          description: Condition json description
+          additionalProperties: true
+          example:
+            type: leaf
+            operator: gt
+            threshold: 5
+            window_seconds: 15
+            occurances: 3
         action_config:
           type: array
           description: List of action configuration objects
