@@ -24,7 +24,6 @@ import json
 import random
 from datetime import timedelta
 from decimal import Decimal
-from uuid import uuid4
 
 from django.core.management.base import BaseCommand
 from django.utils import timezone
@@ -129,6 +128,9 @@ class Command(BaseCommand):
         # Generate timestamps evenly distributed across the range
         time_delta = (end_time - start_time) / max(count - 1, 1)
 
+        # Initialize previous value to middle of range for realistic start
+        prev_value = (min_val + max_val) / 2
+
         for i in range(count):
             # Generate timestamp
             current_time = start_time + (
@@ -137,11 +139,12 @@ class Command(BaseCommand):
 
             # Generate realistic value with some variation
             if i > 0:
-                prev_value = batch[i - 1]["payload"]["value"]
                 change = random.uniform(-2, 2)
                 value = max(min_val, min(max_val, prev_value + change))
             else:
                 value = random.uniform(min_val, max_val)
+
+            prev_value = value  # Update for next iteration
 
             # Create telemetry record dict (not ORM object)
             batch.append(
