@@ -23,11 +23,17 @@ Clone the repository and navigate to the project directory:
 git clone `https://github.com/Project-Stage-Academy/IoT-Hub-alpha.git`
 cd IoT-Hub-alpha
 ```
-Switch to the required branch:
+Check available branches:
 ```bash
-git checkout `task-8-project-skeleton`
+git branch -a
 ```
 ![example-clone](../images/onboarding-01-clone.png)
+
+For most cases, stay on the default `main` branch.
+If you need to work on a specific feature branch, switch to it:
+```bash
+git checkout feature-branch-name
+```
 
 ## 2) Create environment file
 In the folder where the `.env.example` is located, run the following comand:
@@ -52,22 +58,81 @@ Run the following command from the project root:
 ```bash
 docker compose up -d --build
 ```
-This will:
-- start PostgreSQL (db service),
-- build and start the Django backend (backend service),
-- automatically run database migrations,
-- expose the backend on port 8000.
+This will start the following services:
+- **db** - TimescaleDB database (PostgreSQL 15 with TimescaleDB extension)
+- **redis** - Redis cache for background tasks
+- **web** - Django backend application (exposed on port 8000)
+- **worker** - Celery worker for asynchronous task processing
 
 ![example-up](../images/onboarding-03-up.png)
+
+Verify stack health (smoke test):
+```
+./docs/demos/run_smoke.sh
+```
+
+Expected output:
+```commandline
+MacBook-Air-Aleksandr:IoT-Hub-alpha oleksandr$ ./docs/demos/run_smoke.sh
+=== Infrastructure Checks ===
+Checking: Health endpoint... PASS
+Checking: Metrics endpoint... PASS
+
+=== Application Smoke Tests ===
+==> Running: smoke/smoke1_seed_data.sh
+Seeding demo data...
+Seed summary
+Devices - created: 0, updated: 8
+Device Types - created: 0, updated: 6
+Rules: created - 0, updated: 9
+Notification templates - created: 0, updated: 5
+Telemetry: created - 0, updated: 3
+Asserting core objects exist...
+13 objects imported automatically (use -v 2 for details).
+
+OK counts: device_types= 6 devices= 8 templates= 5 rules= 9
+Taking counts before re-seed...
+Re-running seed...
+Seed summary
+Devices - created: 0, updated: 8
+Device Types - created: 0, updated: 6
+Rules: created - 0, updated: 9
+Notification templates - created: 0, updated: 5
+Telemetry: created - 0, updated: 3
+Taking counts after re-seed...
+
+Idempotency verified - counts unchanged after re-seed:
+DeviceTypes:            6
+Devices:                8
+NotificationTemplates:  5
+Rules:                  9
+
+
+=== Results: 3 passed, 0 failed ===
+All smoke checks passed.
+
+```
 
 ## 4) Create a Django superuser
 Use a strong password (min 12 chars, mixed case, numbers, symbols).
 To access the Django Admin UI, create a superuser():
 ```bash
-docker compose exec backend python manage.py createsuperuser
+docker compose exec web python manage.py createsuperuser
 ```
 Follow the prompts to set username and password.
+
 ![example-admin](../images/onboarding-04-admin.png)
+
+**Alternative:** Use the automated setup command to create default users and groups:
+```bash
+docker compose exec web python manage.py setup_roles
+```
+
+This creates:
+- Superuser: `admin` / `admin123`
+- Admin user: `admin_user` / `admin123` (with Admin group)
+- Operator user: `operator_user` / `operator123` (with Operator group)
+- Viewer user: `viewer_user` / `viewer123` (with Viewer group)
 
 ## 5) Access the Admin UI
 Open the following URL in your browser:
