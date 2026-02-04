@@ -1,4 +1,5 @@
 import argparse
+
 try:
     from .assets.data_structures import PayloadEnvelope
     from .assets.main import main_sim
@@ -7,6 +8,7 @@ except:
     from assets.data_structures import PayloadEnvelope
     from assets.main import main_sim
     from assets.helpers import get_config
+
 
 def main() -> None:
     """
@@ -22,13 +24,15 @@ def main() -> None:
         raise argparse.ArgumentTypeError(
             f"Unknown device '{name}', Avalible Choices: {device_names}"
         )
-    
+
     parser = argparse.ArgumentParser(
         prog="Data Sending Simulator",
         usage="How to",
-        description=(f"Send test telemetry data to HTTP/MQTT endpoint \n"
-                     f"supports infinite data stream, checks responses and compares them to set values, can preform loadtesting"),
-        epilog="For further info consult docs/simulator.md"
+        description=(
+            f"Send test telemetry data to HTTP/MQTT endpoint \n"
+            f"supports infinite data stream, checks responses and compares them to set values, can preform loadtesting"
+        ),
+        epilog="For further info consult docs/simulator.md",
     )
     parser.add_argument(
         "-f",
@@ -36,14 +40,14 @@ def main() -> None:
         help="Specify custom data file/s",
         type=str,
         nargs="+",
-        default = [file for file in config.default_data_file]
+        default=[file for file in config.default_data_file],
     )
     parser.add_argument(
         "-m",
         "--mode",
         help="Data send protocol, HTTTP or MQTT",
         type=str,
-        choices=['http', 'mqtt'],
+        choices=["http", "mqtt"],
         default="http",
     )
     parser.add_argument(
@@ -88,13 +92,11 @@ def main() -> None:
         action="store_true",
     )
 
-    
     raw = parser.parse_args()
     raw.log_file = config.log_file
     raw.default_timeout = config.default_timeout
     main_sim(raw)
 
-    
 
 if __name__ == "__main__":
     main()

@@ -11,12 +11,13 @@ API Style Guide (Industry 4.0)
 7. [Authentication & Authorization](#7-authentication--authorization)
 8. [Pagination](#8-pagination)
 9. [Errors](#9-errors)
-10. [Create / Update Patterns](#10-create-update-patterns)
-11. [Resource Representations](#11-resource-representations)
-12. [Filtering, Searching, Sorting](#12-filtering-searching-sorting)
-13. [Security Requirements](#13-security-requirements)
-14. [Deprecation Policy](#14-deprecation-policy)
-15. [Documentation Rules](#15-documentation-rules)
+10. [Curl commands for a device](#10-curl-commands-for-a-device)
+11. [Create / Update Patterns](#11-create-update-patterns)
+12. [Resource Representations](#12-resource-representations)
+13. [Filtering, Searching, Sorting](#13-filtering-searching-sorting)
+14. [Security Requirements](#14-security-requirements)
+15. [Deprecation Policy](#15-deprecation-policy)
+16. [Documentation Rules](#16-documentation-rules)
 
 
 ## `1) Obtaining a JWT Token for testing`
@@ -107,29 +108,11 @@ Booleans: true/false
 
 Envelopes present on pagination, for more information go to [Pagination](#8-pagination)
 
-### `6.4 Telemetry Ingest Example`
-
-Request:
-```http
-POST /api/v1/telemetry
-Content-Type: application/json
-X-Device-Serial-Number: SN2224412
-```
-```json
-{
-  "value": 2432,
-  "schema_version": "1.0"
-}
-```
-
-Rules:
-- `X-Device-Serial-Number` header is REQUIRED
-- Device identifiers MUST NOT appear in the request body
-- Requests missing the header MUST return `400 Bad Request`
-
 ## `7) Authentication & Authorization`
 
 Auth type: JWT
+
+### Telemetry post ingest endpoint does NOT use auth and is open, validation will be done using the ssn provided
 
 How to send(Header): 
 ```
@@ -148,22 +131,6 @@ Example:
 ```http
 GET /api/v1/devices
 Authorization: Bearer <token>
-```
-
-### Telemetry ingest endpoint (POST /telemetry)
-
-The telemetry ingest endpoint **does NOT require JWT authentication**.
-
-Device identity is provided via the request header:
-
-X-Device-Serial-Number
-
-The backend validates the device based on this header value.
-
-```
-POST /api/v1/telemetry
-X-Device-Serial-Number: SN2224412
-Content-Type: application/json
 ```
 
 ## `8) Pagination`
@@ -324,16 +291,72 @@ Standard shape:
     "error" : "An error has occured"
 }
 ```
-## `10) Create Update Patterns`
+
+## `10) Curl commands for a device`
+Simple curl commands for registering a device and fetching its data.
+
+###  `Create a device (POST)`
+You must have a DeviceType created first. Use its UUID as device_type_id.
+```
+$payload = @{
+  name = "Sensor 1"
+  serial_number = "SN-001"
+  device_type_id = "PUT_DEVICE_TYPE_UUID_HERE"
+  status = "active"
+  location = "Lab"
+}
+
+Invoke-RestMethod -Method Post `
+  -Uri "http://localhost:8000/api/v1/devices/" `
+  -Headers $headers `
+  -ContentType "application/json" `
+  -Body ($payload | ConvertTo-Json)
+
+```
+### `Get device by id (GET)`
+
+```
+$deviceId = "PUT_DEVICE_UUID_HERE"
+Invoke-RestMethod -Method Get `
+  -Uri "http://localhost:8000/api/v1/devices/$deviceId/" `
+  -Headers $headers
+```
+### `Update device (PATCH)`
+In this example - status was updated
+```
+$deviceId = "PUT_DEVICE_UUID_HERE"
+$patch = @{ status = "inactive" }
+
+Invoke-RestMethod -Method Patch `
+  -Uri "http://localhost:8000/api/v1/devices/$deviceId/" `
+  -Headers $headers `
+  -ContentType "application/json" `
+  -Body ($patch | ConvertTo-Json)
+
+```
+
+### `List devices (Pagination)`
+```
+Invoke-RestMethod -Method Get `
+  -Uri "http://localhost:8000/api/v1/devices/?page=1&page_size=10" `
+  -Headers $headers
+```
+### `Delete device (DELETE)`
+```
+$deviceId = "PUT_DEVICE_UUID_HERE"
+Invoke-RestMethod -Method Delete `
+  -Uri "http://localhost:8000/api/v1/devices/$deviceId/" `
+  -Headers $headers
+
+```
+
+## `11) Create Update Patterns`
 
 Create returns: 201 + created resource (or location header) 
 
-Telemetry POST requests return `202 Accepted` with no response body.
+telemetry POST requests returns 202 with no body
 
-The device identity MUST be provided via the `X-Device-Serial-Number` header.
-The request body MUST contain only telemetry data (no device identifiers).
-
-## `11) Resource Representations`
+## `12) Resource Representations`
 
 - JSON objects use snake_case
 
@@ -341,10 +364,7 @@ The request body MUST contain only telemetry data (no device identifiers).
 
 - Fields are explicitly defined (no magic / undocumented fields)
 
-- Avoid abbreviations unless domain-standard (id, ts)
-
-Device serial numbers are NOT included in telemetry request bodies.
-They are provided via the `X-Device-Serial-Number` request header.
+- Avoid abbreviations unless domain-standard (id, ts, ssn)
 
 ### Common type representation
 
@@ -352,25 +372,16 @@ They are provided via the `X-Device-Serial-Number` request header.
 
 - Numbers - integers are used for telemetry data which may represent floats
 for example, a thermometer will send its value(31.4) in such a way:
-
-Headers:
-```
-"X-Device-Serial-Number": "SN222331"
-```
-Body:
 ```
 {
+"ssn": "sn222432"
 "value": 3140
 }
 ``` 
 
 - IDs - UUID for all API operations
 
-## `12) Filtering, Searching, Sorting`
-
-Note:
-The device serial number MAY be included in telemetry responses for identification purposes.
-However, it MUST NOT be included in telemetry POST request bodies.
+## `13) Filtering, Searching, Sorting`
 
 Resource access is currently supported on:
 - devices endpoint using a url parameter of {id}
@@ -419,13 +430,13 @@ GET .../api/v1/telemetry?device_id=a1b2c3d4-e5f6-7890-1234-567890abcdef
 }
 ```
 
-## `13) Security Requirements`
+## `14) Security Requirements`
 
 TLS only: yes
 
 Audit logging: TODO
 
-## `14) Deprecation Policy`
+## `15) Deprecation Policy`
 
 How endpoints are deprecated: Endpoints are never deprecated as it is a IoT system
 
@@ -433,7 +444,7 @@ How clients are notified: Changelog
 
 Deprecation: false
 
-## `15) Documentation Rules`
+## `16) Documentation Rules`
 
 For every endpoint, document:
 
