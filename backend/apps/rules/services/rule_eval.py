@@ -110,11 +110,18 @@ def _window_eval(
             if match_count >= occurrences:
                 window_points = pts[left : right + 1]
                 matched = [p for p in window_points if cmp(p.value, threshold)]
+                break
 
-            aggregate_trigger.trigger = True if matched else False
-            aggregate_trigger.start = matched[0].ts if matched else None
-            aggregate_trigger.end = matched[-1].ts if matched else None
+        if matched:
+            aggregate_trigger.trigger = True
+            aggregate_trigger.start = matched[0].ts
+            aggregate_trigger.end = matched[-1].ts
             aggregate_trigger.values = [p.value for p in matched]
+        else:
+            aggregate_trigger.trigger = False
+            aggregate_trigger.start = None
+            aggregate_trigger.end = None
+            aggregate_trigger.values = []
 
     return aggregate_trigger
 

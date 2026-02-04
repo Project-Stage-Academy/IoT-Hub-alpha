@@ -114,7 +114,7 @@
       "description": "Alerts maintenance when vibration drops below expected operating range",
       "condition": {
         "type": "leaf",
-        "operator": "gt",
+        "operator": "lt",
         "threshold": 15.0
       },
       "action_config": [

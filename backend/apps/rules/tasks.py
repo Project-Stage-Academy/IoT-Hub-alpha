@@ -11,7 +11,7 @@ from .services.rule_eval import eval_rule, TelemetryPoint
 from .services.trigger_engine import trigger_engine
 from .services.data_structure import Condition, EvalResults
 
-BATCH_SIZE = os.getenv("CELERY_RULE_BATCH_SIZE", 1000)
+BATCH_SIZE = int(os.getenv("CELERY_RULE_BATCH_SIZE", 1000))
 
 logger = logging.getLogger("apps.rules")
 
@@ -20,7 +20,7 @@ logger = logging.getLogger("apps.rules")
 def process_telemetry(
     self,
     cursor_start: int | None = None,
-    batch_size: int = int(BATCH_SIZE),
+    batch_size: int = BATCH_SIZE,
     record_cursor: bool = True,
 ) -> None:
     """
@@ -56,8 +56,10 @@ def process_telemetry(
         )
         return
 
-    rules = Rule.objects.filter(is_enabled=True).only(
-        "id", "condition", "action_config", "device_id"
+    rules = (
+        Rule.objects.filter(is_enabled=True)
+        .only("id", "condition", "action_config", "device_id")
+        .select_related("device")
     )
 
     rules_by_device: dict[UUID, list[Rule]] = defaultdict(list)
@@ -102,4 +104,6 @@ def process_telemetry(
     trigger_engine(rule_aggregation)
 
     if record_cursor:
-        TelemetryCursor.objects.update_or_create(defaults={"last_id": last_id})
+        TelemetryCursor.objects.update_or_create(
+            name="Main Cursor", defaults={"last_id": last_id}
+        )
