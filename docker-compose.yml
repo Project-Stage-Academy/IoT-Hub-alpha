@@ -40,8 +40,8 @@ services:
       - .env
     volumes:
       - ./backend:/app
-    # ports:
-    #   - "8000:8000"
+    ports:
+      - "8000:8000"
     depends_on:
       db:
         condition: service_healthy
@@ -116,7 +116,7 @@ services:
         condition: service_healthy
       db:
         condition: service_healthy
-
+        
     logging: *default-logging
     networks:
       - iot_hub_net
@@ -157,7 +157,7 @@ services:
     logging: *default-logging
     networks:
       - iot_hub_net
-
+      
   simulator:
     build:
       context: .

@@ -5,16 +5,17 @@ from .senders import Sender
 from .reporting import Reporter
 from .data_structures import PayloadEnvelope, RunStats
 
+
 def run_loop(
-        tasks: Sequence[PayloadEnvelope],
-        sender: Sender,
-        reporter: Reporter,
-        rate: float,
-        count: int,
-        ) -> RunStats:
+    tasks: Sequence[PayloadEnvelope],
+    sender: Sender,
+    reporter: Reporter,
+    rate: float,
+    count: int,
+) -> RunStats:
     """
     Runner loop, responsible for running tasks and keeping track of tasks ran.
-    
+
     :param tasks: Description
     :type tasks: Sequence[PayloadEnvelope]
     :param sender: Description
@@ -30,7 +31,7 @@ def run_loop(
     """
     stats = RunStats()
     total_tasks = len(tasks) * count
-    
+
     reporter.start_report(total_tasks)
     i = 0
     with requests.Session() as session:
@@ -45,7 +46,7 @@ def run_loop(
                 stats.failed += 1
             if result.error:
                 stats.errors += 1
-                
+
             reporter.report(item, result)
 
             if count != 0 and stats.sent >= total_tasks:
@@ -55,5 +56,5 @@ def run_loop(
                 sleep(rate)
 
             i += 1
-    
+
     return stats

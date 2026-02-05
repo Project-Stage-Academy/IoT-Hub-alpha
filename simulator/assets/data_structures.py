@@ -1,18 +1,22 @@
 from pydantic import BaseModel, ConfigDict
 from dataclasses import dataclass
 
+
 class PayloadBase(BaseModel):
     schema_version: str | None = None
     ssn: str | None = None
     value: int | float | None = None
 
+
 class PayloadExtended(PayloadBase):
     model_config = ConfigDict(extra="allow")
+
 
 class PayloadEnvelope(BaseModel):
     name: str
     data: PayloadExtended
     expected: int
+
 
 class Config(BaseModel):
     default_url: str
@@ -21,12 +25,14 @@ class Config(BaseModel):
     default_timeout: float
     devices: list[PayloadEnvelope]
 
+
 class SendResult(BaseModel):
-    code_got : int | None
+    code_got: int | None
     code_expected: int | None
     status: str
-    latency: int 
+    latency: int
     error: str | None
+
 
 class ParsedArgs(BaseModel):
     files: list[str] | None
@@ -38,6 +44,7 @@ class ParsedArgs(BaseModel):
     log_file: str
     log: bool
     verbose: bool
+
 
 @dataclass
 class RunStats:
