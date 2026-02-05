@@ -1,8 +1,6 @@
-import os
 import time
 import requests
 from typing import Protocol
-from dotenv import load_dotenv
 import paho.mqtt.client as mqtt
 from .data_structures import PayloadEnvelope, SendResult
 from requests.exceptions import (
@@ -14,7 +12,7 @@ from requests.exceptions import (
     RequestException,
 )
 
-load_dotenv()
+
 
 class Sender(Protocol):
     """
@@ -22,7 +20,7 @@ class Sender(Protocol):
     """
 
     def send(
-        self, item: PayloadEnvelope, session: requests.Session | None
+        self, item: PayloadEnvelope, session: requests.Session | mqtt.Client | None
     ) -> SendResult: ...
 
 
@@ -38,6 +36,10 @@ class HttpSender(Sender):
     def send(
         self, item: PayloadEnvelope, session: requests.Session | None
     ) -> SendResult:
+        
+        if not session or not isinstance(session, requests.Session):
+            raise ValueError("Bad session")
+        
         start = time.perf_counter()
         if not session:
             raise ValueError("Session failed to initialize")
@@ -92,60 +94,29 @@ class MqttSender(Sender):
     """
     mqtt sender
     """
-    username = os.getenv("MQTT_USERNAME", "test")
-    password = os.getenv("MQTT_PASSWORD", "test")
 
-    def __init__(self, broker_url: str, topic: str, port: int) -> None:
-        self.broker_url = broker_url
+
+    def __init__(self, topic: str) -> None:
         self.topic = topic
-        self.port = port
-        self.username = MqttSender.username
-        self.password = MqttSender.password
-        
-        self.connected = False
-        self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
-        self.client.username_pw_set(self.username, self.password)
-        self.client.tls_set()
-
-        def on_connect(client, userdata, flags, reason_code, properties=None):
-            # reason_code == 0 means success
-            self.connected = (reason_code == 0)
-            if not self.connected:
-                print("MQTT connect failed, reason_code:", reason_code)
-
-        def on_disconnect(client, *args):
-            self.connected = False
-
-        self.client.on_connect = on_connect
-        self.client.on_disconnect = on_disconnect
-
-        self.client.connect(self.broker_url, self.port, 60)
-        self.client.loop_start()
-        
-        t0 = time.time()
-        while not self.connected and (time.time() - t0) < 5:
-            time.sleep(0.05)
-
-        if not self.connected:
-            raise RuntimeError("MQTT: failed to connect within 5s")
 
 
     def send(
-        self, item: PayloadEnvelope, session: requests.Session | None
+        self, item: PayloadEnvelope, session: requests.Session | mqtt.Client | None
     ) -> SendResult:
         
+        if not session or not isinstance(session, mqtt.Client):
+            raise ValueError("Bad session")
+        
         topic = f'{self.topic.strip("/")}/{item.data.ssn if item.data.ssn else "error"}'
-        info = self.client.publish(topic, item.data.model_dump_json())
+        start = time.perf_counter()
+        info = session.publish(topic, item.data.model_dump_json())
         info.wait_for_publish(timeout=5)
+        latency = int((time.perf_counter() - start) * 1000)
         time.sleep(0.1)
         return SendResult(
             code_got = info.rc,
             code_expected = 0 if str(item.expected).startswith("2") else 1,
             status = "Pass" if info.rc else "Fail",
-            latency = 5,
+            latency = latency,
             error = None
         )
-        
-    def close(self):
-        self.client.loop_stop()
-        self.client.disconnect()

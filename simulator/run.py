@@ -4,7 +4,7 @@ try:
     from .assets.data_structures import PayloadEnvelope
     from .assets.main import main_sim
     from .assets.helpers import get_config
-except:
+except ModuleNotFoundError:
     from assets.data_structures import PayloadEnvelope
     from assets.main import main_sim
     from assets.helpers import get_config
@@ -93,6 +93,7 @@ def main() -> None:
     )
 
     raw = parser.parse_args()
+    raw.mode = raw.mode.lower()
     raw.log_file = config.log_file
     raw.default_timeout = config.default_timeout
     main_sim(raw, config)

@@ -30,9 +30,7 @@ def main_sim(raw: Any, config: Config) -> None:
 
         sender = HttpSender(base_url=parsed_data.url, timeout=raw.default_timeout)
     elif parsed_data.mode.lower() == "mqtt":
-        sender = MqttSender(broker_url=config.mqtt_url,
-                            topic=config.mqtt_topic,
-                            port=config.mqtt_port)
+        sender = MqttSender(topic=config.mqtt_topic)
     else:
         raise ValueError("Mode not recognized")
 
@@ -47,6 +45,8 @@ def main_sim(raw: Any, config: Config) -> None:
     reporter = Reporter(verbose=parsed_data.verbose, log_path=log_path)
 
     stats = run_loop(
+        config=config,
+        mode=raw.mode,
         tasks=tasks,
         sender=sender,
         reporter=reporter,
