@@ -39,7 +39,7 @@ class HttpSender(Sender):
         start = time.perf_counter()
 
         if not session or not isinstance(session, requests.Session):
-            self._fail(item, start, "connect_timeout", None)
+            self._fail(item, start, "Bad session", None)
 
         
         try:
@@ -98,7 +98,7 @@ class MqttPublisher(Sender):
         self.topic = topic
 
     def send(
-        self, item: PayloadEnvelope, session: requests.Session | mqtt.Client | None
+        self, item: PayloadEnvelope, session: mqtt.Client | None
     ) -> SendResult:
 
         start = time.perf_counter()
