@@ -22,12 +22,14 @@ Docker:
 import sys
 import json
 import random
+import traceback
 from datetime import timedelta
 from decimal import Decimal
 
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 from django.db import connection
+from psycopg2.extras import execute_batch
 from apps.devices.models import Device, DeviceType
 
 
@@ -231,23 +233,27 @@ class Command(BaseCommand):
                         )
                         all_telemetry.extend(batch_data)
 
-                    # Insert batch using raw SQL (bypasses auto_now_add=True)
-                    # Use multiple VALUES in single query for speed (like bulk_create)
+                    # Insert batch using execute_batch for optimal performance and safety
+                    # Bypasses Django ORM auto_now_add constraint with raw SQL
                     if all_telemetry:
-                        # Build a single INSERT with all values
-                        placeholders = []
-                        params = []
-                        for record in all_telemetry:
-                            placeholders.append("(%s, %s, %s)")
-                            params.append(record["device_id"])
-                            params.append(record["timestamp"])
-                            params.append(json.dumps(record["payload"]))
+                        # Prepare values as tuples (device_id, timestamp, payload_json)
+                        values = [
+                            (
+                                record["device_id"],
+                                record["timestamp"],
+                                json.dumps(record["payload"]),
+                            )
+                            for record in all_telemetry
+                        ]
 
-                        sql = f"""
-                            INSERT INTO telemetry (device_id, timestamp, payload)
-                            VALUES {', '.join(placeholders)}
-                        """
-                        cursor.execute(sql, params)
+                        # Use execute_batch with page_size control for safe batch insert
+                        # page_size=100 means max 100 records per INSERT to avoid SQL size limits
+                        execute_batch(
+                            cursor,
+                            "INSERT INTO telemetry (device_id, timestamp, payload) VALUES (%s, %s, %s)",
+                            values,
+                            page_size=100,
+                        )
 
                     telemetry_created += len(all_telemetry)
 
@@ -272,7 +278,5 @@ class Command(BaseCommand):
         except Exception as e:
             self.stderr.write(self.style.ERROR(f"Error during data load: {e}"))
             if self.verbose:
-                import traceback
-
                 traceback.print_exc()
             sys.exit(1)
