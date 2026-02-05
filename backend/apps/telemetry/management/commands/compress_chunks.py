@@ -74,7 +74,7 @@ class Command(BaseCommand):
                 try:
                     # Build dynamic IN clause with proper parameterization
                     chunk_names = [chunk[0] for chunk in chunks]
-                    placeholders = ','.join(['%s'] * len(chunk_names))
+                    placeholders = ",".join(["%s"] * len(chunk_names))
                     sql = f"""
                         SELECT chunk_name, pg_total_relation_size(
                             (quote_ident(chunk_schema) || '.' || quote_ident(chunk_name))::regclass
@@ -90,7 +90,9 @@ class Command(BaseCommand):
                 except Exception as e:
                     # If batch query fails, set all to 0
                     self.stdout.write(
-                        self.style.WARNING(f"⚠ Warning: Could not fetch chunk sizes: {str(e)}")
+                        self.style.WARNING(
+                            f"⚠ Warning: Could not fetch chunk sizes: {str(e)}"
+                        )
                     )
                     for chunk in chunks:
                         chunk_sizes[chunk[0]] = 0
@@ -147,9 +149,7 @@ class Command(BaseCommand):
                     full_chunk_name = f'"{chunk_schema}"."{chunk_name}"'
 
                     # Compress the chunk
-                    cursor.execute(
-                        f"SELECT compress_chunk('{full_chunk_name}')"
-                    )
+                    cursor.execute(f"SELECT compress_chunk('{full_chunk_name}')")
                     cursor.fetchall()  # Clear cursor results
 
                     # Get size after compression

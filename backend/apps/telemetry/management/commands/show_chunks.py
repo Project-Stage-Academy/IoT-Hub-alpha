@@ -118,14 +118,17 @@ class Command(BaseCommand):
                 # Note: table_name is from command args (not user input) and validated
                 # For table names, we must use identifier quoting, not parameter substitution
                 from psycopg2 import sql as psycopg2_sql
-                query = psycopg2_sql.SQL("""
+
+                query = psycopg2_sql.SQL(
+                    """
                     SELECT
                         COUNT(*) as total_records,
                         MIN(timestamp) as earliest,
                         MAX(timestamp) as latest,
                         COUNT(DISTINCT device_id) as unique_devices
                     FROM {}
-                """).format(psycopg2_sql.Identifier(table_name))
+                """
+                ).format(psycopg2_sql.Identifier(table_name))
                 cursor.execute(query.as_string(cursor.connection))
 
                 result = cursor.fetchone()

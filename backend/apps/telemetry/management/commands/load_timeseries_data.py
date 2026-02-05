@@ -276,11 +276,13 @@ class Command(BaseCommand):
             self.log(f"{'=' * 70}\n")
 
         except Exception as e:
-            self.stderr.write(self.style.ERROR(
-                f"Error during data load: {e}\n"
-                f"Exception Type: {type(e).__name__}\n"
-                f"Records created before error: {telemetry_created:,}"
-            ))
+            self.stderr.write(
+                self.style.ERROR(
+                    f"Error during data load: {e}\n"
+                    f"Exception Type: {type(e).__name__}\n"
+                    f"Records created before error: {telemetry_created:,}"
+                )
+            )
             if self.verbose:
                 traceback.print_exc()
             sys.exit(1)
