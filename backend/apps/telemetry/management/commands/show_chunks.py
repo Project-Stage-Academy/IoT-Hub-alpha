@@ -1,8 +1,10 @@
 """
-Show TimescaleDB chunks for telemetry table.
+Show TimescaleDB chunks for any hypertable.
 
 Usage:
-  python manage.py show_chunks
+  python manage.py show_chunks                                # Show telemetry chunks (default)
+  python manage.py show_chunks --table-name=rules            # Show rules chunks
+  python manage.py show_chunks --table-name=devices          # Show devices chunks
   docker compose exec -T web python manage.py show_chunks
 """
 
@@ -11,13 +13,22 @@ from django.db import connection
 
 
 class Command(BaseCommand):
-    help = "Display TimescaleDB chunk information for telemetry hypertable"
+    help = "Display TimescaleDB chunk information for any hypertable"
+
+    def add_arguments(self, parser):
+        parser.add_argument(
+            '--table-name',
+            type=str,
+            default='telemetry',
+            help='Hypertable name to display chunks for (default: telemetry)',
+        )
 
     def handle(self, *args, **options):
         """Show chunk details from TimescaleDB."""
+        table_name = options['table_name']
 
         with connection.cursor() as cursor:
-            # Get chunk information
+            # Get chunk information using parameterized query
             cursor.execute(
                 """
                 SELECT
@@ -28,19 +39,20 @@ class Command(BaseCommand):
                     (range_end - range_start) as duration,
                     is_compressed
                 FROM timescaledb_information.chunks
-                WHERE hypertable_name = 'telemetry'
+                WHERE hypertable_name = %s
                 ORDER BY range_start
-            """
+            """,
+                [table_name],
             )
 
             chunks = cursor.fetchall()
 
             if not chunks:
-                self.stdout.write("⚠ No chunks found!")
+                self.stdout.write(f"⚠ No chunks found for '{table_name}'!")
                 return
 
             self.stdout.write("\n" + "=" * 100)
-            self.stdout.write("TimescaleDB Chunks for 'telemetry' Hypertable")
+            self.stdout.write(f"TimescaleDB Chunks for '{table_name}' Hypertable")
             self.stdout.write("=" * 100 + "\n")
 
             for schema, name, start, end, duration, compressed in chunks:
@@ -51,11 +63,12 @@ class Command(BaseCommand):
                 self.stdout.write(f"  Duration: {duration}")
                 self.stdout.write(f"  Status: {status}\n")
 
-            # Show index sizes
+            # Show index sizes (filtered by table name)
             self.stdout.write("\n" + "=" * 100)
             self.stdout.write("Index Sizes per Chunk")
             self.stdout.write("=" * 100 + "\n")
 
+            # Use parameterized query with filtering by hypertable
             cursor.execute(
                 """
                 SELECT
@@ -66,8 +79,14 @@ class Command(BaseCommand):
                 JOIN pg_index idx ON t.oid = idx.indrelid
                 JOIN pg_class i ON i.oid = idx.indexrelid
                 WHERE t.relname LIKE '_hyper_%'
+                AND t.oid IN (
+                    SELECT chunk_relid
+                    FROM timescaledb_information.chunks
+                    WHERE hypertable_name = %s
+                )
                 ORDER BY t.relname, pg_relation_size(i.oid) DESC
-            """
+            """,
+                [table_name],
             )
 
             index_data = cursor.fetchall()
@@ -87,26 +106,31 @@ class Command(BaseCommand):
             self.stdout.write("Data Distribution")
             self.stdout.write("=" * 100 + "\n")
 
-            cursor.execute(
+            try:
+                # Use format for table name (cannot be parameterized in PostgreSQL)
+                # Note: table_name comes from command args, not user input, so it's safe
+                sql = f"""
+                    SELECT
+                        COUNT(*) as total_records,
+                        MIN(timestamp) as earliest,
+                        MAX(timestamp) as latest,
+                        COUNT(DISTINCT device_id) as unique_devices
+                    FROM {table_name}
                 """
-                SELECT
-                    COUNT(*) as total_records,
-                    MIN(timestamp) as earliest,
-                    MAX(timestamp) as latest,
-                    COUNT(DISTINCT device_id) as unique_devices
-                FROM telemetry
-            """
-            )
+                cursor.execute(sql)
 
-            result = cursor.fetchone()
-            if result:
-                total, earliest, latest, devices = result
-                self.stdout.write(f"Total Records: {total:,}")
-                self.stdout.write(f"Earliest: {earliest}")
-                self.stdout.write(f"Latest: {latest}")
-                self.stdout.write(f"Unique Devices: {devices}")
-            else:
-                self.stdout.write("No telemetry data found.")
+                result = cursor.fetchone()
+                if result:
+                    total, earliest, latest, devices = result
+                    self.stdout.write(f"Total Records: {total:,}")
+                    self.stdout.write(f"Earliest: {earliest}")
+                    self.stdout.write(f"Latest: {latest}")
+                    self.stdout.write(f"Unique Devices: {devices}")
+                else:
+                    self.stdout.write(f"No data found in '{table_name}'.")
+            except Exception as e:
+                self.stdout.write(f"⚠ Could not retrieve data distribution: {str(e)}")
+                self.stdout.write(f"   Exception Type: {type(e).__name__}")
 
             # Show compression policy
             self.stdout.write("\n" + "=" * 100)
@@ -140,5 +164,6 @@ class Command(BaseCommand):
                     )
             except Exception as e:
                 self.stdout.write(f"⚠ Could not retrieve policies: {str(e)}")
+                self.stdout.write(f"   Exception Type: {type(e).__name__}")
 
             self.stdout.write("=" * 100 + "\n")
