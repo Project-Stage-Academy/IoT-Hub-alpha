@@ -4,7 +4,7 @@ from typing import Any
 from time import perf_counter
 from .data_structures import ParsedArgs, Config
 from .helpers import get_data_from_demos
-from .senders import HttpSender, MqttSender
+from .senders import HttpSender, MqttPublisher
 from .runner import run_loop
 from .reporting import Reporter
 
@@ -30,7 +30,7 @@ def main_sim(raw: Any, config: Config) -> None:
 
         sender = HttpSender(base_url=parsed_data.url, timeout=raw.default_timeout)
     elif parsed_data.mode.lower() == "mqtt":
-        sender = MqttSender(topic=config.mqtt_topic)
+        sender = MqttPublisher(topic=config.mqtt_topic)
     else:
         raise ValueError("Mode not recognized")
 

@@ -36,13 +36,12 @@ class HttpSender(Sender):
     def send(
         self, item: PayloadEnvelope, session: requests.Session | None
     ) -> SendResult:
+        start = time.perf_counter()
 
         if not session or not isinstance(session, requests.Session):
-            raise ValueError("Bad session")
+            self._fail(item, start, "connect_timeout", None)
 
-        start = time.perf_counter()
-        if not session:
-            raise ValueError("Session failed to initialize")
+        
         try:
             response = session.post(
                 self.base_url,
@@ -78,19 +77,19 @@ class HttpSender(Sender):
             return self._fail(item, start, "request_exception", exc)
 
     def _fail(
-        self, item: PayloadEnvelope, start: float, error_type: str, exc: Exception
+        self, item: PayloadEnvelope, start: float, error_type: str, exc: Exception | None
     ) -> SendResult:
         latency = int((time.perf_counter() - start) * 1000)
         return SendResult(
             code_got=None,
             code_expected=item.expected,
-            status="FAIL",
+            status="Fail",
             latency=latency,
             error=error_type,
         )
 
 
-class MqttSender(Sender):
+class MqttPublisher(Sender):
     """
     mqtt sender
     """
@@ -102,23 +101,32 @@ class MqttSender(Sender):
         self, item: PayloadEnvelope, session: requests.Session | mqtt.Client | None
     ) -> SendResult:
 
+        start = time.perf_counter()
+
         if not session or not isinstance(session, mqtt.Client):
             raise ValueError("Bad session")
-
-        topic = f'{self.topic.strip("/")}/{item.data.ssn if item.data.ssn else "error"}'
-        start = time.perf_counter()
-        info = session.publish(topic, item.data.model_dump_json())
-        info.wait_for_publish(timeout=5)
-        latency = int((time.perf_counter() - start) * 1000)
-        time.sleep(0.1)
-        
-        if info.rc != mqtt.MQTT_ERR_SUCCESS:
-            print("publish failed:", info.rc)
-        
-        return SendResult(
-            code_got=info.rc,
-            code_expected=0 if str(item.expected).startswith("2") else 1,
-            status="Pass" if info.rc else "Fail",
-            latency=latency,
-            error=None,
-        )
+        try:
+            topic = f'{self.topic.strip("/")}/{item.data.ssn if item.data.ssn else "error"}'
+            info = session.publish(topic, item.data.model_dump_json())
+            info.wait_for_publish(timeout=5)
+            latency = int((time.perf_counter() - start) * 1000)
+            time.sleep(0.1)
+            
+            if info.rc != mqtt.MQTT_ERR_SUCCESS:
+                print("publish failed:", info.rc)
+            
+            return SendResult(
+                code_got=info.rc,
+                code_expected=0,
+                status="Pass" if info.rc == 0 else "Fail",
+                latency=latency,
+                error=None,
+            )
+        except RuntimeError as e:
+            return SendResult(
+                code_got=1,
+                code_expected=0,
+                status="Fail",
+                latency=0,
+                error=str(e),
+            )
