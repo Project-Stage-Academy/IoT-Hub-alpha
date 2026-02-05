@@ -233,8 +233,8 @@ class Command(BaseCommand):
                         )
                         all_telemetry.extend(batch_data)
 
-                    # Insert batch using execute_batch for optimal performance and safety
-                    # Bypasses Django ORM auto_now_add constraint with raw SQL
+                    # Insert batch using execute_batch for performance
+                    # Bypasses Django ORM auto_now_add with raw SQL
                     if all_telemetry:
                         # Prepare values as tuples (device_id, timestamp, payload_json)
                         values = [
@@ -246,11 +246,15 @@ class Command(BaseCommand):
                             for record in all_telemetry
                         ]
 
-                        # Use execute_batch with page_size control for safe batch insert
-                        # page_size=100 means max 100 records per INSERT to avoid SQL size limits
+                        # Use execute_batch with page_size control
+                        # Limits SQL statement size by inserting max 100 rows per query
                         execute_batch(
                             cursor,
-                            "INSERT INTO telemetry (device_id, timestamp, payload) VALUES (%s, %s, %s)",
+                            (
+                                "INSERT INTO telemetry "
+                                "(device_id, timestamp, payload) "
+                                "VALUES (%s, %s, %s)"
+                            ),
                             values,
                             page_size=100,
                         )

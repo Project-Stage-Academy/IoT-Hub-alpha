@@ -2,9 +2,9 @@
 Show TimescaleDB chunks for any hypertable.
 
 Usage:
-  python manage.py show_chunks                                # Show telemetry chunks (default)
-  python manage.py show_chunks --table-name=rules            # Show rules chunks
-  python manage.py show_chunks --table-name=devices          # Show devices chunks
+  python manage.py show_chunks  # Show telemetry chunks (default)
+  python manage.py show_chunks --table-name=rules  # Show rules chunks
+  python manage.py show_chunks --table-name=devices  # Show devices chunks
   docker compose exec -T web python manage.py show_chunks
 """
 
@@ -115,8 +115,8 @@ class Command(BaseCommand):
 
             try:
                 # Get data distribution stats
-                # Note: table_name is from command args (not user input) and validated
-                # For table names, we must use identifier quoting, not parameter substitution
+                # Note: table_name is from command args (not user input)
+                # Use identifier quoting for table names, not parameter substitution
                 from psycopg2 import sql as psycopg2_sql
 
                 query = psycopg2_sql.SQL(

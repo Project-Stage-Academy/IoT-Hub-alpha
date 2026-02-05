@@ -77,7 +77,10 @@ class Command(BaseCommand):
                     placeholders = ",".join(["%s"] * len(chunk_names))
                     sql = f"""
                         SELECT chunk_name, pg_total_relation_size(
-                            (quote_ident(chunk_schema) || '.' || quote_ident(chunk_name))::regclass
+                            (
+                                quote_ident(chunk_schema) || '.' ||
+                                quote_ident(chunk_name)
+                            )::regclass
                         ) as size
                         FROM timescaledb_information.chunks
                         WHERE hypertable_name = 'telemetry'
