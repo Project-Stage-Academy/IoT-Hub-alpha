@@ -17,15 +17,15 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument(
-            '--table-name',
+            "--table-name",
             type=str,
-            default='telemetry',
-            help='Hypertable name to display chunks for (default: telemetry)',
+            default="telemetry",
+            help="Hypertable name to display chunks for (default: telemetry)",
         )
 
     def handle(self, *args, **options):
         """Show chunk details from TimescaleDB."""
-        table_name = options['table_name']
+        table_name = options.get("table_name") or "telemetry"
 
         with connection.cursor() as cursor:
             # Get chunk information using parameterized query
@@ -68,38 +68,45 @@ class Command(BaseCommand):
             self.stdout.write("Index Sizes per Chunk")
             self.stdout.write("=" * 100 + "\n")
 
-            # Use parameterized query with filtering by hypertable
-            cursor.execute(
-                """
-                SELECT
-                    t.relname as chunk_name,
-                    i.relname as index_name,
-                    pg_size_pretty(pg_relation_size(i.oid)) as size
-                FROM pg_class t
-                JOIN pg_index idx ON t.oid = idx.indrelid
-                JOIN pg_class i ON i.oid = idx.indexrelid
-                WHERE t.relname LIKE '_hyper_%'
-                AND t.oid IN (
-                    SELECT chunk_relid
-                    FROM timescaledb_information.chunks
-                    WHERE hypertable_name = %s
+            try:
+                # Use parameterized query with filtering by hypertable
+                # Get index sizes for chunks using schema and chunk name
+                cursor.execute(
+                    """
+                    SELECT
+                        t.relname as chunk_name,
+                        i.relname as index_name,
+                        pg_size_pretty(pg_relation_size(i.oid)) as size
+                    FROM pg_class t
+                    JOIN pg_namespace nt ON t.relnamespace = nt.oid
+                    JOIN pg_index idx ON t.oid = idx.indrelid
+                    JOIN pg_class i ON i.oid = idx.indexrelid
+                    JOIN timescaledb_information.chunks ch ON (
+                        ch.chunk_schema = nt.nspname AND ch.chunk_name = t.relname
+                    )
+                    WHERE ch.hypertable_name = %s
+                    ORDER BY t.relname, pg_relation_size(i.oid) DESC
+                """,
+                    [table_name],
                 )
-                ORDER BY t.relname, pg_relation_size(i.oid) DESC
-            """,
-                [table_name],
-            )
 
-            index_data = cursor.fetchall()
+                index_data = cursor.fetchall()
 
-            current_chunk = None
-            for chunk_name, index_name, size in index_data:
-                if chunk_name != current_chunk:
-                    if current_chunk:
-                        self.stdout.write("")
-                    current_chunk = chunk_name
-                    self.stdout.write(f"{chunk_name}:")
+                if index_data:
+                    current_chunk = None
+                    for chunk_name, index_name, size in index_data:
+                        if chunk_name != current_chunk:
+                            if current_chunk:
+                                self.stdout.write("")
+                            current_chunk = chunk_name
+                            self.stdout.write(f"{chunk_name}:")
 
-                self.stdout.write(f"  {index_name}: {size}")
+                        self.stdout.write(f"  {index_name}: {size}")
+                else:
+                    self.stdout.write("No indexes found for chunks.")
+            except Exception as e:
+                self.stdout.write(f"⚠ Could not retrieve index sizes: {str(e)}")
+                self.stdout.write(f"   Exception Type: {type(e).__name__}")
 
             # Show record count and data distribution
             self.stdout.write("\n" + "=" * 100)
@@ -107,17 +114,19 @@ class Command(BaseCommand):
             self.stdout.write("=" * 100 + "\n")
 
             try:
-                # Use format for table name (cannot be parameterized in PostgreSQL)
-                # Note: table_name comes from command args, not user input, so it's safe
-                sql = f"""
+                # Get data distribution stats
+                # Note: table_name is from command args (not user input) and validated
+                # For table names, we must use identifier quoting, not parameter substitution
+                from psycopg2 import sql as psycopg2_sql
+                query = psycopg2_sql.SQL("""
                     SELECT
                         COUNT(*) as total_records,
                         MIN(timestamp) as earliest,
                         MAX(timestamp) as latest,
                         COUNT(DISTINCT device_id) as unique_devices
-                    FROM {table_name}
-                """
-                cursor.execute(sql)
+                    FROM {}
+                """).format(psycopg2_sql.Identifier(table_name))
+                cursor.execute(query.as_string(cursor.connection))
 
                 result = cursor.fetchone()
                 if result:
