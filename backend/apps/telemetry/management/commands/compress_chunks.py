@@ -21,6 +21,7 @@ from datetime import timedelta
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 from django.db import connection
+from psycopg2 import sql
 
 
 class Command(BaseCommand):
@@ -75,7 +76,7 @@ class Command(BaseCommand):
                     # Build dynamic IN clause with proper parameterization
                     chunk_names = [chunk[0] for chunk in chunks]
                     placeholders = ",".join(["%s"] * len(chunk_names))
-                    sql = f"""
+                    sql_query = """
                         SELECT chunk_name, pg_total_relation_size(
                             (
                                 quote_ident(chunk_schema) || '.' ||
@@ -84,9 +85,9 @@ class Command(BaseCommand):
                         ) as size
                         FROM timescaledb_information.chunks
                         WHERE hypertable_name = 'telemetry'
-                        AND chunk_name IN ({placeholders})
-                    """
-                    cursor.execute(sql, chunk_names)
+                        AND chunk_name IN ({})
+                    """.format(placeholders)
+                    cursor.execute(sql_query, chunk_names)
                     # Build dictionary: chunk_name -> size_in_mb
                     for chunk_name, size in cursor.fetchall():
                         chunk_sizes[chunk_name] = size / (1024 * 1024)  # Convert to MB
@@ -148,21 +149,18 @@ class Command(BaseCommand):
             for chunk_tuple in chunks:
                 chunk_name, chunk_schema, start, end, _ = chunk_tuple
                 try:
-                    # Build full chunk name safely
-                    full_chunk_name = f'"{chunk_schema}"."{chunk_name}"'
-
-                    # Compress the chunk
-                    cursor.execute(f"SELECT compress_chunk('{full_chunk_name}')")
+                    # Compress the chunk using parameterized query
+                    compress_stmt = sql.SQL("SELECT compress_chunk({})").format(
+                        sql.Identifier(chunk_schema, chunk_name)
+                    )
+                    cursor.execute(compress_stmt.as_string(cursor.connection))
                     cursor.fetchall()  # Clear cursor results
 
-                    # Get size after compression
-                    cursor.execute(
-                        f"""
-                        SELECT pg_total_relation_size(
-                            '{full_chunk_name}'::regclass
-                        ) as size
-                    """
-                    )
+                    # Get size after compression using parameterized query
+                    size_stmt = sql.SQL(
+                        "SELECT pg_total_relation_size({})::bigint as size"
+                    ).format(sql.Identifier(chunk_schema, chunk_name))
+                    cursor.execute(size_stmt.as_string(cursor.connection))
 
                     size_result = cursor.fetchone()
                     size_after = size_result[0] / (1024 * 1024) if size_result else 0
