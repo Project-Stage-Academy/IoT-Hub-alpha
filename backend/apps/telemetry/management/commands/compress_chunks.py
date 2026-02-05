@@ -53,6 +53,7 @@ class Command(BaseCommand):
                 """
                 SELECT
                     chunk_name,
+                    chunk_schema,
                     range_start::timestamp as chunk_start,
                     range_end::timestamp as chunk_end,
                     is_compressed
@@ -66,6 +67,33 @@ class Command(BaseCommand):
             )
 
             chunks = cursor.fetchall()
+
+            # Build chunk_sizes dictionary - fetch all sizes in ONE query (optimize N+1)
+            chunk_sizes = {}
+            if chunks:
+                try:
+                    # Build dynamic IN clause with proper parameterization
+                    chunk_names = [chunk[0] for chunk in chunks]
+                    placeholders = ','.join(['%s'] * len(chunk_names))
+                    sql = f"""
+                        SELECT chunk_name, pg_total_relation_size(
+                            (quote_ident(chunk_schema) || '.' || quote_ident(chunk_name))::regclass
+                        ) as size
+                        FROM timescaledb_information.chunks
+                        WHERE hypertable_name = 'telemetry'
+                        AND chunk_name IN ({placeholders})
+                    """
+                    cursor.execute(sql, chunk_names)
+                    # Build dictionary: chunk_name -> size_in_mb
+                    for chunk_name, size in cursor.fetchall():
+                        chunk_sizes[chunk_name] = size / (1024 * 1024)  # Convert to MB
+                except Exception as e:
+                    # If batch query fails, set all to 0
+                    self.stdout.write(
+                        self.style.WARNING(f"⚠ Warning: Could not fetch chunk sizes: {str(e)}")
+                    )
+                    for chunk in chunks:
+                        chunk_sizes[chunk[0]] = 0
 
             if not chunks:
                 self.stdout.write(
@@ -90,23 +118,8 @@ class Command(BaseCommand):
             )
 
             total_before = 0
-            chunk_sizes = {}  # Store size_before for each chunk
-            for chunk_name, start, end, compressed in chunks:
-                # Get chunk size before compression
-                cursor.execute(
-                    """
-                    SELECT pg_total_relation_size(
-                        format('%I.%I', chunk_schema, %s)::regclass
-                    ) as size
-                    FROM timescaledb_information.chunks
-                    WHERE chunk_name = %s
-                    LIMIT 1
-                """,
-                    [chunk_name, chunk_name],
-                )
-
-                size_before = cursor.fetchone()[0] / (1024 * 1024)  # Convert to MB
-                chunk_sizes[chunk_name] = size_before
+            for chunk_name, _, start, end, _ in chunks:
+                size_before = chunk_sizes.get(chunk_name, 0)
                 total_before += size_before
 
                 self.stdout.write(f"  {chunk_name}")
@@ -127,39 +140,33 @@ class Command(BaseCommand):
             self.stdout.write(f"\nCompressing {len(chunks)} chunks...\n")
 
             total_after = 0
-            for chunk_name, start, end, compressed in chunks:
+            for chunk_tuple in chunks:
+                chunk_name, chunk_schema, start, end, _ = chunk_tuple
                 try:
-                    # Get chunk full name (schema.name)
-                    cursor.execute(
-                        """
-                        SELECT format('%I.%I', chunk_schema, chunk_name)::text
-                        FROM timescaledb_information.chunks
-                        WHERE chunk_name = %s
-                        LIMIT 1
-                    """,
-                        [chunk_name],
-                    )
-
-                    full_chunk_name = cursor.fetchone()[0]
+                    # Build full chunk name safely
+                    full_chunk_name = f'"{chunk_schema}"."{chunk_name}"'
 
                     # Compress the chunk
-                    cursor.execute("SELECT compress_chunk(%s)", [full_chunk_name])
+                    cursor.execute(
+                        f"SELECT compress_chunk('{full_chunk_name}')"
+                    )
+                    cursor.fetchall()  # Clear cursor results
 
                     # Get size after compression
                     cursor.execute(
-                        """
+                        f"""
                         SELECT pg_total_relation_size(
-                            %s::regclass
+                            '{full_chunk_name}'::regclass
                         ) as size
-                    """,
-                        [full_chunk_name]
+                    """
                     )
 
-                    size_after = cursor.fetchone()[0] / (1024 * 1024)  # Convert to MB
+                    size_result = cursor.fetchone()
+                    size_after = size_result[0] / (1024 * 1024) if size_result else 0
                     total_after += size_after
 
                     # Stored size_before from initial calculation
-                    size_before = chunk_sizes[chunk_name]
+                    size_before = chunk_sizes.get(chunk_name, 0)
 
                     reduction = (
                         ((size_before - size_after) / size_before * 100)
