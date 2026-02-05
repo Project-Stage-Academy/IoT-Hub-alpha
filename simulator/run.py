@@ -29,8 +29,9 @@ def main() -> None:
         prog="Data Sending Simulator",
         usage="How to",
         description=(
-            f"Send test telemetry data to HTTP/MQTT endpoint \n"
-            f"supports infinite data stream, checks responses and compares them to set values, can preform loadtesting"
+            "Send test telemetry data to HTTP/MQTT endpoint \n"
+            "supports infinite data stream, checks responses and "
+            "compares them to set values, can preform loadtesting"
         ),
         epilog="For further info consult docs/simulator.md",
     )

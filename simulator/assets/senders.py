@@ -13,7 +13,6 @@ from requests.exceptions import (
 )
 
 
-
 class Sender(Protocol):
     """
     Common http/mqtt interface
@@ -21,7 +20,8 @@ class Sender(Protocol):
 
     def send(
         self, item: PayloadEnvelope, session: requests.Session | mqtt.Client | None
-    ) -> SendResult: ...
+    ) -> SendResult:
+        ...
 
 
 class HttpSender(Sender):
@@ -36,10 +36,10 @@ class HttpSender(Sender):
     def send(
         self, item: PayloadEnvelope, session: requests.Session | None
     ) -> SendResult:
-        
+
         if not session or not isinstance(session, requests.Session):
             raise ValueError("Bad session")
-        
+
         start = time.perf_counter()
         if not session:
             raise ValueError("Session failed to initialize")
@@ -95,28 +95,30 @@ class MqttSender(Sender):
     mqtt sender
     """
 
-
     def __init__(self, topic: str) -> None:
         self.topic = topic
-
 
     def send(
         self, item: PayloadEnvelope, session: requests.Session | mqtt.Client | None
     ) -> SendResult:
-        
+
         if not session or not isinstance(session, mqtt.Client):
             raise ValueError("Bad session")
-        
+
         topic = f'{self.topic.strip("/")}/{item.data.ssn if item.data.ssn else "error"}'
         start = time.perf_counter()
         info = session.publish(topic, item.data.model_dump_json())
         info.wait_for_publish(timeout=5)
         latency = int((time.perf_counter() - start) * 1000)
         time.sleep(0.1)
+        
+        if info.rc != mqtt.MQTT_ERR_SUCCESS:
+            print("publish failed:", info.rc)
+        
         return SendResult(
-            code_got = info.rc,
-            code_expected = 0 if str(item.expected).startswith("2") else 1,
-            status = "Pass" if info.rc else "Fail",
-            latency = latency,
-            error = None
+            code_got=info.rc,
+            code_expected=0 if str(item.expected).startswith("2") else 1,
+            status="Pass" if info.rc else "Fail",
+            latency=latency,
+            error=None,
         )

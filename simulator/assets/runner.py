@@ -6,8 +6,6 @@ from .data_structures import Config, PayloadEnvelope, RunStats
 from .session_connection import SessionContext
 
 
-
-
 def run_loop(
     config: Config,
     mode: str,
