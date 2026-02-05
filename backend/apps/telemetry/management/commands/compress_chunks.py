@@ -90,6 +90,7 @@ class Command(BaseCommand):
             )
 
             total_before = 0
+            chunk_sizes = {}  # Store size_before for each chunk
             for chunk_name, start, end, compressed in chunks:
                 # Get chunk size before compression
                 cursor.execute(
@@ -105,6 +106,7 @@ class Command(BaseCommand):
                 )
 
                 size_before = cursor.fetchone()[0] / (1024 * 1024)  # Convert to MB
+                chunk_sizes[chunk_name] = size_before
                 total_before += size_before
 
                 self.stdout.write(f"  {chunk_name}")
@@ -155,20 +157,8 @@ class Command(BaseCommand):
                     size_after = cursor.fetchone()[0] / (1024 * 1024)  # Convert to MB
                     total_after += size_after
 
-                    # Get size before for comparison
-                    cursor.execute(
-                        """
-                        SELECT pg_total_relation_size(
-                            format('%I.%I', chunk_schema, %s)::regclass
-                        ) as size
-                        FROM timescaledb_information.chunks
-                        WHERE chunk_name = %s
-                        LIMIT 1
-                    """,
-                        [chunk_name, chunk_name],
-                    )
-
-                    size_before = cursor.fetchone()[0] / (1024 * 1024)
+                    # Stored size_before from initial calculation
+                    size_before = chunk_sizes[chunk_name]
 
                     reduction = (
                         ((size_before - size_after) / size_before * 100)
