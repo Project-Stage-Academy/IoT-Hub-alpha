@@ -108,6 +108,27 @@ Booleans: true/false
 
 Envelopes present on pagination, for more information go to [Pagination](#8-pagination)
 
+### `6.4 Telemetry Ingest Example`
+
+Request:
+```http
+POST /api/v1/telemetry
+Content-Type: application/json
+X-Device-Serial-Number: SN2224412
+```
+```json
+{
+  "value": 2432,
+  "schema_version": "1.0"
+}
+```
+
+Rules:
+- `X-Device-Serial-Number` header is REQUIRED
+- Device identifiers MUST NOT appear in the request body
+- Requests missing the header MUST return `400 Bad Request`
+
+
 ## `7) Authentication & Authorization`
 
 Auth type: JWT
@@ -132,7 +153,21 @@ Example:
 GET /api/v1/devices
 Authorization: Bearer <token>
 ```
+### Telemetry ingest endpoint (POST /telemetry)
 
+The telemetry ingest endpoint **does NOT require JWT authentication**.
+
+Device identity is provided via the request header:
+
+X-Device-Serial-Number
+
+The backend validates the device based on this header value.
+
+```
+POST /api/v1/telemetry
+X-Device-Serial-Number: SN2224412
+Content-Type: application/json
+```
 ## `8) Pagination`
 
 ### Overview
@@ -150,6 +185,7 @@ Pagination applies to collection endpoints such as:
 
 - `GET /api/v1/devices`
 - `GET /api/v1/telemetry`
+- `GET /api/v1/rules`
 
 ---
 
@@ -372,9 +408,13 @@ telemetry POST requests returns 202 with no body
 
 - Numbers - integers are used for telemetry data which may represent floats
 for example, a thermometer will send its value(31.4) in such a way:
+Headers:
+```
+"X-Device-Serial-Number": "SN222331"
+```
+Body:
 ```
 {
-"ssn": "sn222432"
 "value": 3140
 }
 ``` 
@@ -382,6 +422,10 @@ for example, a thermometer will send its value(31.4) in such a way:
 - IDs - UUID for all API operations
 
 ## `13) Filtering, Searching, Sorting`
+
+Note:
+The device serial number MAY be included in telemetry responses for identification purposes.
+However, it MUST NOT be included in telemetry POST request bodies.
 
 Resource access is currently supported on:
 - devices endpoint using a url parameter of {id}
