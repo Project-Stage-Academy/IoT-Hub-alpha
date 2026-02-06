@@ -1,6 +1,7 @@
 from typing import Any
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
+import logging
 
 from django.forms.models import model_to_dict
 from django.core.exceptions import ValidationError
@@ -8,6 +9,11 @@ from django.utils.dateparse import parse_datetime
 
 from .models import Telemetry
 from apps.devices.models import Device
+
+logger = logging.getLogger(__name__)
+
+
+SUPPORTED_SCHEMA_VERSIONS = ["1.0"]
 
 
 class TelemetrySerializer:
@@ -38,24 +44,30 @@ class TelemetrySerializer:
     def _validate_required_fields(self) -> dict[str, str]:
         errors = {}
 
-        if not self.data.get("device_id"):
-            errors["device_id"] = "This field is required."
+        if not self.data.get("serial_number"):
+            errors["serial_number"] = "This field is required."
 
         if not self.data.get("schema_version"):
             errors["schema_version"] = "This field is required."
 
-        if self.data.get("payload") is None:
-            errors["payload"] = "This field is required."
+        schema_version = self.data.get("schema_version")
+        if schema_version and schema_version not in SUPPORTED_SCHEMA_VERSIONS:
+            errors["schema_version"] = (
+                f"Unsupported schema version. Supported: {SUPPORTED_SCHEMA_VERSIONS}"
+            )
 
         return errors
 
-    def _get_device(self, device_id: str) -> Device:
+    def _get_device(self, serial_number: str) -> Device:
         try:
-            return Device.objects.get(id=device_id)
+            return Device.objects.get(serial_number=serial_number)
         except Device.DoesNotExist:
-            raise ValidationError(
-                {"device_id": f"Device with id '{device_id}' does not exist."}
+            logger.warning(
+                "Device not found",
+                extra={"serial_number": serial_number},
+                stack_info=False,
             )
+            raise ValidationError({"device": "Invalid device"})
 
     def _normalize_value(self, value: Any) -> float:
         try:
@@ -94,15 +106,11 @@ class TelemetrySerializer:
         if errors:
             raise ValidationError(errors)
 
-        device = self._get_device(self.data["device_id"])
+        device = self._get_device(self.data["serial_number"])
 
-        cleaned_payload = (
-            dict(self.data["payload"]) if isinstance(self.data["payload"], dict) else {}
-        )
+        cleaned_payload = {}
         cleaned_payload["schema_version"] = self.data["schema_version"]
-
-        if "serial_number" in self.data:
-            cleaned_payload["serial_number"] = self.data["serial_number"]
+        cleaned_payload["serial_number"] = self.data["serial_number"]
 
         if "value" in self.data:
             cleaned_payload["value"] = self._normalize_value(self.data["value"])

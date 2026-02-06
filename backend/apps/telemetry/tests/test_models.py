@@ -1,46 +1,23 @@
 import pytest
-from apps.devices.models import Device, DeviceType
 from apps.telemetry.models import Telemetry
-
-
-@pytest.fixture
-def device_type(db):
-    return DeviceType.objects.create(
-        name="Temperature Sensor",
-        metric_name="temperature",
-        metric_unit="Celsius",
-        metric_min="-40.0",
-        metric_max="125.0",
-    )
-
-
-@pytest.fixture
-def device(db, device_type):
-    return Device.objects.create(
-        name="Test Device",
-        serial_number="TEST123456",
-        device_type=device_type,
-        location="Workshop 1",
-        status="active",
-    )
 
 
 @pytest.mark.django_db
 class TestTelemetryModel:
     def test_create_telemetry(self, device):
         telemetry = Telemetry.objects.create(
-            device=device, payload={"schema_version": "0.0.1", "value": 42.5}
+            device=device, payload={"schema_version": "1.0", "value": 42.5}
         )
 
         assert telemetry.id is not None
         assert telemetry.device == device
-        assert telemetry.payload["schema_version"] == "0.0.1"
+        assert telemetry.payload["schema_version"] == "1.0"
         assert telemetry.payload["value"] == 42.5
         assert telemetry.timestamp is not None
 
     def test_telemetry_str_representation(self, device):
         telemetry = Telemetry.objects.create(
-            device=device, payload={"schema_version": "0.0.1"}
+            device=device, payload={"schema_version": "1.0"}
         )
 
         str_repr = str(telemetry)
@@ -49,13 +26,13 @@ class TestTelemetryModel:
 
     def test_telemetry_ordering(self, device):
         t1 = Telemetry.objects.create(
-            device=device, payload={"schema_version": "0.0.1", "value": 1}
+            device=device, payload={"schema_version": "1.0", "value": 1}
         )
         t2 = Telemetry.objects.create(
-            device=device, payload={"schema_version": "0.0.1", "value": 2}
+            device=device, payload={"schema_version": "1.0", "value": 2}
         )
         t3 = Telemetry.objects.create(
-            device=device, payload={"schema_version": "0.0.1", "value": 3}
+            device=device, payload={"schema_version": "1.0", "value": 3}
         )
 
         telemetry_list = list(Telemetry.objects.all())
@@ -65,7 +42,7 @@ class TestTelemetryModel:
 
     def test_telemetry_device_cascade_delete(self, device):
         telemetry = Telemetry.objects.create(
-            device=device, payload={"schema_version": "0.0.1"}
+            device=device, payload={"schema_version": "1.0"}
         )
 
         telemetry_id = telemetry.id

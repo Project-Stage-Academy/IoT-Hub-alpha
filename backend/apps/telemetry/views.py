@@ -5,12 +5,9 @@ from django.http import JsonResponse
 from django.views import View
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
-from django.core.exceptions import ValidationError
-from django.db import transaction, DatabaseError, IntegrityError
+from django.db import DatabaseError, IntegrityError
 from django.conf import settings
 
-from .serializer import TelemetrySerializer
-from .models import Telemetry
 from .tasks import ingest_telemetry_batch_async
 from .services import (
     TelemetryValidator,
@@ -31,8 +28,21 @@ class TelemetryIngestView(View):
         except json.JSONDecodeError:
             return JsonResponse({"error": "Invalid JSON payload"}, status=400)
 
+        serial_number = request.headers.get("X-Device-Serial-Number")
+        if not serial_number:
+            return JsonResponse(
+                {"error": "X-Device-Serial-Number header is required"}, status=400
+            )
+
         idempotency_key = request.headers.get("Idempotency-Key")
         is_batch = isinstance(data, list)
+
+        # Inject serial_number into data for serializer
+        if is_batch:
+            for item in data:
+                item["serial_number"] = serial_number
+        else:
+            data["serial_number"] = serial_number
 
         if is_batch and len(data) > settings.TELEMETRY_MAX_BATCH_SIZE:
             return JsonResponse(
@@ -62,25 +72,29 @@ class TelemetryIngestView(View):
     def _handle_db_errors(self, error: Exception, context: str) -> JsonResponse:
         """Handle database errors with appropriate status codes and logging."""
         if isinstance(error, IntegrityError):
-            logger.error(f"Database integrity error in {context}", exc_info=True)
-            return JsonResponse(
-                {"error": "Data integrity error", "details": str(error)}, status=409
+            logger.exception(
+                "Database integrity error",
+                extra={"context": context, "error_type": error.__class__.__name__},
             )
+            return JsonResponse({"error": "Processing failed"}, status=409)
         elif isinstance(error, DatabaseError):
-            logger.error(f"Database error in {context}", exc_info=True)
-            return JsonResponse(
-                {"error": "Database error", "details": str(error)}, status=503
+            logger.exception(
+                "Database error",
+                extra={"context": context, "error_type": error.__class__.__name__},
             )
+            return JsonResponse({"error": "Processing failed"}, status=503)
         elif isinstance(error, (ValueError, TypeError)):
-            logger.error(f"Invalid data type in {context}", exc_info=True)
-            return JsonResponse(
-                {"error": "Invalid data format", "details": str(error)}, status=400
+            logger.exception(
+                "Invalid data type",
+                extra={"context": context, "error_type": error.__class__.__name__},
             )
+            return JsonResponse({"error": "Invalid data"}, status=400)
         else:
-            logger.exception(f"Unexpected error in {context}")
-            return JsonResponse(
-                {"error": "Internal server error", "details": str(error)}, status=500
+            logger.exception(
+                "Unexpected error",
+                extra={"context": context, "error_type": error.__class__.__name__},
             )
+            return JsonResponse({"error": "Processing failed"}, status=500)
 
     def _handle_single_sync(self, data: dict, idempotency_key: str | None):
         validated, error = TelemetryValidator.validate_single(data)
@@ -127,8 +141,18 @@ class TelemetryIngestView(View):
             )
             return JsonResponse(error_response, status=400)
 
+        serialized_items = []
+        for item in validated_items:
+            serialized = {
+                "device_id": str(item["device"].id),
+                "payload": item["payload"],
+            }
+            if "timestamp" in item:
+                serialized["timestamp"] = item["timestamp"].isoformat()
+            serialized_items.append(serialized)
+
         try:
-            task = ingest_telemetry_batch_async.delay(items_to_validate, request_id)
+            task = ingest_telemetry_batch_async.delay(serialized_items, request_id)
             task_id = task.id
         except (ConnectionError, TimeoutError) as e:
             logger.error(

@@ -53,7 +53,7 @@ paths:
 
         **Schema Versioning:**
         - `schema_version` is required and must be specified for all payloads
-        - Current supported versions: `0.0.1`
+        - Current supported versions: `1.0`
         - Schema version is stored in the JSONB payload for future migration compatibility
 
         **Idempotency:**
@@ -72,6 +72,13 @@ paths:
       operationId: TelemetrySubmit
       tags: [telemetry]
       parameters:
+        - name: X-Device-Serial-Number
+          in: header
+          required: true
+          description: Serial number of the device submitting telemetry
+          schema:
+            type: string
+          example: "SN123456"
         - name: Idempotency-Key
           in: header
           required: false
@@ -91,24 +98,14 @@ paths:
               single:
                 summary: Single telemetry record
                 value:
-                  device_id: "a1b2c3d4-e5f6-7890-1234-567890abcdef"
-                  schema_version: "0.0.1"
-                  payload:
-                    temperature: 25.5
-                    humidity: 60
+                  schema_version: "1.0"
                   value: 25.5
               batch:
                 summary: Batch of telemetry records
                 value:
-                  - device_id: "a1b2c3d4-e5f6-7890-1234-567890abcdef"
-                    schema_version: "0.0.1"
-                    payload:
-                      temperature: 25.5
+                  - schema_version: "1.0"
                     value: 25.5
-                  - device_id: "a1b2c3d4-e5f6-7890-1234-567890abcdef"
-                    schema_version: "0.0.1"
-                    payload:
-                      temperature: 26.0
+                  - schema_version: "1.0"
                     value: 26.0
       responses:
         "201":
@@ -167,7 +164,7 @@ paths:
                   value:
                     error: "Validation failed"
                     details:
-                      device_id: ["This field is required."]
+                      schema_version: ["This field is required."]
                 batch_failed:
                   summary: Batch ingestion failed
                   value:
@@ -558,28 +555,17 @@ components:
     TelemetryPost:
       type: object
       required:
-        - value
         - schema_version
-        - payload
       properties:
-        device_id:
-          type: string
-          format: uuid
-          description: UUID of the device submitting telemetry
-          example: "a1b2c3d4-e5f6-7890-1234-567890abcdef"
         schema_version:
           type: string
-          description: Telemetry payload schema version
+          description: "Telemetry payload schema version. Supported: 1.0"
           example: "1.0"
         value:
           type: number
           format: float
           description: Optional numeric value to extract and store in payload
           example: 25.5
-        serial_number:
-          type: string
-          description: Optional device serial number
-          example: "SN123456"
         timestamp:
           type: string
           format: date-time
