@@ -1,9 +1,11 @@
 import logging
+from uuid import UUID
+
 from celery import shared_task
 from django.db import OperationalError, InterfaceError
 from django.db.utils import DatabaseError
+from django.utils.dateparse import parse_datetime
 
-from .serializer import TelemetrySerializer
 from .services import TelemetryBatchProcessor
 
 logger = logging.getLogger(__name__)
@@ -22,14 +24,13 @@ def ingest_telemetry_batch_async(self, batch_data: list, request_id: str) -> dic
         extra={"request_id": request_id, "batch_size": len(batch_data)},
     )
 
-    validated_items = []
     for item in batch_data:
-        serializer = TelemetrySerializer(data=item)
-        validated = serializer.validate_for_bulk()
-        validated_items.append(validated)
+        item["device_id"] = UUID(item["device_id"])
+        if "timestamp" in item:
+            item["timestamp"] = parse_datetime(item["timestamp"])
 
     try:
-        created = TelemetryBatchProcessor.process_batch(validated_items)
+        created = TelemetryBatchProcessor.process_batch(batch_data)
 
         created_ids = [obj.id for obj in created]
 

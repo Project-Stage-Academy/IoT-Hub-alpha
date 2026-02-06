@@ -1,42 +1,7 @@
 import json
 import pytest
 from unittest.mock import patch
-from django.test import Client
-from apps.devices.models import Device, DeviceType
 from apps.telemetry.models import Telemetry
-
-
-@pytest.fixture
-def device_type(db):
-    return DeviceType.objects.create(
-        name="Temperature Sensor",
-        metric_name="temperature",
-        metric_unit="Celsius",
-        metric_min="-40.0",
-        metric_max="125.0",
-    )
-
-
-@pytest.fixture
-def device(db, device_type):
-    return Device.objects.create(
-        name="Test Device",
-        serial_number="TEST123456",
-        device_type=device_type,
-        location="Workshop 1",
-        status="active",
-    )
-
-
-@pytest.fixture
-def client():
-    return Client()
-
-
-@pytest.fixture
-def sync_mode(settings):
-    settings.TELEMETRY_ASYNC_INGESTION = False
-    yield
 
 
 @pytest.mark.django_db
@@ -44,9 +9,7 @@ class TestTelemetryIngestionSyncMode:
 
     def test_single_ingestion_success(self, sync_mode, client, device):
         payload = {
-            "device_id": str(device.id),
-            "schema_version": "0.0.1",
-            "payload": {"temperature": 25.5},
+            "schema_version": "1.0",
             "value": 25.5,
         }
 
@@ -54,6 +17,7 @@ class TestTelemetryIngestionSyncMode:
             "/api/v1/telemetry/",
             data=json.dumps(payload),
             content_type="application/json",
+            HTTP_X_DEVICE_SERIAL_NUMBER=device.serial_number,
         )
 
         assert response.status_code == 201
@@ -66,20 +30,20 @@ class TestTelemetryIngestionSyncMode:
         assert Telemetry.objects.count() == 1
         telemetry = Telemetry.objects.first()
         assert telemetry.device == device
-        assert telemetry.payload["schema_version"] == "0.0.1"
+        assert telemetry.payload["schema_version"] == "1.0"
         assert telemetry.payload["value"] == 25.5
+        assert telemetry.payload["serial_number"] == device.serial_number
 
     def test_single_ingestion_with_idempotency_key(self, sync_mode, client, device):
         payload = {
-            "device_id": str(device.id),
-            "schema_version": "0.0.1",
-            "payload": {},
+            "schema_version": "1.0",
         }
 
         response = client.post(
             "/api/v1/telemetry/",
             data=json.dumps(payload),
             content_type="application/json",
+            HTTP_X_DEVICE_SERIAL_NUMBER=device.serial_number,
             HTTP_IDEMPOTENCY_KEY="test-key-123",
         )
 
@@ -88,8 +52,8 @@ class TestTelemetryIngestionSyncMode:
         assert data["status"] == "created"
         assert data["idempotency_key"] == "test-key-123"
 
-    def test_single_ingestion_missing_device_id(self, sync_mode, client):
-        payload = {"schema_version": "0.0.1", "payload": {}}
+    def test_single_ingestion_missing_header(self, sync_mode, client):
+        payload = {"schema_version": "1.0"}
 
         response = client.post(
             "/api/v1/telemetry/",
@@ -99,17 +63,16 @@ class TestTelemetryIngestionSyncMode:
 
         assert response.status_code == 400
         data = response.json()
-        assert "error" in data
-        assert "details" in data
-        assert "device_id" in data["details"]
+        assert "X-Device-Serial-Number header is required" in data["error"]
 
     def test_single_ingestion_missing_schema_version(self, sync_mode, client, device):
-        payload = {"device_id": str(device.id), "payload": {}}
+        payload = {}
 
         response = client.post(
             "/api/v1/telemetry/",
             data=json.dumps(payload),
             content_type="application/json",
+            HTTP_X_DEVICE_SERIAL_NUMBER=device.serial_number,
         )
 
         assert response.status_code == 400
@@ -118,20 +81,19 @@ class TestTelemetryIngestionSyncMode:
 
     def test_single_ingestion_nonexistent_device(self, sync_mode, client):
         payload = {
-            "device_id": "00000000-0000-0000-0000-000000000000",
-            "schema_version": "0.0.1",
-            "payload": {},
+            "schema_version": "1.0",
         }
 
         response = client.post(
             "/api/v1/telemetry/",
             data=json.dumps(payload),
             content_type="application/json",
+            HTTP_X_DEVICE_SERIAL_NUMBER="NONEXISTENT999",
         )
 
         assert response.status_code == 400
         data = response.json()
-        assert "device_id" in data["details"]
+        assert "device" in data["details"]
 
     def test_single_ingestion_invalid_json(self, sync_mode, client):
         response = client.post(
@@ -145,15 +107,11 @@ class TestTelemetryIngestionSyncMode:
     def test_batch_ingestion_success(self, sync_mode, client, device):
         payload = [
             {
-                "device_id": str(device.id),
-                "schema_version": "0.0.1",
-                "payload": {},
+                "schema_version": "1.0",
                 "value": 1.0,
             },
             {
-                "device_id": str(device.id),
-                "schema_version": "0.0.1",
-                "payload": {},
+                "schema_version": "1.0",
                 "value": 2.0,
             },
         ]
@@ -162,6 +120,7 @@ class TestTelemetryIngestionSyncMode:
             "/api/v1/telemetry/",
             data=json.dumps(payload),
             content_type="application/json",
+            HTTP_X_DEVICE_SERIAL_NUMBER=device.serial_number,
         )
 
         assert response.status_code == 201
@@ -175,9 +134,12 @@ class TestTelemetryIngestionSyncMode:
 
         assert Telemetry.objects.count() == 2
 
-    def test_batch_ingestion_empty_batch(self, sync_mode, client):
+    def test_batch_ingestion_empty_batch(self, sync_mode, client, device):
         response = client.post(
-            "/api/v1/telemetry/", data=json.dumps([]), content_type="application/json"
+            "/api/v1/telemetry/",
+            data=json.dumps([]),
+            content_type="application/json",
+            HTTP_X_DEVICE_SERIAL_NUMBER=device.serial_number,
         )
 
         assert response.status_code == 400
@@ -185,14 +147,13 @@ class TestTelemetryIngestionSyncMode:
         assert "Empty batch" in data["error"]
 
     def test_batch_ingestion_exceeds_limit(self, sync_mode, client, device):
-        payload = [
-            {"device_id": str(device.id), "schema_version": "0.0.1", "payload": {}}
-        ] * 1001
+        payload = [{"schema_version": "1.0"}] * 1001
 
         response = client.post(
             "/api/v1/telemetry/",
             data=json.dumps(payload),
             content_type="application/json",
+            HTTP_X_DEVICE_SERIAL_NUMBER=device.serial_number,
         )
 
         assert response.status_code == 400
@@ -204,16 +165,12 @@ class TestTelemetryIngestionSyncMode:
     ):
         payload = [
             {
-                "device_id": str(device.id),
-                "schema_version": "0.0.1",
-                "payload": {},
+                "schema_version": "1.0",
                 "value": 1.0,
             },
-            {"device_id": str(device.id), "payload": {}},
+            {},
             {
-                "device_id": str(device.id),
-                "schema_version": "0.0.1",
-                "payload": {},
+                "schema_version": "1.0",
                 "value": 3.0,
             },
         ]
@@ -222,6 +179,7 @@ class TestTelemetryIngestionSyncMode:
             "/api/v1/telemetry/",
             data=json.dumps(payload),
             content_type="application/json",
+            HTTP_X_DEVICE_SERIAL_NUMBER=device.serial_number,
         )
 
         assert response.status_code == 400
@@ -235,14 +193,13 @@ class TestTelemetryIngestionSyncMode:
         assert Telemetry.objects.count() == 0
 
     def test_batch_ingestion_with_idempotency_key(self, sync_mode, client, device):
-        payload = [
-            {"device_id": str(device.id), "schema_version": "0.0.1", "payload": {}}
-        ]
+        payload = [{"schema_version": "1.0"}]
 
         response = client.post(
             "/api/v1/telemetry/",
             data=json.dumps(payload),
             content_type="application/json",
+            HTTP_X_DEVICE_SERIAL_NUMBER=device.serial_number,
             HTTP_IDEMPOTENCY_KEY="batch-test-key",
         )
 
@@ -254,9 +211,7 @@ class TestTelemetryIngestionSyncMode:
     def test_single_ingestion_with_optional_timestamp(self, sync_mode, client, device):
         """Test that timestamp field is accepted in payload (stored in server time)."""
         payload = {
-            "device_id": str(device.id),
-            "schema_version": "0.0.1",
-            "payload": {},
+            "schema_version": "1.0",
             "timestamp": "2024-01-15T10:30:00Z",
         }
 
@@ -264,18 +219,13 @@ class TestTelemetryIngestionSyncMode:
             "/api/v1/telemetry/",
             data=json.dumps(payload),
             content_type="application/json",
+            HTTP_X_DEVICE_SERIAL_NUMBER=device.serial_number,
         )
 
         assert response.status_code == 201
         data = response.json()
         assert data["status"] == "created"
         assert Telemetry.objects.count() == 1
-
-
-@pytest.fixture
-def async_mode(settings):
-    settings.TELEMETRY_ASYNC_INGESTION = True
-    yield
 
 
 @pytest.mark.django_db
@@ -286,9 +236,7 @@ class TestTelemetryIngestionAsyncMode:
         mock_task.delay.return_value.id = "test-task-id-123"
 
         payload = {
-            "device_id": str(device.id),
-            "schema_version": "0.0.1",
-            "payload": {"temperature": 25.5},
+            "schema_version": "1.0",
             "value": 25.5,
         }
 
@@ -296,6 +244,7 @@ class TestTelemetryIngestionAsyncMode:
             "/api/v1/telemetry/",
             data=json.dumps(payload),
             content_type="application/json",
+            HTTP_X_DEVICE_SERIAL_NUMBER=device.serial_number,
         )
 
         assert response.status_code == 202
@@ -314,15 +263,11 @@ class TestTelemetryIngestionAsyncMode:
 
         payload = [
             {
-                "device_id": str(device.id),
-                "schema_version": "0.0.1",
-                "payload": {},
+                "schema_version": "1.0",
                 "value": 1.0,
             },
             {
-                "device_id": str(device.id),
-                "schema_version": "0.0.1",
-                "payload": {},
+                "schema_version": "1.0",
                 "value": 2.0,
             },
         ]
@@ -331,6 +276,7 @@ class TestTelemetryIngestionAsyncMode:
             "/api/v1/telemetry/",
             data=json.dumps(payload),
             content_type="application/json",
+            HTTP_X_DEVICE_SERIAL_NUMBER=device.serial_number,
         )
 
         assert response.status_code == 202
@@ -345,14 +291,15 @@ class TestTelemetryIngestionAsyncMode:
 
     def test_async_validation_happens_before_queueing(self, async_mode, client, device):
         payload = [
-            {"device_id": str(device.id), "schema_version": "0.0.1", "payload": {}},
-            {"device_id": str(device.id), "payload": {}},
+            {"schema_version": "1.0"},
+            {},
         ]
 
         response = client.post(
             "/api/v1/telemetry/",
             data=json.dumps(payload),
             content_type="application/json",
+            HTTP_X_DEVICE_SERIAL_NUMBER=device.serial_number,
         )
 
         assert response.status_code == 400

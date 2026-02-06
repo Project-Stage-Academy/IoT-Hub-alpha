@@ -27,26 +27,22 @@ class Command(BaseCommand):
 
     def _create_hypertable(self, cursor):
         """Create TimescaleDB hypertable for telemetry data."""
-        cursor.execute(
-            """
+        cursor.execute("""
             SELECT create_hypertable(
                 'telemetry',
                 'timestamp',
                 if_not_exists => TRUE,
                 migrate_data => TRUE
             );
-        """
-        )
+        """)
         self.stdout.write(self.style.SUCCESS("Created hypertable for telemetry"))
 
     def _create_indexes(self, cursor):
         """Create necessary indexes for telemetry data."""
-        cursor.execute(
-            """
+        cursor.execute("""
             CREATE INDEX IF NOT EXISTS idx_telemetry_payload_gin
             ON telemetry USING gin (payload);
-        """
-        )
+        """)
         self.stdout.write(
             self.style.SUCCESS("Created GIN index on payload JSONB column")
         )

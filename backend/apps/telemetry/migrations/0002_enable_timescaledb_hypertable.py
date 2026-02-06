@@ -9,23 +9,19 @@ def enable_timescaledb(apps, schema_editor):
         return
 
     with schema_editor.connection.cursor() as cursor:
-        cursor.execute(
-            """
+        cursor.execute("""
             SELECT create_hypertable(
                 'telemetry',
                 'timestamp',
                 chunk_time_interval => INTERVAL '1 day',
                 if_not_exists => TRUE
             );
-        """
-        )
+        """)
 
-        cursor.execute(
-            """
-            CREATE INDEX IF NOT EXISTS idx_telemetry_timestamp 
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_telemetry_timestamp
             ON telemetry (timestamp DESC);
-        """
-        )
+        """)
 
 
 def reverse_timescaledb(apps, schema_editor):

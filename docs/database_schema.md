@@ -175,13 +175,9 @@ Time-series telemetry data from devices. This table is converted to a TimescaleD
 **Example payload:**
 ```json
 {
-  "version": "0.0.1",
+  "schema_version": "1.0",
   "serial_number": "VIB-SN-001",
-  "payload": {
-    "vibration": 5.2,
-    "temperature": 45.3,
-    "operating_hours": 1250
-  }
+  "value": 5.2
 }
 ```
 
@@ -279,10 +275,9 @@ Events triggered by rule evaluations.
 {
   "device_id": "d4e5f6a7-b8c9-4012-d345-456789012def",
   "timestamp": "2026-01-22T10:15:30Z",
-  "payload": {
-    "vibration": 22.5,
-    "temperature": 85.3
-  }
+  "schema_version": "1.0",
+  "serial_number": "SN123456",
+  "value": 22.5
 }
 ```
 
@@ -425,8 +420,8 @@ FROM telemetry t
 JOIN devices d ON t.device_id = d.id
 WHERE t.device_id = 'd4e5f6a7-b8c9-4012-d345-456789012def'
   AND t.timestamp > NOW() - INTERVAL '24 hours'
-  AND t.payload @> '{"payload": {"vibration": {}}}'
-  AND (t.payload->'payload'->'vibration')::numeric > 15
+  AND t.payload @> '{"value": {}}'
+  AND (t.payload->>'value')::numeric > 15
 ORDER BY t.timestamp DESC
 LIMIT 100;
 ```
@@ -440,14 +435,14 @@ Limit  (cost=25.26..35.49 rows=8 width=352)
               ->  Bitmap Heap Scan on telemetry t  (cost=4.71..17.96 rows=8 width=336)
                     Recheck Cond: (((device_id = 'd4e5f6a7-...'::uuid) AND 
                                   ("timestamp" > (now() - '24:00:00'::interval))) AND 
-                                  (payload @> '{"payload": {"vibration": {}}}'::jsonb))
-                    Filter: ((payload -> 'payload'::text) -> 'vibration'::text)::numeric > '15'::numeric
+                                  (payload @> '{"value": {}}'::jsonb))
+                    Filter: ((payload ->> 'value')::numeric > '15'::numeric)
                     ->  BitmapAnd  (cost=4.71..4.71 rows=8 width=0)
                           ->  Bitmap Index Scan on idx_telemetry_device_time  (cost=0.00..1.73 rows=40 width=0)
                                 Index Cond: ((device_id = 'd4e5f6a7-...'::uuid) AND 
                                            ("timestamp" > (now() - '24:00:00'::interval)))
                           ->  Bitmap Index Scan on idx_telemetry_payload_gin  (cost=0.00..2.97 rows=21 width=0)
-                                Index Cond: (payload @> '{"payload": {"vibration": {}}}'::jsonb)
+                                Index Cond: (payload @> '{"value": {}}'::jsonb)
               ->  Index Scan using devices_pkey on devices d  (cost=0.42..0.85 rows=1 width=40)
                     Index Cond: (id = t.device_id)
 Planning Time: 1.245 ms
@@ -469,8 +464,8 @@ SELECT e.id, e.severity, e.message, e.telemetry_snapshot
 FROM events e
 WHERE e.rule_id = 'a1b2c3d4-e5f6-7890-a1b2-c3d4e5f67890'
   AND e.timestamp > NOW() - INTERVAL '7 days'
-  AND e.telemetry_snapshot @> '{"payload": {"temperature": {}}}'
-  AND (e.telemetry_snapshot->'payload'->'temperature')::numeric > 80
+  AND e.telemetry_snapshot @> '{"value": {}}'
+  AND (e.telemetry_snapshot->>'value')::numeric > 80
 ORDER BY e.timestamp DESC;
 ```
 
