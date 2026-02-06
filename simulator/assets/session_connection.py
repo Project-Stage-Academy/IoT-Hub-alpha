@@ -3,7 +3,7 @@ import requests
 from dotenv import load_dotenv
 from paho.mqtt.client import Client
 from paho.mqtt.enums import CallbackAPIVersion
-from simulator.assets.data_structures import Config
+from .data_structures import Config
 
 load_dotenv()
 

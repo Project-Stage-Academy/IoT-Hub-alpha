@@ -4,7 +4,7 @@ try:
     from .assets.data_structures import PayloadEnvelope
     from .assets.main import main_sim
     from .assets.helpers import get_config
-except ModuleNotFoundError:
+except ImportError:
     from assets.data_structures import PayloadEnvelope
     from assets.main import main_sim
     from assets.helpers import get_config
