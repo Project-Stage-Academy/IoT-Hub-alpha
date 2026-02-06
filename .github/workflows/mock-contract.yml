@@ -41,7 +41,7 @@ jobs:
       - name: Wait for Prism to be ready
         run: |
           for i in {1..30}; do
-            if curl -fsS http://localhost:4010 >/dev/null 2>&1; then
+            if curl -fsS http://localhost:4010/api/v1/auth/fake >/dev/null 2>&1; then
               echo "Prism is up"
               exit 0
             fi
