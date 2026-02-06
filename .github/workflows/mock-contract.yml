@@ -3,11 +3,12 @@ name: Mock contract (Prism + Schemathesis)
 on:
   push:
     branches:
-      - origin/45-api-documentation-mock-server-and-openapi-completeness
+      - 45-api-documentation-mock-server-and-openapi-completeness
     paths:
       - "docs/api.yaml"
       - ".github/workflows/mock-contract.yml"
       - "scripts/**"
+  workflow_dispatch:
 
 jobs:
   prism-schemathesis:
@@ -53,7 +54,7 @@ jobs:
 
       - name: Run Schemathesis against Prism
         run: |
-          ---- If your local uses --url / --max-examples, use this instead ----
+          # Use ONE of these blocks depending on your Schemathesis version.
           schemathesis run docs/api.yaml \
             --url=http://localhost:4010 \
             --max-examples=10 \
