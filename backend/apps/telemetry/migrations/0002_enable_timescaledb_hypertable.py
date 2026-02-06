@@ -1,6 +1,3 @@
-<<<<<<< task-57-timescaledb-settings
-# Generated migration for TimescaleDB hypertable setup
-
 from django.db import migrations
 from django.db import connection
 from django.db.utils import DatabaseError
