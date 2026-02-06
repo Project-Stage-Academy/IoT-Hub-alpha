@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from decimal import Decimal
 from typing import Any
+from apps.rules.services.data_structure import Condition
 from dataclasses import dataclass, field
 
 
@@ -31,9 +32,8 @@ class ActionConfig(BaseModel):
 class RuleSeed(BaseModel):
     name: str
     device: str
-    comparison_operator: str
     description: str
-    threshold: Decimal
+    condition: Condition
     action_config: list[ActionConfig]
     is_enabled: bool
 

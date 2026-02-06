@@ -58,8 +58,7 @@ class DBSmokeTest(TestCase):
         self.rule = Rule.objects.create(
             device=self.device,
             name="Smoke High Temperature Rule",
-            comparison_operator="gt",
-            threshold=30.0,
+            condition={"type": "leaf", "operator": "gt", "threshold": 15.2},
             action_config=[
                 {"type": "notification", "template_id": 1, "cooldown_minutes": 15},
             ],
@@ -128,8 +127,9 @@ class DBSmokeTest(TestCase):
             Rule.objects.filter(device=self.device, is_enabled=True).count(), 1
         )
         self.assertEqual(self.rule.name, "Smoke High Temperature Rule")
-        self.assertEqual(self.rule.comparison_operator, "gt")
-        self.assertEqual(float(self.rule.threshold), 30.0)
+        self.assertEqual(
+            self.rule.condition, {"type": "leaf", "operator": "gt", "threshold": 15.2}
+        )
 
     def test_event_creation(self):
         """Test event creation and relationships."""
