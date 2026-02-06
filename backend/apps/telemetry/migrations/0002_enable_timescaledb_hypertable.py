@@ -25,7 +25,7 @@ def enable_timescaledb(apps, schema_editor):
             result = cursor.fetchone()
             if not result or not result[0]:
                 # Extension not available, skip TimescaleDB setup
-                print("ℹ TimescaleDB extension not available")
+                print("TimescaleDB extension not available")
                 print("  Table remains as regular PostgreSQL table")
                 return
 
@@ -59,7 +59,7 @@ def enable_timescaledb(apps, schema_editor):
                 )
                 """
             )
-            print("✓ Columnstore enabled on telemetry hypertable")
+            print("Columnstore enabled on telemetry hypertable")
 
             # 4. Add retention policy (365 days)
             cursor.execute(
@@ -83,21 +83,21 @@ def enable_timescaledb(apps, schema_editor):
                     )
                     """
                 )
-                print("✓ Compression policy added: compress chunks after 30 days")
+                print("Compression policy added: compress chunks after 30 days")
             except DatabaseError as e:
                 # Catch database errors during compression policy setup
                 # (e.g., columnstore issues, policy already exists, etc.)
-                print(f"ℹ Compression policy not added: {e}")
+                print(f"Compression policy not added: {e}")
 
         except DatabaseError as e:
             # TimescaleDB operations failed (shouldn't happen if extension check passed)
             error_msg = str(e).lower()
             if "extension" in error_msg or "timescaledb" in error_msg:
-                print(f"ℹ TimescaleDB setup skipped (extension not available)")
+                print(f"TimescaleDB setup skipped (extension not available)")
             elif "feature" in error_msg:
-                print(f"ℹ TimescaleDB feature not supported")
+                print(f"TimescaleDB feature not supported")
             else:
-                print(f"ℹ TimescaleDB setup skipped: {e}")
+                print(f"TimescaleDB setup skipped: {e}")
             print("  Table remains as regular PostgreSQL table")
 
 
