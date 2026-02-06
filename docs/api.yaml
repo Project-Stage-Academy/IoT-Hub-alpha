@@ -48,21 +48,135 @@ paths:
           $ref: "#/components/responses/UnauthorizedError"
     post:
       security: []
-      description: Submit telemetry data to ingest
-      summary: Ingest for telemetry collection
+      description: |
+        Submit single or batched telemetry data for ingestion.
+
+        **Schema Versioning:**
+        - `schema_version` is required and must be specified for all payloads
+        - Current supported versions: `1.0`
+        - Schema version is stored in the JSONB payload for future migration compatibility
+
+        **Idempotency:**
+        - Optional `Idempotency-Key` header can be provided for request deduplication
+        - Key is echoed back in the response but not enforced server-side in MVP
+
+        **Ingestion Mode:**
+        - Controlled by `TELEMETRY_ASYNC_INGESTION`
+        - `false` (sync): validates and inserts into DB in request thread (uses `bulk_create` for batch)
+        - `true` (async): validates and queues to Celery, returns immediately (no DB writes in request thread)
+
+        **Batch Constraints:**
+        - Maximum batch size: 1000 records (configurable via `TELEMETRY_MAX_BATCH_SIZE`)
+        - All-or-nothing semantics: if any record fails validation, entire batch is rejected
+      summary: Ingest telemetry data
       operationId: TelemetrySubmit
       tags: [telemetry]
+      parameters:
+        - name: X-Device-Serial-Number
+          in: header
+          required: true
+          description: Serial number of the device submitting telemetry
+          schema:
+            type: string
+          example: "SN123456"
+        - name: Idempotency-Key
+          in: header
+          required: false
+          description: Optional idempotency key for request deduplication
+          schema:
+            type: string
+          example: "unique-client-request-id-123"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/TelemetryPost"
+              oneOf:
+                - $ref: "#/components/schemas/TelemetryPost"
+                - $ref: "#/components/schemas/TelemetryBatchPost"
+            examples:
+              single:
+                summary: Single telemetry record
+                value:
+                  schema_version: "1.0"
+                  value: 25.5
+              batch:
+                summary: Batch of telemetry records
+                value:
+                  - schema_version: "1.0"
+                    value: 25.5
+                  - schema_version: "1.0"
+                    value: 26.0
       responses:
+        "201":
+          description: Telemetry created (sync mode)
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/TelemetryCreatedSingle"
+                  - $ref: "#/components/schemas/TelemetryCreatedBatch"
+              examples:
+                single:
+                  summary: Single record created
+                  value:
+                    status: "created"
+                    id: 12345
+                    device_id: "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+                    timestamp: "2026-02-03T12:37:27.594815+00:00"
+                batch:
+                  summary: Batch created
+                  value:
+                    status: "created"
+                    count: 3
+                    ids: [12345, 12346, 12347]
+                    summary:
+                      total: 3
+                      successful: 3
+                      failed: 0
         "202":
-          description: Telemetry accepted for processing
+          description: Telemetry accepted for processing (async mode)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TelemetryAcceptedAsync"
+              examples:
+                accepted:
+                  summary: Single or batch accepted
+                  value:
+                    status: "accepted"
+                    request_id: "a3f5b8c2-1234-5678-90ab-cdef12345678"
+                    count: 150
+                    task_id: "b4d2b6fa-1111-2222-3333-444455556666"
         "400":
-          $ref: "#/components/responses/BadRequest"
+          description: Bad request - validation errors or batch issues
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TelemetryError"
+              examples:
+                invalid_json:
+                  summary: Invalid JSON
+                  value:
+                    error: "Invalid JSON payload"
+                validation_error:
+                  summary: Validation error
+                  value:
+                    error: "Validation failed"
+                    details:
+                      schema_version: ["This field is required."]
+                batch_failed:
+                  summary: Batch ingestion failed
+                  value:
+                    error: "Batch ingestion failed"
+                    details:
+                      summary:
+                        total: 3
+                        successful: 0
+                        failed: 1
+                      errors:
+                        - index: 1
+                          error: "Validation failed"
   /devices:
     get:
       description: get list of devices
@@ -108,14 +222,14 @@ paths:
   /devices/{id}:
     get:
       description: get a specific device by id
-      summary: Get a specific device based on id in url paths
+      summary: Get a specific device based on ID in URL path
       operationId: DeviceGet
       tags: [devices]
       parameters:
         - name: id
           in: path
           required: true
-          description: Get telemetry data of specific device by id
+          description: get telemetry data of specific device by id
           schema:
             type: string
             example: a1b2c3d4-e5f6-7890-1234-567890abcdef
@@ -314,7 +428,7 @@ paths:
   /auth/fake:
     get: 
       security: []
-      description: Fake JWT token
+      description: fake jwt token
       summary: Obtain a test token
       operationId: TokenFake
       tags: [auth]
@@ -338,7 +452,7 @@ components:
     PageParam:
       name: page
       in: query
-      description: Page number (1-based)
+      description: page number (1-based)
       schema:
         type: integer
         minimum: 1
@@ -346,7 +460,7 @@ components:
     PageSizeParam:
       name: page_size
       in: query
-      description: Number of items per page
+      description: number of items per page
       schema:
         type: integer
         minimum: 1
@@ -441,23 +555,132 @@ components:
     TelemetryPost:
       type: object
       required:
-        - ssn
-        - value
         - schema_version
       properties:
         schema_version:
           type: string
-          description: Telemetry payload schema version
+          description: "Telemetry payload schema version. Supported: 1.0"
           example: "1.0"
-        ssn:
-          type: string
-          description: "Device serial number (must match a registered device)"
-          example: SN222443
         value:
+          type: number
+          format: float
+          description: Optional numeric value to extract and store in payload
+          example: 25.5
+        timestamp:
+          type: string
+          format: date-time
+          description: Optional timestamp (ISO 8601). If omitted, server time is used.
+          example: "2024-01-15T10:30:00Z"
+    TelemetryBatchPost:
+      type: array
+      description: Array of telemetry records for batch ingestion
+      items:
+        $ref: "#/components/schemas/TelemetryPost"
+      minItems: 1
+      maxItems: 1000
+    TelemetryCreatedSingle:
+      type: object
+      required:
+        - status
+        - id
+        - device_id
+        - timestamp
+      properties:
+        status:
+          type: string
+          enum: [created]
+          example: "created"
+        id:
           type: integer
-          minimum: -50000
-          maximum: 1000000
-          example: 2443
+          example: 12345
+        device_id:
+          type: string
+          format: uuid
+          example: "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+        timestamp:
+          type: string
+          format: date-time
+          example: "2026-02-03T12:37:27.594815+00:00"
+        idempotency_key:
+          type: string
+          description: Echoed idempotency key if provided in request
+          example: "unique-client-request-id-123"
+    TelemetryCreatedBatch:
+      type: object
+      required:
+        - status
+        - count
+        - ids
+        - summary
+      properties:
+        status:
+          type: string
+          enum: [created]
+          example: "created"
+        count:
+          type: integer
+          example: 3
+        ids:
+          type: array
+          items:
+            type: integer
+          example: [12345, 12346, 12347]
+        summary:
+          type: object
+          required: [total, successful, failed]
+          properties:
+            total:
+              type: integer
+              example: 3
+            successful:
+              type: integer
+              example: 3
+            failed:
+              type: integer
+              example: 0
+        idempotency_key:
+          type: string
+          description: Echoed idempotency key if provided in request
+          example: "unique-client-request-id-123"
+    TelemetryAcceptedAsync:
+      type: object
+      required:
+        - status
+        - request_id
+        - count
+      properties:
+        status:
+          type: string
+          enum: [accepted]
+          example: "accepted"
+        request_id:
+          type: string
+          format: uuid
+          description: Request UUID for ingestion tracking
+          example: "a3f5b8c2-1234-5678-90ab-cdef12345678"
+        count:
+          type: integer
+          description: Number of records accepted (1 for single payload)
+          example: 150
+        task_id:
+          type: string
+          description: Celery task ID (optional)
+          example: "b4d2b6fa-1111-2222-3333-444455556666"
+        idempotency_key:
+          type: string
+          description: Echoed idempotency key if provided in request
+          example: "unique-client-request-id-123"
+    TelemetryError:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          example: "Validation failed"
+        details:
+          type: object
+          description: Detailed error information
     RuleCreate:
       type: object
       required:
