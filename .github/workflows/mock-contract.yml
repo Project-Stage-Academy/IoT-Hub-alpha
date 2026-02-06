@@ -57,8 +57,7 @@ jobs:
           # Use ONE of these blocks depending on your Schemathesis version.
           schemathesis run docs/api.yaml \
             --url=http://localhost:4010 \
-            --generation-max-examples=2 \
-            --checks=all \
+            --max-examples=2 \
             --exclude-checks=unsupported_method \
             --exclude-checks=missing_required_header \
             --exclude-checks=ignored_auth
