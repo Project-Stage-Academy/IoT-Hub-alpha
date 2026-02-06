@@ -31,8 +31,9 @@ def run_loop(
     :return: Description
     :rtype: RunStats
     """
-    if not tasks: raise ValueError("No tasks")
-    
+    if not tasks:
+        raise ValueError("No tasks")
+
     stats = RunStats()
     total_tasks = len(tasks) * count
 

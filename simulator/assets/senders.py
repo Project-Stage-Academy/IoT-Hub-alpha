@@ -20,8 +20,7 @@ class Sender(Protocol):
 
     def send(
         self, item: PayloadEnvelope, session: requests.Session | mqtt.Client | None
-    ) -> SendResult:
-        ...
+    ) -> SendResult: ...
 
 
 class HttpSender(Sender):
@@ -41,7 +40,6 @@ class HttpSender(Sender):
         if not session or not isinstance(session, requests.Session):
             self._fail(item, start, "Bad session", None)
 
-        
         try:
             response = session.post(
                 self.base_url,
@@ -77,7 +75,11 @@ class HttpSender(Sender):
             return self._fail(item, start, "request_exception", exc)
 
     def _fail(
-        self, item: PayloadEnvelope, start: float, error_type: str, exc: Exception | None
+        self,
+        item: PayloadEnvelope,
+        start: float,
+        error_type: str,
+        exc: Exception | None,
     ) -> SendResult:
         latency = int((time.perf_counter() - start) * 1000)
         return SendResult(
@@ -97,24 +99,24 @@ class MqttPublisher(Sender):
     def __init__(self, topic: str) -> None:
         self.topic = topic
 
-    def send(
-        self, item: PayloadEnvelope, session: mqtt.Client | None
-    ) -> SendResult:
+    def send(self, item: PayloadEnvelope, session: mqtt.Client | None) -> SendResult:
 
         start = time.perf_counter()
 
         if not session or not isinstance(session, mqtt.Client):
             raise ValueError("Bad session")
         try:
-            topic = f'{self.topic.strip("/")}/{item.data.ssn if item.data.ssn else "error"}'
+            topic = (
+                f'{self.topic.strip("/")}/{item.data.ssn if item.data.ssn else "error"}'
+            )
             info = session.publish(topic, item.data.model_dump_json())
             info.wait_for_publish(timeout=5)
             latency = int((time.perf_counter() - start) * 1000)
             time.sleep(0.1)
-            
+
             if info.rc != mqtt.MQTT_ERR_SUCCESS:
                 print("publish failed:", info.rc)
-            
+
             return SendResult(
                 code_got=info.rc,
                 code_expected=0,
