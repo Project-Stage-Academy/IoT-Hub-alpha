@@ -1,10 +1,9 @@
 import uuid
-
 from django.db import models
 from django.contrib.postgres.indexes import GinIndex
 from django.core.exceptions import ValidationError
-
 from apps.devices.models import Device
+from .services.data_structure import Condition
 
 
 def validate_action_config(value):
@@ -37,6 +36,10 @@ def validate_action_config(value):
                 raise ValidationError("stop_machine action must include machine_id")
 
 
+def validate_condition(condition):
+    Condition.model_validate(condition)
+
+
 class Rule(models.Model):
     class RuleOperator(models.TextChoices):
         GT = "gt", "Greater Than (>)"
@@ -50,8 +53,13 @@ class Rule(models.Model):
     device = models.ForeignKey(Device, on_delete=models.CASCADE, related_name="rules")
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
-    comparison_operator = models.CharField(max_length=10, choices=RuleOperator.choices)
-    threshold = models.DecimalField(max_digits=15, decimal_places=4)
+    condition = models.JSONField(
+        validators=[validate_condition],
+        help_text=(
+            'Schema: [{"type": "notification", "template_id": 5}, '
+            '{"type": "stop_machine", "machine_id": "M-123"}]'
+        ),
+    )
     action_config = models.JSONField(
         validators=[validate_action_config],
         help_text=(
@@ -78,3 +86,9 @@ class Rule(models.Model):
 
     def __str__(self):
         return f"{self.name} - {self.device.name}"
+
+
+class TelemetryCursor(models.Model):
+    name = models.CharField(max_length=64, unique=True)
+    last_id = models.BigIntegerField(default=0)
+    updated_at = models.DateTimeField(auto_now=True)

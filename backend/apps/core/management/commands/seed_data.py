@@ -116,7 +116,7 @@ class Command(BaseCommand):
         try:
             self._start_seed(seed, create_superuser, stats)
         except Exception as e:
-            raise CommandError("Seeding failed; DB rolled back. Cause: {e}") from e
+            raise CommandError(f"Seeding failed; DB rolled back. Cause: {e}") from e
 
         self.stdout.write(self.style.MIGRATE_HEADING("Seed summary"))
         self.stdout.write(
@@ -275,8 +275,9 @@ class Command(BaseCommand):
                 device=device_map[rule.device],
                 defaults={
                     "description": rule.description,
-                    "comparison_operator": rule.comparison_operator,
-                    "threshold": rule.threshold,
+                    "condition": rule.condition.model_dump(
+                        mode="json", exclude_none=True
+                    ),
                     "action_config": action_config_payload,
                     "is_enabled": rule.is_enabled,
                 },
