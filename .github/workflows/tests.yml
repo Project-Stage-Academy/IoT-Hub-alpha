@@ -1,0 +1,19 @@
+- name: Run tests with coverage gate
+  env:
+    DATABASE_URL: postgres://user:password@localhost:5432/test_db
+  run: >
+    pytest -q --maxfail=1
+    --cov=apps.devices
+    --cov=apps.telemetry
+    --cov=apps.rules
+    --cov=apps.events
+    --cov=apps.notifications
+    --cov-report=xml:backend/coverage.xml
+    --cov-fail-under=80
+
+- name: Upload coverage XML artifact
+  uses: actions/upload-artifact@v4
+  if: always()
+  with:
+    name: coverage-report
+    path: backend/coverage.xml

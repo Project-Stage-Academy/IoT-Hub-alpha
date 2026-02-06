@@ -129,10 +129,18 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install -r requirements-dev.txt
-      - name: Run tests
+      - name: Run tests with coverage gate
         working-directory: backend
-
-        run: pytest -q --cov=. --cov-report=xml:coverage.xml --cov-report=html:htmlcov
+        run: >
+          pytest -q --maxfail=1
+          --cov=apps.devices
+          --cov=apps.telemetry
+          --cov=apps.rules
+          --cov=apps.events
+          --cov=apps.notifications
+          --cov-report=xml:coverage.xml
+          --cov-report=html:htmlcov
+          --cov-fail-under=80
 
       - name: Upload coverage XML artifact
         if: matrix.python-version == '3.13'
