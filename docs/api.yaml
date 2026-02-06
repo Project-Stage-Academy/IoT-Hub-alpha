@@ -181,7 +181,136 @@ paths:
           $ref: "#/components/responses/NotFoundError"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
-        
+  /rules:
+    get:
+      description: get list of rules
+      summary: Get paginated rule data
+      operationId: RuleList
+      tags: [rules]
+      parameters:
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/PageSizeParam"
+      responses:
+        "200":
+          description: a paginated list of rules
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RuleListResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+    post:
+      description: create a new rule
+      summary: Create a new rule
+      operationId: RuleSubmit
+      tags: [rules]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RuleCreate"
+      responses:
+        "201":
+          description: rule created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Rules"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+  /rules/{id}:
+    get:
+      description: get a specific rule by id
+      summary: Get a specific rule based on id in url paths
+      operationId: RuleGet
+      tags: [rules]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Get rule data of specific rule by id
+          schema:
+            type: string
+            example: 29e31015-4733-49f3-855a-ef7f30e6c147
+      responses:
+        "200":
+          description: rule information by id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Rules"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+    patch:
+      description: update a rule to enable/disable it
+      summary: Update activation of rule
+      operationId: RulePatch
+      tags: [rules]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Get rule data of specific rule by id
+          schema:
+            type: string
+            example: 29e31015-4733-49f3-855a-ef7f30e6c147
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - enabled
+              properties:
+                enabled:
+                  type: boolean
+                  description: enable or disable rules
+                  example: true
+      responses:
+        "200":
+          description: rule is_active enabled successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Rules"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+    delete:
+      description: delete a rule by id
+      summary: Delete a specific rule based by id
+      operationId: RuleDelete
+      tags: [rules]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Get rule data of specific rule by id
+          schema:
+            type: string
+            example: 29e31015-4733-49f3-855a-ef7f30e6c147
+      responses:
+        "204":
+          description: rule successfully deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Rules"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
   /auth/fake:
     get: 
       security: []
@@ -329,6 +458,100 @@ components:
           minimum: -50000
           maximum: 1000000
           example: 2443
+    RuleCreate:
+      type: object
+      required:
+        - name
+        - description
+        - comparison_operator
+        - condition
+        - is_enabled
+        - device_id
+      properties:
+        name:
+          type: string
+          example: Low Vibration Alert Lathe
+        description:
+          type: string
+          description: "Device serial number (must match a registered device)"
+          example: Alerts maintenance when vibration drops below expected operating range
+        condition:
+          type: object
+          description: Condition json description
+          additionalProperties: true
+          example:
+            type: leaf
+            operator: gt
+            threshold: 5
+            window_seconds: 15
+            occurances: 3
+        action_config:
+          type: array
+          description: List of action configuration objects
+          items:
+            type: object
+            additionalProperties: true
+          example:
+            - type: notification
+              recipients: ["test@test.com"]
+              template_id: 5
+            - type: stop_machine
+              machine_id: CNC-002
+        is_enabled:
+          type: boolean
+          description: is the rule enabled
+          example: true
+        device_id:
+          type: string
+          description: UUID of device ID assosiated with the rule
+          example: a80031eb-189a-49d5-93ab-11bd465143e9
+    Rules:
+      type: object
+      required:
+        - name
+        - description
+        - comparison_operator
+        - condition
+        - last_triggered_at
+        - is_enabled
+      properties:
+        name:
+          type: string
+          example: Low Vibration Alert Lathe
+        description:
+          type: string
+          description: "Device serial number (must match a registered device)"
+          example: Alerts maintenance when vibration drops below expected operating range
+        condition:
+          type: object
+          description: Condition json description
+          additionalProperties: true
+          example:
+            type: leaf
+            operator: gt
+            threshold: 5
+            window_seconds: 15
+            occurances: 3
+        action_config:
+          type: array
+          description: List of action configuration objects
+          items:
+            type: object
+            additionalProperties: true
+          example:
+            - type: notification
+              recipients: ["test@test.com"]
+              template_id: 5
+            - type: stop_machine
+              machine_id: CNC-002
+        last_triggered_at:
+          type: string
+          format: date-time
+          example: 2026-01-16T17:30:00Z
+        is_enabled:
+          type: boolean
+          description: is the rule enabled
+          example: true
     Device:
       type: object
       required:
@@ -431,7 +654,16 @@ components:
       properties:
         data:
           $ref: "#/components/schemas/Device"
-
+    RuleListResponse:
+      type: object
+      required: [data, pagination]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Rules"
+        pagination:
+          $ref: "#/components/schemas/PaginationMeta"
   responses:
     UnauthorizedError:
       description: No or invalid JWT token provided

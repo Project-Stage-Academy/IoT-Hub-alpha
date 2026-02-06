@@ -276,6 +276,172 @@
           "response": []
         }
       ]
+    },
+    {
+      "name": "Rule",
+      "item": [
+        {
+          "name": "Get paginated rule data",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{vault:json-web-token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "https://iot-industry.redocly.app/_mock/openapi/rules",
+              "protocol": "https",
+              "host": [
+                "iot-industry",
+                "redocly",
+                "app"
+              ],
+              "path": [
+                "_mock",
+                "openapi",
+                "rules"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create new rule",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{vault:json-web-token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"name\": \"Low Vibration Alert Lathe\",\r\n  \"description\": \"Alerts maintenance when vibration drops below expected operating range\",\r\n  \"condition\": {\r\n    \"type\": \"leaf\",\r\n    \"operator\": \"gt\",\r\n    \"threshold\": 5,\r\n    \"window_seconds\": 15,\r\n    \"occurances\": 3\r\n  },\r\n  \"action_config\": [\r\n    {\r\n      \"type\": \"notification\",\r\n      \"recipients\": [\r\n        \"test@test.com\"\r\n      ],\r\n      \"template_id\": 5\r\n    },\r\n    {\r\n      \"type\": \"stop_machine\",\r\n      \"machine_id\": \"CNC-002\"\r\n    }\r\n  ],\r\n  \"is_enabled\": true,\r\n  \"device_id\": \"a80031eb-189a-49d5-93ab-11bd465143e9\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://iot-industry.redocly.app/_mock/openapi/rules",
+              "protocol": "https",
+              "host": [
+                "iot-industry",
+                "redocly",
+                "app"
+              ],
+              "path": [
+                "_mock",
+                "openapi",
+                "rules"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get specific rule by id",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{vault:json-web-token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "https://iot-industry.redocly.app/_mock/openapi/rules/29e31015-4733-49f3-855a-ef7f30e6c147",
+              "protocol": "https",
+              "host": [
+                "iot-industry",
+                "redocly",
+                "app"
+              ],
+              "path": [
+                "_mock",
+                "openapi",
+                "rules",
+                "29e31015-4733-49f3-855a-ef7f30e6c147"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update rule activation",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{vault:json-web-token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"enabled\": true\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://iot-industry.redocly.app/_mock/openapi/rules/29e31015-4733-49f3-855a-ef7f30e6c147",
+              "protocol": "https",
+              "host": [
+                "iot-industry",
+                "redocly",
+                "app"
+              ],
+              "path": [
+                "_mock",
+                "openapi",
+                "rules",
+                "29e31015-4733-49f3-855a-ef7f30e6c147"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete rule by id",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{vault:json-web-token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "https://iot-industry.redocly.app/_mock/openapi/rules/29e31015-4733-49f3-855a-ef7f30e6c147",
+              "protocol": "https",
+              "host": [
+                "iot-industry",
+                "redocly",
+                "app"
+              ],
+              "path": [
+                "_mock",
+                "openapi",
+                "rules",
+                "29e31015-4733-49f3-855a-ef7f30e6c147"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
     }
   ]
 }
