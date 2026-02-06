@@ -6,6 +6,16 @@ DEBUG = True
 
 ALLOWED_HOSTS = ["localhost", "127.0.0.1", "0.0.0.0", "web"]
 
+CSRF_TRUSTED_ORIGINS = [
+    "https://localhost",
+    "https://127.0.0.1",
+    "http://localhost",
+    "http://127.0.0.1",
+]
+
+USE_X_FORWARDED_HOST = True
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
 if "default" in DATABASES:  # noqa: F405
     DATABASES["default"]["CONN_MAX_AGE"] = 0  # noqa: F405
 else:
