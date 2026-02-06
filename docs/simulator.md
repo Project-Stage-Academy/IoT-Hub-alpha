@@ -28,6 +28,7 @@ The simulator supports rate-limited execution, finite or infinite runs, expected
 
 ## `2) Features`
 - HTTP telemetry ingestion
+- MQTT telemetry ingestion
 - Finite/infinite execution mode
 - JSONL logging
 - Verbose console output
@@ -36,7 +37,6 @@ Device / file operating modes:
 - device mode for continuous debugging or live data dumps
 - file mode for deterministic demo runs
 
-MQTT mode is currently a stub (see [Limitations](#9-limitations)).
 
 ## `3) Architecture`
 ```
@@ -48,6 +48,7 @@ Task Source -> Sender -> Runner -> Reporter
 |Task source | Loads payloads from config / demo files|
 |Sender | Sends payload via HTTP or MQTT |
 |Runner | Controls pacing, looping and counting |
+|Session connection| Controls context for http/mqtt connectivity|
 |Reporter | Handles console and file outputs|
 
 ## `4) Installation`
@@ -68,40 +69,52 @@ The simulator can also load demo payloads located in `/docs/demos/`. These are n
 config.simulator.json example:
 ```json
 {
-    "default_url": "https://iot-industry.redocly.app/_mock/openapi/telemetry",
-    "default_data_file": [
-        "Demo1.json",
-        "Demo2.json",
-        "Demo3.json"
-    ],
-    "default_timeout": 5,
-    "log_file": "sim_log.jsonl",
-    "devices": [
-        {
-            "name": "device1",
-            "data": {
-                "schema_version": "1.0",
-                "ssn": "SN2221144",
-                "value": 2652
-            },
-            "expected": 202
-        },
-        {
-            "name": "device2",
-            "data": {
-                "schema_version": "1.0",
-                "ssn": "SN2225555",
-                "value": 3244
-            },
-            "expected": 202
-        }
-    ]
+  "default_url": "https://iot-industry.redocly.app/_mock/openapi/telemetry",
+  "mqtt_url": "54abf624e48440ad8e6733f1d400a8b8.s1.eu.hivemq.cloud",
+  "mqtt_topic": "telemetry/", 
+  "mqtt_port": 8883,
+  "default_data_file": ["test_send.json"],
+  "default_timeout": 5,
+  "log_file": "sim_log.jsonl",
+  "devices": [
+    {
+      "name": "device1",
+      "data": {
+        "schema_version": "1.0",
+        "ssn": "TEMP-SN-002",
+        "value": 9552
+      },
+      "expected": 202
+    },
+    {
+      "name": "device2",
+      "data": {
+        "schema_version": "1.0",
+        "ssn": "PWR-SN-003",
+        "value": 3244
+      },
+      "expected": 202
+    },
+    {
+      "name": "rule_trigger_power",
+      "data": {
+        "schema_version": "1.0",
+        "ssn": "CUR-SN-001",
+        "value": 20000
+      },
+      "expected": 202
+    }
+  ]
 }
+
 ```
 ### Config fields:
 |Field            | Usage                  | Example |
 |-----------------|------------------------|---------|
 |default_url | Full ingest Api endpoint | http://127.0.0.1:8000/api/v1/telemetry |
+|mqtt_url| Full mqtt url | 127.0.0.1:8000/api/v1/telemetry |
+|mqtt_port | mqtt connection port| 8883|
+|mqtt_topic| mqtt topic | telemetry/ |
 |default_data_file| full name(case sensitive) or demo files located in /docs/demos, must be a list | [Demo1.json, Demo2.json] |
 |default_timeout | timeout time in seconds (can accept floats) | 2.5 |
 |log_file| logfile name in jsonl format to which logging will be written (if enabled in CLI) | sim_log.jsonl |
@@ -127,17 +140,20 @@ any further schema will have additional fields
 ## `6) Usage`
 Basic run (HTTP mode, using default demo files from config)
 ```
-python -m simulator.run
+python -m simulator.run -m http
 ```
 Using docker compose
 ```
-docker compose run --rm simulator.run
+docker compose run --rm simulator.run -m http
 ```
 Infinite mode
 ```
-python -m simulator.run -d device1 -c 0
+python -m simulator.run -d device1 -c 0 -m http
 ```
-
+MQTT Usage:
+```
+python -m simulator.run -m mqtt
+```
 
 ### CLI Options
 |quick flag | flag| Description | Default value|
@@ -171,13 +187,10 @@ python -m simulator.run -d device1 -c 0 -r 1
 
 ## `9) Limitations`
 
-- MQTT mode is not implemented yet
-
 - No retry or backoff logic
-
 - No parallel execution
-
 - HTTP only supports POST
+- HTTP Post currently supports ~10 req/sec on a local machine.
 
 ## `10) Simulator dependencies`
 
@@ -189,3 +202,4 @@ requirements-dev.txt
 Required for simulator execution:
 - pydantic
 - requests
+- paho-mqtt
