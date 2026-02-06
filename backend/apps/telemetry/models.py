@@ -22,13 +22,9 @@ class Telemetry(models.Model):
         ordering = ["-timestamp"]
         indexes = [
             models.Index(
-                fields=["device", "timestamp"],
-                name="idx_telemetry_device_time"
+                fields=["device", "timestamp"], name="idx_telemetry_device_time"
             ),
-            GinIndex(
-                fields=["payload"],
-                name="idx_telemetry_payload_gin"
-            ),
+            GinIndex(fields=["payload"], name="idx_telemetry_payload_gin"),
         ]
         verbose_name_plural = "Telemetry"
 
