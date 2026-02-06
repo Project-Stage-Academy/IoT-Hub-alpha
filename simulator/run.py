@@ -92,6 +92,14 @@ def main() -> None:
         help="enabled CLI printouts",
         action="store_true",
     )
+    parser.add_argument(
+        "-mqs",
+        "--mqqt_sleep",
+        help="Changes safety sleep on mqtt cooldown, "
+        "setting to 0 may cause unstability, default 0.1",
+        type=float,
+        default=0.1
+    )
 
     raw = parser.parse_args()
     raw.mode = raw.mode.lower()

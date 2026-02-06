@@ -1,5 +1,6 @@
 import time
 import requests
+import ssl
 from typing import Protocol
 import paho.mqtt.client as mqtt
 from .data_structures import PayloadEnvelope, SendResult
@@ -38,7 +39,7 @@ class HttpSender(Sender):
         start = time.perf_counter()
 
         if not session or not isinstance(session, requests.Session):
-            self._fail(item, start, "Bad session", None)
+            return self._fail(item, start, "Bad session", None)
 
         try:
             response = session.post(
@@ -96,8 +97,9 @@ class MqttPublisher(Sender):
     mqtt sender
     """
 
-    def __init__(self, topic: str) -> None:
+    def __init__(self, topic: str, mqtt_sleep: int) -> None:
         self.topic = topic
+        self.mqtt_sleep = mqtt_sleep
 
     def send(self, item: PayloadEnvelope, session: mqtt.Client | None) -> SendResult:
 
@@ -112,7 +114,7 @@ class MqttPublisher(Sender):
             info = session.publish(topic, item.data.model_dump_json())
             info.wait_for_publish(timeout=5)
             latency = int((time.perf_counter() - start) * 1000)
-            time.sleep(0.1)
+            time.sleep(self.mqtt_sleep)
 
             if info.rc != mqtt.MQTT_ERR_SUCCESS:
                 print("publish failed:", info.rc)
@@ -124,11 +126,24 @@ class MqttPublisher(Sender):
                 latency=latency,
                 error=None,
             )
-        except RuntimeError as e:
-            return SendResult(
-                code_got=1,
-                code_expected=0,
-                status="Fail",
-                latency=0,
-                error=str(e),
+        except TimeoutError as exc:
+            return self._fail(item, start, "Timeouterror ", exc)
+
+        except OSError as exc:
+            return self._fail(item, start, "OS error ", exc)
+
+        except (ValueError, TypeError) as exc:
+            return self._fail(item, start, "Value/Type error ", exc)
+        
+        except RuntimeError as exc:
+            return self._fail(item, start, "runtime error ", exc)
+
+    def _fail(self,item: PayloadEnvelope,start: float,error_type: str,exc: Exception | None,) -> SendResult:
+        latency = int((time.perf_counter() - start) * 1000)
+        return SendResult(
+            code_got=1,
+            code_expected=0,
+            status="Fail",
+            latency=latency,
+            error=error_type,
             )

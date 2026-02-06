@@ -30,7 +30,7 @@ def main_sim(raw: Any, config: Config) -> None:
 
         sender = HttpSender(base_url=parsed_data.url, timeout=raw.default_timeout)
     elif parsed_data.mode.lower() == "mqtt":
-        sender = MqttPublisher(topic=config.mqtt_topic)
+        sender = MqttPublisher(topic=config.mqtt_topic, mqtt_sleep=raw.mqqt_sleep)
     else:
         raise ValueError("Mode not recognized")
 

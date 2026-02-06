@@ -165,6 +165,7 @@ python -m simulator.run -m mqtt
 |-r| --rate(float)| delay between requests in seconds | 0.7 |
 |-v| --verbose(flag) | enables verbose mode in console output | False |
 |-l| --log(flag) | enables logging to the file specified in config (`log_file`) | False|
+|-mqs| --mqtt_sleep(float) | Change the safety sleep value(mqtt mode only) between publishes, may cause instability if ran at 0 for a long time | 0.1 |
 
 ## `7) Logging`
 Logs are written in JSON Lines (JSONL) format.
