@@ -89,12 +89,6 @@ if os.getenv("DB_CONN_HEALTH_CHECKS", "False").lower() == "true":
 
 AUTH_PASSWORD_VALIDATORS = [
     {
-        "NAME": (
-            "django.contrib.auth.password_validation"
-            ".UserAttributeSimilarityValidator"
-        ),
-    },
-    {
         "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
     },
     {
