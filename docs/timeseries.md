@@ -273,7 +273,7 @@ Expected output:
 # Generate 100K records over 90 days
 docker compose exec -T web python manage.py load_timeseries_data --count=100000 --days-back=90
 
-# View chunks created
+# View chunks created (telemetry hypertable only)
 docker compose exec -T web python manage.py show_chunks
 ```
 
@@ -282,7 +282,7 @@ docker compose exec -T web python manage.py show_chunks
 Run the validation script to confirm indexes are working correctly:
 
 ```bash
-./scripts/validate_timeseries.sh
+./scripts/validate_timeseries.sh --cleanup
 ```
 
 Expected output:
@@ -290,17 +290,26 @@ Expected output:
 === TimescaleDB Index Validation ===
 
 Loading test data...
-Loaded 1000 test records
+Loaded test records
 
-Using device_id: ec22fe7b-f5e7-4138-b2ce-57b96ce31812
+Using device_id: 081abe4b-bd3b-49df-b104-546b96d14b91
+
+=== Verifying Indexes Exist ===
+
+Index: idx_telemetry_device_time... EXISTS
+Index: idx_telemetry_payload_gin... EXISTS
+Index: telemetry_timestamp_idx... EXISTS
 
 === Running EXPLAIN ANALYZE ===
 
-Query: device + timestamp... PASS (uses idx_telemetry_device_time)
+Query: device + timestamp... PASS (uses index)
 Query: timestamp range... PASS (uses index)
-Query: JSONB payload... PASS (uses idx_telemetry_payload_gin)
+Query: JSONB payload... PASS (uses index)
 
-=== Results: 3 passed, 0 failed ===
+=== Results: 6 passed, 0 failed ===
+
+Cleaning up test data...
+Test data removed.
 All index validations passed.
 ```
 
