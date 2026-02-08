@@ -6,7 +6,9 @@
 6. [Usage](#6-usage)
 7. [Logging](#7-logging)
 8. [Examples](#8-examples)
-9. [Limitations](#9-limitations)
+9. [MQTT Adapter (Backend Ingestion Bridge)](#9-mqtt-adapter-backend-ingestion-bridge)
+10. [Limitations](#10-limitations)
+11. [Simulator dependencies](#11-simulator-dependencies)
 
 
 
@@ -186,14 +188,89 @@ Run device1 (located in config) continuously with a delay of 1 second with no ve
 python -m simulator.run -d device1 -c 0 -r 1
 ```
 
-## `9) Limitations`
+## `9) MQTT Adapter (Backend Ingestion Bridge)`
+
+The MQTT adapter is a Django management command that subscribes to an MQTT broker topic and forwards validated messages into the **same ingestion pipeline** used by the HTTP `POST /api/v1/telemetry/` endpoint.
+
+### How it works
+```
+MQTT Broker  ──subscribe──>  mqtt_adapter  ──validate + persist──>  PostgreSQL / TimescaleDB
+```
+
+The adapter:
+1. Connects to the Mosquitto broker (included in `docker-compose.yml`).
+2. Subscribes to `telemetry/#` (configurable).
+3. On each message: parses JSON, extracts `serial_number` from the payload (or from the topic path `telemetry/<serial_number>`), validates via `TelemetryValidator`, and persists via `TelemetryBatchProcessor`.
+
+### Running with Docker Compose
+```bash
+# Start the broker + adapter alongside other services
+docker compose up -d mosquitto mqtt_adapter
+
+# View adapter logs
+docker compose logs -f mqtt_adapter
+```
+
+### Running locally (without Docker)
+```bash
+# Ensure a local MQTT broker is running (e.g. mosquitto on localhost:1883)
+cd backend
+python manage.py mqtt_adapter --host localhost --port 1883 --topic "telemetry/#"
+```
+
+### CLI Options
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--host` | MQTT broker hostname | `MQTT_BROKER_HOST` env var or `mosquitto` |
+| `--port` | MQTT broker port | `MQTT_BROKER_PORT` env var or `1883` |
+| `--topic` | Topic filter to subscribe | `MQTT_TOPIC` env var or `telemetry/#` |
+| `--qos` | MQTT QoS level (0, 1, 2) | `MQTT_QOS` env var or `1` |
+
+### Environment Variables
+Configure in `.env` (see `.env.example`):
+```
+MQTT_BROKER_HOST=mosquitto
+MQTT_BROKER_PORT=1883
+MQTT_TOPIC=telemetry/#
+MQTT_USERNAME=testmqtt
+MQTT_PASSWORD=testmqtt
+MQTT_QOS=1
+MQTT_USE_TLS=false
+```
+
+### Publishing test messages
+With the adapter running, publish a test message using `mosquitto_pub`:
+```bash
+mosquitto_pub -h localhost -p 1883 \
+  -t "telemetry/TEMP-SN-002" \
+  -m '{"schema_version": "1.0", "value": 42.5}'
+```
+
+Or use the simulator in MQTT mode (update `config.simulator.json` with `mqtt_url: localhost` and `mqtt_port: 1883`):
+```bash
+python -m simulator.run -m mqtt -d device1
+```
+
+### Expected MQTT payload format
+```json
+{
+  "schema_version": "1.0",
+  "serial_number": "TEMP-SN-002",
+  "value": 42.5
+}
+```
+- `serial_number` can be omitted from the body if the topic is `telemetry/<serial_number>`.
+- `schema_version` is **required**.
+- `value` and `timestamp` are optional.
+
+## `10) Limitations`
 
 - No retry or backoff logic
 - No parallel execution
 - HTTP only supports POST
 - HTTP Post currently supports ~10 req/sec on a local machine.
 
-## `10) Simulator dependencies`
+## `11) Simulator dependencies`
 
 The telemetry simulator relies only on a minimal subset of dependencies.
 These are documented in:
