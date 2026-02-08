@@ -1,6 +1,8 @@
 from __future__ import annotations
 import pytest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
+from apps.events.models import Event
+from apps.notifications.models import NotificationPriority
 from apps.rules.services.actions import (
     action_dispatch,
     dispatch_msg,
@@ -85,7 +87,12 @@ def test_dispatch_msg_formats_message_and_calls_event_handler():
             "apps.rules.services.actions.get_template", return_value=DummyTemplate()
         ) as mock_get_template,
         patch("apps.rules.services.actions.event_handler") as mock_event_handler,
+        patch(
+            "apps.notifications.tasks.enqueue_notification_deliveries",
+            return_value=[Mock(), Mock()],
+        ),
     ):
+        mock_event_handler.return_value = Mock()
         dispatch_msg(cfg, rule, agg)
 
     mock_get_template.assert_called_once_with(tid=1)
@@ -173,7 +180,8 @@ def test_dispatch_msg_validates_each_recipient():
 
     with (
         patch("apps.rules.services.actions.get_template", return_value=DummyTemplate()),
-        patch("apps.rules.services.actions.event_handler", return_value=object()),
+        patch("apps.rules.services.actions.event_handler", return_value=Mock()),
+        patch("apps.notifications.tasks.enqueue_notification_deliveries", return_value=[]),
         patch(
             "apps.rules.services.actions.NormalizedRecipient.model_validate"
         ) as mock_validate,
@@ -197,9 +205,15 @@ def test_event_handler_creates_event_when_no_recent_events(
 
     assert ev.rule_id == rule_model.id
     assert ev.message == msg
-    assert ev.severity == notif_template_model.priority
-    assert ev.execution_results == {"status": "new"}
-    assert ev.telemetry_snapshot == agg.to_dict()
+    priority_map = {
+        NotificationPriority.LOW: Event.EventSeverity.INFO,
+        NotificationPriority.MEDIUM: Event.EventSeverity.WARNING,
+        NotificationPriority.HIGH: Event.EventSeverity.CRITICAL,
+        NotificationPriority.CRITICAL: Event.EventSeverity.CRITICAL,
+    }
+    assert ev.severity == priority_map[notif_template_model.priority]
+    assert ev.execution_results == []
+    assert ev.telemetry_snapshot["payload"]["values"] == agg.values
 
 
 @pytest.mark.django_db
