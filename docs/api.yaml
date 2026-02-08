@@ -17,6 +17,8 @@ tags:
     description: Telemetry ingestion and retrieval
   - name: auth
     description: Authentication control
+  - name: events
+    description: Rule-triggered events
 security:
   - BearerAuth: []
 servers:
@@ -441,6 +443,168 @@ paths:
                 $ref: "#/components/schemas/FakeToken"
         "400":
           $ref: "#/components/responses/BadRequest"
+  /events:
+    get:
+      description: get list of events (requires events.view_event permission)
+      summary: Get paginated event data
+      operationId: EventList
+      tags: [events]
+      parameters:
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/PageSizeParam"
+        - name: device_id
+          in: query
+          description: Filter events by device UUID
+          schema:
+            type: string
+            format: uuid
+          example: a1b2c3d4-e5f6-7890-1234-567890abcdef
+        - name: device
+          in: query
+          description: Alias for device_id
+          schema:
+            type: string
+            format: uuid
+        - name: rule_id
+          in: query
+          description: Filter events by rule UUID
+          schema:
+            type: string
+            format: uuid
+          example: 29e31015-4733-49f3-855a-ef7f30e6c147
+        - name: rule
+          in: query
+          description: Alias for rule_id
+          schema:
+            type: string
+            format: uuid
+        - name: severity
+          in: query
+          description: Filter events by severity
+          schema:
+            type: string
+            enum: [critical, warning, info]
+          example: warning
+        - name: acknowledged
+          in: query
+          description: Filter by acknowledged status (true means status != new)
+          schema:
+            type: string
+            enum: ["1", "0", "true", "false", "yes", "no"]
+          example: "true"
+      responses:
+        "200":
+          description: Page of events (may be empty)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventListResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /events/{event_id}:
+    get:
+      description: get a specific event by id (requires events.view_event permission)
+      summary: Get a specific event by id
+      operationId: EventGet
+      tags: [events]
+      parameters:
+        - name: event_id
+          in: path
+          required: true
+          description: Event numeric id
+          schema:
+            type: integer
+            format: int64
+          example: 321
+      responses:
+        "200":
+          description: event information by id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /events/{event_id}/ack:
+    post:
+      description: acknowledge an event (requires events.change_event permission)
+      summary: Acknowledge an event
+      operationId: EventAcknowledge
+      tags: [events]
+      parameters:
+        - name: event_id
+          in: path
+          required: true
+          description: Event numeric id
+          schema:
+            type: integer
+            format: int64
+          example: 321
+      responses:
+        "200":
+          description: event acknowledged
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /events/{event_id}/resolve:
+    post:
+      description: resolve an event (requires events.change_event permission)
+      summary: Resolve an event
+      operationId: EventResolve
+      tags: [events]
+      parameters:
+        - name: event_id
+          in: path
+          required: true
+          description: Event numeric id
+          schema:
+            type: integer
+            format: int64
+          example: 321
+      responses:
+        "200":
+          description: event resolved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
 components:
   securitySchemes:
     BearerAuth:
@@ -885,6 +1049,91 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Rules"
+        pagination:
+          $ref: "#/components/schemas/PaginationMeta"
+    Event:
+      type: object
+      required:
+        - id
+        - rule_id
+        - device_id
+        - severity
+        - message
+        - status
+        - acknowledged
+        - fired_at
+        - created_at
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 321
+        rule_id:
+          type: string
+          format: uuid
+          example: 29e31015-4733-49f3-855a-ef7f30e6c147
+        device_id:
+          type: string
+          format: uuid
+          example: a1b2c3d4-e5f6-7890-1234-567890abcdef
+        severity:
+          type: string
+          enum: [critical, warning, info]
+          example: warning
+        message:
+          type: string
+          example: "Warning: Device-01 temperature 84.3C"
+        status:
+          type: string
+          enum: [new, acknowledged, resolved]
+          example: acknowledged
+        acknowledged:
+          type: boolean
+          description: true when status != new
+          example: true
+        fired_at:
+          type: string
+          format: date-time
+          example: "2026-02-08T18:22:31Z"
+        created_at:
+          type: string
+          format: date-time
+          example: "2026-02-08T18:22:31Z"
+        execution_results:
+          type: array
+          items:
+            type: object
+          example:
+            - type: notification
+              template_id: 5
+              status: completed
+        telemetry_snapshot:
+          type: object
+          nullable: true
+          example:
+            device_id: "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+            timestamp: "2026-02-08T18:22:00Z"
+            payload:
+              value: 84.3
+        payload:
+          type: object
+          nullable: true
+          example:
+            value: 84.3
+    EventResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: "#/components/schemas/Event"
+    EventListResponse:
+      type: object
+      required: [data, pagination]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Event"
         pagination:
           $ref: "#/components/schemas/PaginationMeta"
   responses:
