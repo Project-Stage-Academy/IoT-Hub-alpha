@@ -37,7 +37,7 @@ class TestHandleMqttMessage:
             {
                 "schema_version": "1.0",
                 "serial_number": device.serial_number,
-                "value": 42.5,
+                "value": 4250,
             }
         ).encode()
 
@@ -56,7 +56,7 @@ class TestHandleMqttMessage:
         payload = json.dumps(
             {
                 "schema_version": "1.0",
-                "value": 10.0,
+                "value": 1000,
             }
         ).encode()
 
@@ -71,7 +71,7 @@ class TestHandleMqttMessage:
             {
                 "schema_version": "1.0",
                 "serial_number": device.serial_number,
-                "value": 7.0,
+                "value": 700,
             }
         ).encode()
 
@@ -109,7 +109,7 @@ class TestHandleMqttMessage:
         payload = json.dumps(
             {
                 "schema_version": "1.0",
-                "value": 1.0,
+                "value": 100,
             }
         ).encode()
 
@@ -123,7 +123,7 @@ class TestHandleMqttMessage:
             {
                 "schema_version": "1.0",
                 "serial_number": "DOES-NOT-EXIST",
-                "value": 1.0,
+                "value": 100,
             }
         ).encode()
 
@@ -138,7 +138,7 @@ class TestHandleMqttMessage:
             {
                 "schema_version": "999.0",
                 "serial_number": device.serial_number,
-                "value": 1.0,
+                "value": 100,
             }
         ).encode()
 
@@ -152,7 +152,7 @@ class TestHandleMqttMessage:
         payload = json.dumps(
             {
                 "serial_number": device.serial_number,
-                "value": 1.0,
+                "value": 100,
             }
         ).encode()
 
@@ -166,7 +166,7 @@ class TestHandleMqttMessage:
             {
                 "schema_version": "1.0",
                 "serial_number": device.serial_number,
-                "value": 5.0,
+                "value": 500,
             }
         ).encode()
 
@@ -244,7 +244,7 @@ class TestMqttAdapterCommandCallbacks:
         msg.payload = json.dumps(
             {
                 "schema_version": "1.0",
-                "value": 99.9,
+                "value": 999,
             }
         ).encode()
 
