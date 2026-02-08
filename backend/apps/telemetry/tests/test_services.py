@@ -18,7 +18,7 @@ class TestTelemetryValidatorSingle:
         data = {
             "serial_number": device.serial_number,
             "schema_version": "1.0",
-            "value": 25.5,
+            "value": 2550,
         }
         validated, error = TelemetryValidator.validate_single(data)
 
@@ -95,12 +95,12 @@ class TestTelemetryValidatorBatch:
             {
                 "serial_number": device.serial_number,
                 "schema_version": "1.0",
-                "value": 1.0,
+                "value": 100,
             },
             {
                 "serial_number": device.serial_number,
                 "schema_version": "1.0",
-                "value": 2.0,
+                "value": 200,
             },
         ]
         validated, errors = TelemetryValidator.validate_batch(data)
@@ -144,7 +144,7 @@ class TestTelemetryBatchProcessorSingle:
         data = {
             "serial_number": device.serial_number,
             "schema_version": "1.0",
-            "value": 42.0,
+            "value": 4200,
         }
         validated, _ = TelemetryValidator.validate_single(data)
         telemetry = TelemetryBatchProcessor.process_single(validated)

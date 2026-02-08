@@ -113,7 +113,10 @@ class TelemetrySerializer:
         cleaned_payload["serial_number"] = self.data["serial_number"]
 
         if "value" in self.data:
-            cleaned_payload["value"] = self._normalize_value(self.data["value"])
+            value = self._normalize_value(self.data["value"])
+            if self.data["schema_version"] == "1.0":
+                value = value / 100
+            cleaned_payload["value"] = value
 
         cleaned = {
             "device": device,
