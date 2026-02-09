@@ -3,51 +3,43 @@ from django.utils import timezone
 from apps.events.models import Event
 from apps.notifications.models import NotificationDelivery, NotificationTemplate
 from apps.rules.models import Rule
+from apps.rules.services.data_structure import Condition, EvalResults
+from apps.rules.services.rule_eval import eval_rule, TelemetryPoint
 
 
-def _rule_matches(rule, payload_value):
-    threshold = float(rule.threshold)
-    value = float(payload_value)
+def _rule_matches(rule, telemetry):
+    value = telemetry.payload.get("value")
+    if value is None:
+        return EvalResults()
 
-    if rule.comparison_operator == Rule.RuleOperator.GT:
-        return value > threshold
-    if rule.comparison_operator == Rule.RuleOperator.GTE:
-        return value >= threshold
-    if rule.comparison_operator == Rule.RuleOperator.LT:
-        return value < threshold
-    if rule.comparison_operator == Rule.RuleOperator.LTE:
-        return value <= threshold
-    if rule.comparison_operator == Rule.RuleOperator.EQ:
-        return value == threshold
-    if rule.comparison_operator == Rule.RuleOperator.NEQ:
-        return value != threshold
-
-    return False
+    condition = Condition.model_validate(rule.condition)
+    points = [TelemetryPoint(ts=telemetry.timestamp, value=float(value))]
+    return eval_rule(condition, points, EvalResults(), rule.device_id)
 
 
 def process_telemetry_for_device(telemetry):
     device = telemetry.device
-    value = telemetry.payload.get("value")
-    if value is None:
-        return []
-
     events = []
     rules = Rule.objects.filter(device=device, is_enabled=True)
     for rule in rules:
-        if not _rule_matches(rule, value):
+        result = _rule_matches(rule, telemetry)
+        if not result.trigger:
             continue
+
+        execution_results = []
+        for action in rule.action_config:
+            item = {"type": action.get("type"), "status": "pending"}
+            if action.get("type") == "notification":
+                item["template_id"] = action.get("template_id")
+            elif action.get("type") == "stop_machine":
+                item["machine_id"] = action.get("machine_id")
+            execution_results.append(item)
 
         event = Event.objects.create(
             rule=rule,
             severity=Event.EventSeverity.WARNING,
             message=f"Rule '{rule.name}' triggered for {device.name}",
-            execution_results=[
-                {
-                    "type": "notification",
-                    "template_id": rule.action_config[0]["template_id"],
-                    "status": "pending",
-                }
-            ],
+            execution_results=execution_results,
             telemetry_snapshot={
                 "device_id": str(device.id),
                 "timestamp": telemetry.timestamp.isoformat(),

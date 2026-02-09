@@ -6,8 +6,7 @@ def test_create_rule_success(api_client, auth_headers, device):
     payload = {
         "device_id": str(device.id),
         "name": "High Temp",
-        "comparison_operator": "gt",
-        "threshold": 75.0,
+        "condition": {"type": "leaf", "operator": "gt", "threshold": 75.0},
         "action_config": [{"type": "notification", "template_id": 1}],
         "is_enabled": True,
     }
@@ -27,8 +26,7 @@ def test_create_rule_error_invalid_payload(api_client, auth_headers, device):
     payload = {
         "device_id": str(device.id),
         "name": "High Temp",
-        "comparison_operator": "gt",
-        "threshold": 75.0,
+        "condition": {"type": "leaf", "operator": "gt", "threshold": 75.0},
         "action_config": [{"type": "notification"}],
     }
 

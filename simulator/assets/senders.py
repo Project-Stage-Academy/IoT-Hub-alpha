@@ -36,7 +36,6 @@ class HttpSender(Sender):
     def send(
         self, item: PayloadEnvelope, session: requests.Session | None
     ) -> SendResult:
-
         start = time.perf_counter()
 
         if not session:
@@ -50,7 +49,6 @@ class HttpSender(Sender):
             )
 
             latency = int((time.perf_counter() - start) * 1000)
-
             return SendResult(
                 code_got=response.status_code,
                 code_expected=item.expected,

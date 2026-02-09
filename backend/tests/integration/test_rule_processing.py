@@ -20,8 +20,7 @@ def test_integration_flow_triggers_event_and_delivery(device, telemetry_factory)
     Rule.objects.create(
         device=device,
         name="High Temp",
-        comparison_operator=Rule.RuleOperator.GT,
-        threshold=50.0,
+        condition={"type": "leaf", "operator": "gt", "threshold": 50.0},
         action_config=[{"type": "notification", "template_id": template.id}],
         is_enabled=True,
     )
@@ -57,8 +56,7 @@ def test_integration_flow_no_event_when_threshold_not_met(device, telemetry_fact
     Rule.objects.create(
         device=device,
         name="High Temp",
-        comparison_operator=Rule.RuleOperator.GT,
-        threshold=50.0,
+        condition={"type": "leaf", "operator": "gt", "threshold": 50.0},
         action_config=[{"type": "notification", "template_id": template.id}],
         is_enabled=True,
     )
@@ -92,8 +90,7 @@ def test_integration_flow_no_event_when_rule_disabled(device, telemetry_factory)
     Rule.objects.create(
         device=device,
         name="Disabled Rule",
-        comparison_operator=Rule.RuleOperator.GT,
-        threshold=50.0,
+        condition={"type": "leaf", "operator": "gt", "threshold": 50.0},
         action_config=[{"type": "notification", "template_id": template.id}],
         is_enabled=False,
     )
@@ -132,8 +129,7 @@ def test_integration_flow_multiple_recipients_create_multiple_deliveries(
     Rule.objects.create(
         device=device,
         name="High Temp",
-        comparison_operator=Rule.RuleOperator.GT,
-        threshold=50.0,
+        condition={"type": "leaf", "operator": "gt", "threshold": 50.0},
         action_config=[{"type": "notification", "template_id": template.id}],
         is_enabled=True,
     )

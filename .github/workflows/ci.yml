@@ -132,7 +132,7 @@ jobs:
       - name: Run tests with coverage gate
         working-directory: backend
         run: >
-          pytest -q --maxfail=1
+          pytest tests/ -q --maxfail=1
           --cov=apps.devices
           --cov=apps.telemetry
           --cov=apps.rules

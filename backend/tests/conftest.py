@@ -78,8 +78,7 @@ def rule(db, device):
         device=device,
         name="High Temp",
         description="Alert when temp exceeds threshold",
-        comparison_operator=Rule.RuleOperator.GT,
-        threshold=75.0,
+        condition={"type": "leaf", "operator": "gt", "threshold": 75.0},
         action_config=[{"type": "notification", "template_id": 1}],
         is_enabled=True,
     )

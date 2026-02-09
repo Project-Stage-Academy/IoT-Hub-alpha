@@ -22,8 +22,7 @@ def test_rule_action_config_validation_rejects_non_list(device):
     rule = Rule(
         device=device,
         name="Bad Rule",
-        comparison_operator=Rule.RuleOperator.GT,
-        threshold=10.0,
+        condition={"type": "leaf", "operator": "gt", "threshold": 10.0},
         action_config="not-a-list",
     )
 
@@ -36,8 +35,7 @@ def test_rule_action_config_validation_requires_type(device):
     rule = Rule(
         device=device,
         name="Bad Rule",
-        comparison_operator=Rule.RuleOperator.GT,
-        threshold=10.0,
+        condition={"type": "leaf", "operator": "gt", "threshold": 10.0},
         action_config=[{"template_id": 1}],
     )
 
@@ -50,8 +48,7 @@ def test_rule_action_config_validation_notification_requires_template(device):
     rule = Rule(
         device=device,
         name="Bad Rule",
-        comparison_operator=Rule.RuleOperator.GT,
-        threshold=10.0,
+        condition={"type": "leaf", "operator": "gt", "threshold": 10.0},
         action_config=[{"type": "notification"}],
     )
 
@@ -64,8 +61,7 @@ def test_rule_action_config_validation_cooldown_non_negative(device):
     rule = Rule(
         device=device,
         name="Bad Rule",
-        comparison_operator=Rule.RuleOperator.GT,
-        threshold=10.0,
+        condition={"type": "leaf", "operator": "gt", "threshold": 10.0},
         action_config=[
             {"type": "notification", "template_id": 1, "cooldown_minutes": -1}
         ],

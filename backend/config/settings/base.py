@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     "apps.rules",
     "apps.events",
     "apps.notifications",
+    "django_celery_beat",
 ]
 
 MIDDLEWARE = [
@@ -50,7 +51,7 @@ ROOT_URLCONF = "config.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [BASE_DIR / "templates"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -80,6 +81,9 @@ DATABASES = {
     }
 }
 
+TIME_ZONE = "UTC"  # or your TZ
+USE_TZ = True
+
 if os.getenv("DB_CONN_HEALTH_CHECKS", "False").lower() == "true":
     DATABASES["default"]["CONN_HEALTH_CHECKS"] = True
 
@@ -94,6 +98,23 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": ("django.contrib.auth.password_validation" ".CommonPasswordValidator",)},
     {"NAME": ("django.contrib.auth.password_validation" ".NumericPasswordValidator",)},
 ]
+
+
+# Celery
+CELERY_BROKER_URL = "redis://redis:6379/0"
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+
+CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
+
+CELERY_TIMER = int(os.getenv("CELERY_RUN_PROCESS_TELEMETRY_TIMER_MINUTES", 5)) * 60
+
+CELERY_BEAT_SCHEDULE = {
+    "run-rule-processor-every-5m": {
+        "task": "apps.rules.tasks.process_telemetry",
+        "schedule": CELERY_TIMER
+    }
+}
 
 LANGUAGE_CODE = "en-us"
 
@@ -163,6 +184,10 @@ LOGGING_BASE = {
             "propagate": True,
         },
         "celery.task": {
+            "level": "INFO",
+            "propagate": True,
+        },
+        "apps.rules": {
             "level": "INFO",
             "propagate": True,
         },

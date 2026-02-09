@@ -2,7 +2,7 @@
   env:
     DATABASE_URL: postgres://user:password@localhost:5432/test_db
   run: >
-    pytest -q --maxfail=1
+    pytest tests/ -q --maxfail=1
     --cov=apps.devices
     --cov=apps.telemetry
     --cov=apps.rules
