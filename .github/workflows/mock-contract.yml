@@ -36,7 +36,7 @@ jobs:
           # IMPORTANT: set your Postman env's baseUrl to the mock path:
           # e.g. http://127.0.0.1:4000/_mock/openapi/api/
           newman run docs/postman/IoT-Hub-alpha.postman_collection.json \
-            -e docs/postman/local-mock.postman_environment.json
+            -e docs/postman/postman_collection.json
 
       - name: Stop preview
         if: always()
