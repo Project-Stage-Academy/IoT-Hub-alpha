@@ -5,7 +5,7 @@
             "description": "",
             "item": [
                 {
-                    "id": "5bb9c5e5-6f7c-45bf-9b95-33659e815f74",
+                    "id": "9af9f52b-952a-4270-a477-c9e459645835",
                     "name": "Get paginated telemetry data",
                     "request": {
                         "name": "Get paginated telemetry data",
@@ -63,7 +63,7 @@
                     },
                     "response": [
                         {
-                            "id": "a1f2ca8c-19a3-4095-907d-ee1f20711df1",
+                            "id": "a527a200-5324-483f-8168-b75ba277713f",
                             "name": "Page of telemetry data (may be empty)",
                             "originalRequest": {
                                 "url": {
@@ -134,7 +134,7 @@
                             "_postman_previewlanguage": "json"
                         },
                         {
-                            "id": "d9b2faec-09b5-44b0-87ab-f3e6ae4946ec",
+                            "id": "e385b142-51ca-4f06-8f80-81581714c2d8",
                             "name": "No or invalid JWT token provided",
                             "originalRequest": {
                                 "url": {
@@ -211,7 +211,7 @@
                     }
                 },
                 {
-                    "id": "a173de8a-d0ba-49f5-8230-a4996483e97b",
+                    "id": "99a7f1c6-97fd-4f22-887e-d49a024da296",
                     "name": "Ingest telemetry data",
                     "request": {
                         "name": "Ingest telemetry data",
@@ -272,7 +272,7 @@
                     },
                     "response": [
                         {
-                            "id": "0a39c07c-3fe2-452b-85b3-5793727aabac",
+                            "id": "9afd4891-f098-48a9-92c3-dd3204d01f3e",
                             "name": "Telemetry created (sync mode)",
                             "originalRequest": {
                                 "url": {
@@ -346,7 +346,7 @@
                             "_postman_previewlanguage": "json"
                         },
                         {
-                            "id": "257ed018-a346-4571-b1b9-a77b967399f2",
+                            "id": "a6fa399d-f3d2-4421-b293-2b9e3a23231c",
                             "name": "Telemetry accepted for processing (async mode)",
                             "originalRequest": {
                                 "url": {
@@ -420,7 +420,7 @@
                             "_postman_previewlanguage": "json"
                         },
                         {
-                            "id": "bf2c83c1-b280-4f6a-84d8-1a3438506136",
+                            "id": "83a4ffb3-ccef-41aa-ab4d-819e1daa390b",
                             "name": "Bad request - validation errors or batch issues",
                             "originalRequest": {
                                 "url": {
@@ -502,11 +502,1422 @@
             ]
         },
         {
+            "name": "events",
+            "description": "",
+            "item": [
+                {
+                    "id": "a0b7203f-d095-43bb-a6e5-67b7820c64c4",
+                    "name": "Get paginated event data",
+                    "request": {
+                        "name": "Get paginated event data",
+                        "description": {
+                            "content": "get list of events (requires events.view_event permission)",
+                            "type": "text/plain"
+                        },
+                        "url": {
+                            "path": [
+                                "events"
+                            ],
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "query": [
+                                {
+                                    "disabled": false,
+                                    "description": {
+                                        "content": "page number (1-based)",
+                                        "type": "text/plain"
+                                    },
+                                    "key": "page",
+                                    "value": "<integer>"
+                                },
+                                {
+                                    "disabled": false,
+                                    "description": {
+                                        "content": "number of items per page",
+                                        "type": "text/plain"
+                                    },
+                                    "key": "page_size",
+                                    "value": "<integer>"
+                                },
+                                {
+                                    "disabled": false,
+                                    "description": {
+                                        "content": "Filter events by device UUID",
+                                        "type": "text/plain"
+                                    },
+                                    "key": "device_id",
+                                    "value": "<uuid>"
+                                },
+                                {
+                                    "disabled": false,
+                                    "description": {
+                                        "content": "Alias for device_id",
+                                        "type": "text/plain"
+                                    },
+                                    "key": "device",
+                                    "value": "<uuid>"
+                                },
+                                {
+                                    "disabled": false,
+                                    "description": {
+                                        "content": "Filter events by rule UUID",
+                                        "type": "text/plain"
+                                    },
+                                    "key": "rule_id",
+                                    "value": "<uuid>"
+                                },
+                                {
+                                    "disabled": false,
+                                    "description": {
+                                        "content": "Alias for rule_id",
+                                        "type": "text/plain"
+                                    },
+                                    "key": "rule",
+                                    "value": "<uuid>"
+                                },
+                                {
+                                    "disabled": false,
+                                    "description": {
+                                        "content": "Filter events by severity (This can only be one of critical,warning,info)",
+                                        "type": "text/plain"
+                                    },
+                                    "key": "severity",
+                                    "value": "warning"
+                                },
+                                {
+                                    "disabled": false,
+                                    "description": {
+                                        "content": "Filter by acknowledged status (true means status != new) (This can only be one of 1,0,true,false,yes,no)",
+                                        "type": "text/plain"
+                                    },
+                                    "key": "acknowledged",
+                                    "value": "yes"
+                                }
+                            ],
+                            "variable": []
+                        },
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "method": "GET",
+                        "body": {},
+                        "auth": null
+                    },
+                    "response": [
+                        {
+                            "id": "6033e113-db76-4a92-9ef7-7592af27921e",
+                            "name": "Page of events (may be empty)",
+                            "originalRequest": {
+                                "url": {
+                                    "path": [
+                                        "events"
+                                    ],
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "query": [
+                                        {
+                                            "disabled": false,
+                                            "description": {
+                                                "content": "page number (1-based)",
+                                                "type": "text/plain"
+                                            },
+                                            "key": "page",
+                                            "value": "<integer>"
+                                        },
+                                        {
+                                            "disabled": false,
+                                            "description": {
+                                                "content": "number of items per page",
+                                                "type": "text/plain"
+                                            },
+                                            "key": "page_size",
+                                            "value": "<integer>"
+                                        },
+                                        {
+                                            "disabled": false,
+                                            "description": {
+                                                "content": "Filter events by device UUID",
+                                                "type": "text/plain"
+                                            },
+                                            "key": "device_id",
+                                            "value": "<uuid>"
+                                        },
+                                        {
+                                            "disabled": false,
+                                            "description": {
+                                                "content": "Alias for device_id",
+                                                "type": "text/plain"
+                                            },
+                                            "key": "device",
+                                            "value": "<uuid>"
+                                        },
+                                        {
+                                            "disabled": false,
+                                            "description": {
+                                                "content": "Filter events by rule UUID",
+                                                "type": "text/plain"
+                                            },
+                                            "key": "rule_id",
+                                            "value": "<uuid>"
+                                        },
+                                        {
+                                            "disabled": false,
+                                            "description": {
+                                                "content": "Alias for rule_id",
+                                                "type": "text/plain"
+                                            },
+                                            "key": "rule",
+                                            "value": "<uuid>"
+                                        },
+                                        {
+                                            "disabled": false,
+                                            "description": {
+                                                "content": "Filter events by severity (This can only be one of critical,warning,info)",
+                                                "type": "text/plain"
+                                            },
+                                            "key": "severity",
+                                            "value": "warning"
+                                        },
+                                        {
+                                            "disabled": false,
+                                            "description": {
+                                                "content": "Filter by acknowledged status (true means status != new) (This can only be one of 1,0,true,false,yes,no)",
+                                                "type": "text/plain"
+                                            },
+                                            "key": "acknowledged",
+                                            "value": "yes"
+                                        }
+                                    ],
+                                    "variable": []
+                                },
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "description": {
+                                            "content": "Added as a part of security scheme: bearer",
+                                            "type": "text/plain"
+                                        },
+                                        "key": "Authorization",
+                                        "value": "Bearer <token>"
+                                    }
+                                ],
+                                "method": "GET",
+                                "body": {}
+                            },
+                            "status": "OK",
+                            "code": 200,
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n  \"data\": [\n    {\n      \"id\": \"<long>\",\n      \"rule_id\": \"<uuid>\",\n      \"device_id\": \"<uuid>\",\n      \"severity\": \"critical\",\n      \"message\": \"<string>\",\n      \"status\": \"new\",\n      \"acknowledged\": \"<boolean>\",\n      \"fired_at\": \"<dateTime>\",\n      \"created_at\": \"<dateTime>\",\n      \"telemetry_snapshot\": {},\n      \"payload\": {}\n    },\n    {\n      \"id\": \"<long>\",\n      \"rule_id\": \"<uuid>\",\n      \"device_id\": \"<uuid>\",\n      \"severity\": \"info\",\n      \"message\": \"<string>\",\n      \"status\": \"acknowledged\",\n      \"acknowledged\": \"<boolean>\",\n      \"fired_at\": \"<dateTime>\",\n      \"created_at\": \"<dateTime>\",\n      \"telemetry_snapshot\": {},\n      \"payload\": {}\n    }\n  ],\n  \"pagination\": {\n    \"page\": \"<integer>\",\n    \"page_size\": \"<integer>\",\n    \"total\": \"<integer>\",\n    \"total_pages\": \"<integer>\",\n    \"next_page\": \"<integer>\",\n    \"prev_page\": \"<integer>\"\n  }\n}",
+                            "cookie": [],
+                            "_postman_previewlanguage": "json"
+                        },
+                        {
+                            "id": "8eb65cfe-771d-49ed-9737-e3896c969418",
+                            "name": "Bad request body",
+                            "originalRequest": {
+                                "url": {
+                                    "path": [
+                                        "events"
+                                    ],
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "query": [
+                                        {
+                                            "disabled": false,
+                                            "description": {
+                                                "content": "page number (1-based)",
+                                                "type": "text/plain"
+                                            },
+                                            "key": "page",
+                                            "value": "<integer>"
+                                        },
+                                        {
+                                            "disabled": false,
+                                            "description": {
+                                                "content": "number of items per page",
+                                                "type": "text/plain"
+                                            },
+                                            "key": "page_size",
+                                            "value": "<integer>"
+                                        },
+                                        {
+                                            "disabled": false,
+                                            "description": {
+                                                "content": "Filter events by device UUID",
+                                                "type": "text/plain"
+                                            },
+                                            "key": "device_id",
+                                            "value": "<uuid>"
+                                        },
+                                        {
+                                            "disabled": false,
+                                            "description": {
+                                                "content": "Alias for device_id",
+                                                "type": "text/plain"
+                                            },
+                                            "key": "device",
+                                            "value": "<uuid>"
+                                        },
+                                        {
+                                            "disabled": false,
+                                            "description": {
+                                                "content": "Filter events by rule UUID",
+                                                "type": "text/plain"
+                                            },
+                                            "key": "rule_id",
+                                            "value": "<uuid>"
+                                        },
+                                        {
+                                            "disabled": false,
+                                            "description": {
+                                                "content": "Alias for rule_id",
+                                                "type": "text/plain"
+                                            },
+                                            "key": "rule",
+                                            "value": "<uuid>"
+                                        },
+                                        {
+                                            "disabled": false,
+                                            "description": {
+                                                "content": "Filter events by severity (This can only be one of critical,warning,info)",
+                                                "type": "text/plain"
+                                            },
+                                            "key": "severity",
+                                            "value": "warning"
+                                        },
+                                        {
+                                            "disabled": false,
+                                            "description": {
+                                                "content": "Filter by acknowledged status (true means status != new) (This can only be one of 1,0,true,false,yes,no)",
+                                                "type": "text/plain"
+                                            },
+                                            "key": "acknowledged",
+                                            "value": "yes"
+                                        }
+                                    ],
+                                    "variable": []
+                                },
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "description": {
+                                            "content": "Added as a part of security scheme: bearer",
+                                            "type": "text/plain"
+                                        },
+                                        "key": "Authorization",
+                                        "value": "Bearer <token>"
+                                    }
+                                ],
+                                "method": "GET",
+                                "body": {}
+                            },
+                            "status": "Bad Request",
+                            "code": 400,
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n  \"error\": \"<string>\"\n}",
+                            "cookie": [],
+                            "_postman_previewlanguage": "json"
+                        },
+                        {
+                            "id": "1614a9e1-f1a5-4cec-96d4-12f7c2c71767",
+                            "name": "No or invalid JWT token provided",
+                            "originalRequest": {
+                                "url": {
+                                    "path": [
+                                        "events"
+                                    ],
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "query": [
+                                        {
+                                            "disabled": false,
+                                            "description": {
+                                                "content": "page number (1-based)",
+                                                "type": "text/plain"
+                                            },
+                                            "key": "page",
+                                            "value": "<integer>"
+                                        },
+                                        {
+                                            "disabled": false,
+                                            "description": {
+                                                "content": "number of items per page",
+                                                "type": "text/plain"
+                                            },
+                                            "key": "page_size",
+                                            "value": "<integer>"
+                                        },
+                                        {
+                                            "disabled": false,
+                                            "description": {
+                                                "content": "Filter events by device UUID",
+                                                "type": "text/plain"
+                                            },
+                                            "key": "device_id",
+                                            "value": "<uuid>"
+                                        },
+                                        {
+                                            "disabled": false,
+                                            "description": {
+                                                "content": "Alias for device_id",
+                                                "type": "text/plain"
+                                            },
+                                            "key": "device",
+                                            "value": "<uuid>"
+                                        },
+                                        {
+                                            "disabled": false,
+                                            "description": {
+                                                "content": "Filter events by rule UUID",
+                                                "type": "text/plain"
+                                            },
+                                            "key": "rule_id",
+                                            "value": "<uuid>"
+                                        },
+                                        {
+                                            "disabled": false,
+                                            "description": {
+                                                "content": "Alias for rule_id",
+                                                "type": "text/plain"
+                                            },
+                                            "key": "rule",
+                                            "value": "<uuid>"
+                                        },
+                                        {
+                                            "disabled": false,
+                                            "description": {
+                                                "content": "Filter events by severity (This can only be one of critical,warning,info)",
+                                                "type": "text/plain"
+                                            },
+                                            "key": "severity",
+                                            "value": "warning"
+                                        },
+                                        {
+                                            "disabled": false,
+                                            "description": {
+                                                "content": "Filter by acknowledged status (true means status != new) (This can only be one of 1,0,true,false,yes,no)",
+                                                "type": "text/plain"
+                                            },
+                                            "key": "acknowledged",
+                                            "value": "yes"
+                                        }
+                                    ],
+                                    "variable": []
+                                },
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "description": {
+                                            "content": "Added as a part of security scheme: bearer",
+                                            "type": "text/plain"
+                                        },
+                                        "key": "Authorization",
+                                        "value": "Bearer <token>"
+                                    }
+                                ],
+                                "method": "GET",
+                                "body": {}
+                            },
+                            "status": "Unauthorized",
+                            "code": 401,
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n  \"error\": \"<string>\"\n}",
+                            "cookie": [],
+                            "_postman_previewlanguage": "json"
+                        },
+                        {
+                            "id": "7117aade-0a3c-4811-ab8d-07de6d0bc8e0",
+                            "name": "Forbidden",
+                            "originalRequest": {
+                                "url": {
+                                    "path": [
+                                        "events"
+                                    ],
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "query": [
+                                        {
+                                            "disabled": false,
+                                            "description": {
+                                                "content": "page number (1-based)",
+                                                "type": "text/plain"
+                                            },
+                                            "key": "page",
+                                            "value": "<integer>"
+                                        },
+                                        {
+                                            "disabled": false,
+                                            "description": {
+                                                "content": "number of items per page",
+                                                "type": "text/plain"
+                                            },
+                                            "key": "page_size",
+                                            "value": "<integer>"
+                                        },
+                                        {
+                                            "disabled": false,
+                                            "description": {
+                                                "content": "Filter events by device UUID",
+                                                "type": "text/plain"
+                                            },
+                                            "key": "device_id",
+                                            "value": "<uuid>"
+                                        },
+                                        {
+                                            "disabled": false,
+                                            "description": {
+                                                "content": "Alias for device_id",
+                                                "type": "text/plain"
+                                            },
+                                            "key": "device",
+                                            "value": "<uuid>"
+                                        },
+                                        {
+                                            "disabled": false,
+                                            "description": {
+                                                "content": "Filter events by rule UUID",
+                                                "type": "text/plain"
+                                            },
+                                            "key": "rule_id",
+                                            "value": "<uuid>"
+                                        },
+                                        {
+                                            "disabled": false,
+                                            "description": {
+                                                "content": "Alias for rule_id",
+                                                "type": "text/plain"
+                                            },
+                                            "key": "rule",
+                                            "value": "<uuid>"
+                                        },
+                                        {
+                                            "disabled": false,
+                                            "description": {
+                                                "content": "Filter events by severity (This can only be one of critical,warning,info)",
+                                                "type": "text/plain"
+                                            },
+                                            "key": "severity",
+                                            "value": "warning"
+                                        },
+                                        {
+                                            "disabled": false,
+                                            "description": {
+                                                "content": "Filter by acknowledged status (true means status != new) (This can only be one of 1,0,true,false,yes,no)",
+                                                "type": "text/plain"
+                                            },
+                                            "key": "acknowledged",
+                                            "value": "yes"
+                                        }
+                                    ],
+                                    "variable": []
+                                },
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "description": {
+                                            "content": "Added as a part of security scheme: bearer",
+                                            "type": "text/plain"
+                                        },
+                                        "key": "Authorization",
+                                        "value": "Bearer <token>"
+                                    }
+                                ],
+                                "method": "GET",
+                                "body": {}
+                            },
+                            "status": "Forbidden",
+                            "code": 403,
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n  \"error\": \"<string>\"\n}",
+                            "cookie": [],
+                            "_postman_previewlanguage": "json"
+                        }
+                    ],
+                    "event": [],
+                    "protocolProfileBehavior": {
+                        "disableBodyPruning": true
+                    }
+                },
+                {
+                    "name": "{event_id}",
+                    "description": "",
+                    "item": [
+                        {
+                            "id": "f4346d34-5fe6-44d7-9065-fc3182a164bf",
+                            "name": "Get a specific event by id",
+                            "request": {
+                                "name": "Get a specific event by id",
+                                "description": {
+                                    "content": "get a specific event by id (requires events.view_event permission)",
+                                    "type": "text/plain"
+                                },
+                                "url": {
+                                    "path": [
+                                        "events",
+                                        ":event_id"
+                                    ],
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "query": [],
+                                    "variable": [
+                                        {
+                                            "type": "any",
+                                            "value": "<long>",
+                                            "key": "event_id",
+                                            "disabled": false,
+                                            "description": {
+                                                "content": "(Required) Event numeric id",
+                                                "type": "text/plain"
+                                            }
+                                        }
+                                    ]
+                                },
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "method": "GET",
+                                "body": {},
+                                "auth": null
+                            },
+                            "response": [
+                                {
+                                    "id": "6de6ef3e-1149-4f49-bd3d-270b324d8b05",
+                                    "name": "event information by id",
+                                    "originalRequest": {
+                                        "url": {
+                                            "path": [
+                                                "events",
+                                                ":event_id"
+                                            ],
+                                            "host": [
+                                                "{{baseUrl}}"
+                                            ],
+                                            "query": [],
+                                            "variable": [
+                                                {
+                                                    "disabled": false,
+                                                    "description": {
+                                                        "content": "(Required) Event numeric id",
+                                                        "type": "text/plain"
+                                                    },
+                                                    "type": "any",
+                                                    "value": "<long>",
+                                                    "key": "event_id"
+                                                }
+                                            ]
+                                        },
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json"
+                                            },
+                                            {
+                                                "description": {
+                                                    "content": "Added as a part of security scheme: bearer",
+                                                    "type": "text/plain"
+                                                },
+                                                "key": "Authorization",
+                                                "value": "Bearer <token>"
+                                            }
+                                        ],
+                                        "method": "GET",
+                                        "body": {}
+                                    },
+                                    "status": "OK",
+                                    "code": 200,
+                                    "header": [
+                                        {
+                                            "key": "Content-Type",
+                                            "value": "application/json"
+                                        }
+                                    ],
+                                    "body": "{\n  \"data\": {\n    \"id\": \"<long>\",\n    \"rule_id\": \"<uuid>\",\n    \"device_id\": \"<uuid>\",\n    \"severity\": \"warning\",\n    \"message\": \"<string>\",\n    \"status\": \"new\",\n    \"acknowledged\": \"<boolean>\",\n    \"fired_at\": \"<dateTime>\",\n    \"created_at\": \"<dateTime>\",\n    \"telemetry_snapshot\": {},\n    \"payload\": {}\n  }\n}",
+                                    "cookie": [],
+                                    "_postman_previewlanguage": "json"
+                                },
+                                {
+                                    "id": "1b0b5b8d-fd2e-4118-ad1b-293e9ad8ed66",
+                                    "name": "No or invalid JWT token provided",
+                                    "originalRequest": {
+                                        "url": {
+                                            "path": [
+                                                "events",
+                                                ":event_id"
+                                            ],
+                                            "host": [
+                                                "{{baseUrl}}"
+                                            ],
+                                            "query": [],
+                                            "variable": [
+                                                {
+                                                    "disabled": false,
+                                                    "description": {
+                                                        "content": "(Required) Event numeric id",
+                                                        "type": "text/plain"
+                                                    },
+                                                    "type": "any",
+                                                    "value": "<long>",
+                                                    "key": "event_id"
+                                                }
+                                            ]
+                                        },
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json"
+                                            },
+                                            {
+                                                "description": {
+                                                    "content": "Added as a part of security scheme: bearer",
+                                                    "type": "text/plain"
+                                                },
+                                                "key": "Authorization",
+                                                "value": "Bearer <token>"
+                                            }
+                                        ],
+                                        "method": "GET",
+                                        "body": {}
+                                    },
+                                    "status": "Unauthorized",
+                                    "code": 401,
+                                    "header": [
+                                        {
+                                            "key": "Content-Type",
+                                            "value": "application/json"
+                                        }
+                                    ],
+                                    "body": "{\n  \"error\": \"<string>\"\n}",
+                                    "cookie": [],
+                                    "_postman_previewlanguage": "json"
+                                },
+                                {
+                                    "id": "c6d15591-0094-4830-9ed3-905afcb263fd",
+                                    "name": "Forbidden",
+                                    "originalRequest": {
+                                        "url": {
+                                            "path": [
+                                                "events",
+                                                ":event_id"
+                                            ],
+                                            "host": [
+                                                "{{baseUrl}}"
+                                            ],
+                                            "query": [],
+                                            "variable": [
+                                                {
+                                                    "disabled": false,
+                                                    "description": {
+                                                        "content": "(Required) Event numeric id",
+                                                        "type": "text/plain"
+                                                    },
+                                                    "type": "any",
+                                                    "value": "<long>",
+                                                    "key": "event_id"
+                                                }
+                                            ]
+                                        },
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json"
+                                            },
+                                            {
+                                                "description": {
+                                                    "content": "Added as a part of security scheme: bearer",
+                                                    "type": "text/plain"
+                                                },
+                                                "key": "Authorization",
+                                                "value": "Bearer <token>"
+                                            }
+                                        ],
+                                        "method": "GET",
+                                        "body": {}
+                                    },
+                                    "status": "Forbidden",
+                                    "code": 403,
+                                    "header": [
+                                        {
+                                            "key": "Content-Type",
+                                            "value": "application/json"
+                                        }
+                                    ],
+                                    "body": "{\n  \"error\": \"<string>\"\n}",
+                                    "cookie": [],
+                                    "_postman_previewlanguage": "json"
+                                },
+                                {
+                                    "id": "8d02517c-ba1b-43e9-82f6-661a1fbb5e38",
+                                    "name": "Resource not found",
+                                    "originalRequest": {
+                                        "url": {
+                                            "path": [
+                                                "events",
+                                                ":event_id"
+                                            ],
+                                            "host": [
+                                                "{{baseUrl}}"
+                                            ],
+                                            "query": [],
+                                            "variable": [
+                                                {
+                                                    "disabled": false,
+                                                    "description": {
+                                                        "content": "(Required) Event numeric id",
+                                                        "type": "text/plain"
+                                                    },
+                                                    "type": "any",
+                                                    "value": "<long>",
+                                                    "key": "event_id"
+                                                }
+                                            ]
+                                        },
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json"
+                                            },
+                                            {
+                                                "description": {
+                                                    "content": "Added as a part of security scheme: bearer",
+                                                    "type": "text/plain"
+                                                },
+                                                "key": "Authorization",
+                                                "value": "Bearer <token>"
+                                            }
+                                        ],
+                                        "method": "GET",
+                                        "body": {}
+                                    },
+                                    "status": "Not Found",
+                                    "code": 404,
+                                    "header": [
+                                        {
+                                            "key": "Content-Type",
+                                            "value": "application/json"
+                                        }
+                                    ],
+                                    "body": "{\n  \"error\": \"<string>\"\n}",
+                                    "cookie": [],
+                                    "_postman_previewlanguage": "json"
+                                }
+                            ],
+                            "event": [],
+                            "protocolProfileBehavior": {
+                                "disableBodyPruning": true
+                            }
+                        },
+                        {
+                            "name": "ack",
+                            "description": "",
+                            "item": [
+                                {
+                                    "id": "1852f50f-6ea9-40b6-9eab-d95e04152604",
+                                    "name": "Acknowledge an event",
+                                    "request": {
+                                        "name": "Acknowledge an event",
+                                        "description": {
+                                            "content": "acknowledge an event (requires events.change_event permission)",
+                                            "type": "text/plain"
+                                        },
+                                        "url": {
+                                            "path": [
+                                                "events",
+                                                ":event_id",
+                                                "ack"
+                                            ],
+                                            "host": [
+                                                "{{baseUrl}}"
+                                            ],
+                                            "query": [],
+                                            "variable": [
+                                                {
+                                                    "type": "any",
+                                                    "value": "<long>",
+                                                    "key": "event_id",
+                                                    "disabled": false,
+                                                    "description": {
+                                                        "content": "(Required) Event numeric id",
+                                                        "type": "text/plain"
+                                                    }
+                                                }
+                                            ]
+                                        },
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json"
+                                            }
+                                        ],
+                                        "method": "POST",
+                                        "body": {},
+                                        "auth": null
+                                    },
+                                    "response": [
+                                        {
+                                            "id": "390041bd-650e-41d6-8bbb-1620cb10c5c8",
+                                            "name": "event acknowledged",
+                                            "originalRequest": {
+                                                "url": {
+                                                    "path": [
+                                                        "events",
+                                                        ":event_id",
+                                                        "ack"
+                                                    ],
+                                                    "host": [
+                                                        "{{baseUrl}}"
+                                                    ],
+                                                    "query": [],
+                                                    "variable": [
+                                                        {
+                                                            "disabled": false,
+                                                            "description": {
+                                                                "content": "(Required) Event numeric id",
+                                                                "type": "text/plain"
+                                                            },
+                                                            "type": "any",
+                                                            "value": "<long>",
+                                                            "key": "event_id"
+                                                        }
+                                                    ]
+                                                },
+                                                "header": [
+                                                    {
+                                                        "key": "Accept",
+                                                        "value": "application/json"
+                                                    },
+                                                    {
+                                                        "description": {
+                                                            "content": "Added as a part of security scheme: bearer",
+                                                            "type": "text/plain"
+                                                        },
+                                                        "key": "Authorization",
+                                                        "value": "Bearer <token>"
+                                                    }
+                                                ],
+                                                "method": "POST",
+                                                "body": {}
+                                            },
+                                            "status": "OK",
+                                            "code": 200,
+                                            "header": [
+                                                {
+                                                    "key": "Content-Type",
+                                                    "value": "application/json"
+                                                }
+                                            ],
+                                            "body": "{\n  \"data\": {\n    \"id\": \"<long>\",\n    \"rule_id\": \"<uuid>\",\n    \"device_id\": \"<uuid>\",\n    \"severity\": \"warning\",\n    \"message\": \"<string>\",\n    \"status\": \"new\",\n    \"acknowledged\": \"<boolean>\",\n    \"fired_at\": \"<dateTime>\",\n    \"created_at\": \"<dateTime>\",\n    \"telemetry_snapshot\": {},\n    \"payload\": {}\n  }\n}",
+                                            "cookie": [],
+                                            "_postman_previewlanguage": "json"
+                                        },
+                                        {
+                                            "id": "7317100e-336d-413d-9ce6-e6bae9b2fadf",
+                                            "name": "No or invalid JWT token provided",
+                                            "originalRequest": {
+                                                "url": {
+                                                    "path": [
+                                                        "events",
+                                                        ":event_id",
+                                                        "ack"
+                                                    ],
+                                                    "host": [
+                                                        "{{baseUrl}}"
+                                                    ],
+                                                    "query": [],
+                                                    "variable": [
+                                                        {
+                                                            "disabled": false,
+                                                            "description": {
+                                                                "content": "(Required) Event numeric id",
+                                                                "type": "text/plain"
+                                                            },
+                                                            "type": "any",
+                                                            "value": "<long>",
+                                                            "key": "event_id"
+                                                        }
+                                                    ]
+                                                },
+                                                "header": [
+                                                    {
+                                                        "key": "Accept",
+                                                        "value": "application/json"
+                                                    },
+                                                    {
+                                                        "description": {
+                                                            "content": "Added as a part of security scheme: bearer",
+                                                            "type": "text/plain"
+                                                        },
+                                                        "key": "Authorization",
+                                                        "value": "Bearer <token>"
+                                                    }
+                                                ],
+                                                "method": "POST",
+                                                "body": {}
+                                            },
+                                            "status": "Unauthorized",
+                                            "code": 401,
+                                            "header": [
+                                                {
+                                                    "key": "Content-Type",
+                                                    "value": "application/json"
+                                                }
+                                            ],
+                                            "body": "{\n  \"error\": \"<string>\"\n}",
+                                            "cookie": [],
+                                            "_postman_previewlanguage": "json"
+                                        },
+                                        {
+                                            "id": "c32a0eff-a64c-4037-9abc-64a55c133687",
+                                            "name": "Forbidden",
+                                            "originalRequest": {
+                                                "url": {
+                                                    "path": [
+                                                        "events",
+                                                        ":event_id",
+                                                        "ack"
+                                                    ],
+                                                    "host": [
+                                                        "{{baseUrl}}"
+                                                    ],
+                                                    "query": [],
+                                                    "variable": [
+                                                        {
+                                                            "disabled": false,
+                                                            "description": {
+                                                                "content": "(Required) Event numeric id",
+                                                                "type": "text/plain"
+                                                            },
+                                                            "type": "any",
+                                                            "value": "<long>",
+                                                            "key": "event_id"
+                                                        }
+                                                    ]
+                                                },
+                                                "header": [
+                                                    {
+                                                        "key": "Accept",
+                                                        "value": "application/json"
+                                                    },
+                                                    {
+                                                        "description": {
+                                                            "content": "Added as a part of security scheme: bearer",
+                                                            "type": "text/plain"
+                                                        },
+                                                        "key": "Authorization",
+                                                        "value": "Bearer <token>"
+                                                    }
+                                                ],
+                                                "method": "POST",
+                                                "body": {}
+                                            },
+                                            "status": "Forbidden",
+                                            "code": 403,
+                                            "header": [
+                                                {
+                                                    "key": "Content-Type",
+                                                    "value": "application/json"
+                                                }
+                                            ],
+                                            "body": "{\n  \"error\": \"<string>\"\n}",
+                                            "cookie": [],
+                                            "_postman_previewlanguage": "json"
+                                        },
+                                        {
+                                            "id": "2f3092cf-0c43-48c1-838a-1f03801200d6",
+                                            "name": "Resource not found",
+                                            "originalRequest": {
+                                                "url": {
+                                                    "path": [
+                                                        "events",
+                                                        ":event_id",
+                                                        "ack"
+                                                    ],
+                                                    "host": [
+                                                        "{{baseUrl}}"
+                                                    ],
+                                                    "query": [],
+                                                    "variable": [
+                                                        {
+                                                            "disabled": false,
+                                                            "description": {
+                                                                "content": "(Required) Event numeric id",
+                                                                "type": "text/plain"
+                                                            },
+                                                            "type": "any",
+                                                            "value": "<long>",
+                                                            "key": "event_id"
+                                                        }
+                                                    ]
+                                                },
+                                                "header": [
+                                                    {
+                                                        "key": "Accept",
+                                                        "value": "application/json"
+                                                    },
+                                                    {
+                                                        "description": {
+                                                            "content": "Added as a part of security scheme: bearer",
+                                                            "type": "text/plain"
+                                                        },
+                                                        "key": "Authorization",
+                                                        "value": "Bearer <token>"
+                                                    }
+                                                ],
+                                                "method": "POST",
+                                                "body": {}
+                                            },
+                                            "status": "Not Found",
+                                            "code": 404,
+                                            "header": [
+                                                {
+                                                    "key": "Content-Type",
+                                                    "value": "application/json"
+                                                }
+                                            ],
+                                            "body": "{\n  \"error\": \"<string>\"\n}",
+                                            "cookie": [],
+                                            "_postman_previewlanguage": "json"
+                                        }
+                                    ],
+                                    "event": [],
+                                    "protocolProfileBehavior": {
+                                        "disableBodyPruning": true
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "resolve",
+                            "description": "",
+                            "item": [
+                                {
+                                    "id": "224b5015-54b5-4b94-9f79-33a21e8596ff",
+                                    "name": "Resolve an event",
+                                    "request": {
+                                        "name": "Resolve an event",
+                                        "description": {
+                                            "content": "resolve an event (requires events.change_event permission)",
+                                            "type": "text/plain"
+                                        },
+                                        "url": {
+                                            "path": [
+                                                "events",
+                                                ":event_id",
+                                                "resolve"
+                                            ],
+                                            "host": [
+                                                "{{baseUrl}}"
+                                            ],
+                                            "query": [],
+                                            "variable": [
+                                                {
+                                                    "type": "any",
+                                                    "value": "<long>",
+                                                    "key": "event_id",
+                                                    "disabled": false,
+                                                    "description": {
+                                                        "content": "(Required) Event numeric id",
+                                                        "type": "text/plain"
+                                                    }
+                                                }
+                                            ]
+                                        },
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json"
+                                            }
+                                        ],
+                                        "method": "POST",
+                                        "body": {},
+                                        "auth": null
+                                    },
+                                    "response": [
+                                        {
+                                            "id": "e69138c7-422f-4c44-9543-8006fbf3dfb6",
+                                            "name": "event resolved",
+                                            "originalRequest": {
+                                                "url": {
+                                                    "path": [
+                                                        "events",
+                                                        ":event_id",
+                                                        "resolve"
+                                                    ],
+                                                    "host": [
+                                                        "{{baseUrl}}"
+                                                    ],
+                                                    "query": [],
+                                                    "variable": [
+                                                        {
+                                                            "disabled": false,
+                                                            "description": {
+                                                                "content": "(Required) Event numeric id",
+                                                                "type": "text/plain"
+                                                            },
+                                                            "type": "any",
+                                                            "value": "<long>",
+                                                            "key": "event_id"
+                                                        }
+                                                    ]
+                                                },
+                                                "header": [
+                                                    {
+                                                        "key": "Accept",
+                                                        "value": "application/json"
+                                                    },
+                                                    {
+                                                        "description": {
+                                                            "content": "Added as a part of security scheme: bearer",
+                                                            "type": "text/plain"
+                                                        },
+                                                        "key": "Authorization",
+                                                        "value": "Bearer <token>"
+                                                    }
+                                                ],
+                                                "method": "POST",
+                                                "body": {}
+                                            },
+                                            "status": "OK",
+                                            "code": 200,
+                                            "header": [
+                                                {
+                                                    "key": "Content-Type",
+                                                    "value": "application/json"
+                                                }
+                                            ],
+                                            "body": "{\n  \"data\": {\n    \"id\": \"<long>\",\n    \"rule_id\": \"<uuid>\",\n    \"device_id\": \"<uuid>\",\n    \"severity\": \"warning\",\n    \"message\": \"<string>\",\n    \"status\": \"new\",\n    \"acknowledged\": \"<boolean>\",\n    \"fired_at\": \"<dateTime>\",\n    \"created_at\": \"<dateTime>\",\n    \"telemetry_snapshot\": {},\n    \"payload\": {}\n  }\n}",
+                                            "cookie": [],
+                                            "_postman_previewlanguage": "json"
+                                        },
+                                        {
+                                            "id": "749565ae-2b77-4a71-bae4-6f51d08b513a",
+                                            "name": "No or invalid JWT token provided",
+                                            "originalRequest": {
+                                                "url": {
+                                                    "path": [
+                                                        "events",
+                                                        ":event_id",
+                                                        "resolve"
+                                                    ],
+                                                    "host": [
+                                                        "{{baseUrl}}"
+                                                    ],
+                                                    "query": [],
+                                                    "variable": [
+                                                        {
+                                                            "disabled": false,
+                                                            "description": {
+                                                                "content": "(Required) Event numeric id",
+                                                                "type": "text/plain"
+                                                            },
+                                                            "type": "any",
+                                                            "value": "<long>",
+                                                            "key": "event_id"
+                                                        }
+                                                    ]
+                                                },
+                                                "header": [
+                                                    {
+                                                        "key": "Accept",
+                                                        "value": "application/json"
+                                                    },
+                                                    {
+                                                        "description": {
+                                                            "content": "Added as a part of security scheme: bearer",
+                                                            "type": "text/plain"
+                                                        },
+                                                        "key": "Authorization",
+                                                        "value": "Bearer <token>"
+                                                    }
+                                                ],
+                                                "method": "POST",
+                                                "body": {}
+                                            },
+                                            "status": "Unauthorized",
+                                            "code": 401,
+                                            "header": [
+                                                {
+                                                    "key": "Content-Type",
+                                                    "value": "application/json"
+                                                }
+                                            ],
+                                            "body": "{\n  \"error\": \"<string>\"\n}",
+                                            "cookie": [],
+                                            "_postman_previewlanguage": "json"
+                                        },
+                                        {
+                                            "id": "cad1f066-0f0c-4e0e-b4ae-0a34d1aeab4e",
+                                            "name": "Forbidden",
+                                            "originalRequest": {
+                                                "url": {
+                                                    "path": [
+                                                        "events",
+                                                        ":event_id",
+                                                        "resolve"
+                                                    ],
+                                                    "host": [
+                                                        "{{baseUrl}}"
+                                                    ],
+                                                    "query": [],
+                                                    "variable": [
+                                                        {
+                                                            "disabled": false,
+                                                            "description": {
+                                                                "content": "(Required) Event numeric id",
+                                                                "type": "text/plain"
+                                                            },
+                                                            "type": "any",
+                                                            "value": "<long>",
+                                                            "key": "event_id"
+                                                        }
+                                                    ]
+                                                },
+                                                "header": [
+                                                    {
+                                                        "key": "Accept",
+                                                        "value": "application/json"
+                                                    },
+                                                    {
+                                                        "description": {
+                                                            "content": "Added as a part of security scheme: bearer",
+                                                            "type": "text/plain"
+                                                        },
+                                                        "key": "Authorization",
+                                                        "value": "Bearer <token>"
+                                                    }
+                                                ],
+                                                "method": "POST",
+                                                "body": {}
+                                            },
+                                            "status": "Forbidden",
+                                            "code": 403,
+                                            "header": [
+                                                {
+                                                    "key": "Content-Type",
+                                                    "value": "application/json"
+                                                }
+                                            ],
+                                            "body": "{\n  \"error\": \"<string>\"\n}",
+                                            "cookie": [],
+                                            "_postman_previewlanguage": "json"
+                                        },
+                                        {
+                                            "id": "3426534a-8896-45f3-a530-1d01b9516a08",
+                                            "name": "Resource not found",
+                                            "originalRequest": {
+                                                "url": {
+                                                    "path": [
+                                                        "events",
+                                                        ":event_id",
+                                                        "resolve"
+                                                    ],
+                                                    "host": [
+                                                        "{{baseUrl}}"
+                                                    ],
+                                                    "query": [],
+                                                    "variable": [
+                                                        {
+                                                            "disabled": false,
+                                                            "description": {
+                                                                "content": "(Required) Event numeric id",
+                                                                "type": "text/plain"
+                                                            },
+                                                            "type": "any",
+                                                            "value": "<long>",
+                                                            "key": "event_id"
+                                                        }
+                                                    ]
+                                                },
+                                                "header": [
+                                                    {
+                                                        "key": "Accept",
+                                                        "value": "application/json"
+                                                    },
+                                                    {
+                                                        "description": {
+                                                            "content": "Added as a part of security scheme: bearer",
+                                                            "type": "text/plain"
+                                                        },
+                                                        "key": "Authorization",
+                                                        "value": "Bearer <token>"
+                                                    }
+                                                ],
+                                                "method": "POST",
+                                                "body": {}
+                                            },
+                                            "status": "Not Found",
+                                            "code": 404,
+                                            "header": [
+                                                {
+                                                    "key": "Content-Type",
+                                                    "value": "application/json"
+                                                }
+                                            ],
+                                            "body": "{\n  \"error\": \"<string>\"\n}",
+                                            "cookie": [],
+                                            "_postman_previewlanguage": "json"
+                                        }
+                                    ],
+                                    "event": [],
+                                    "protocolProfileBehavior": {
+                                        "disableBodyPruning": true
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
             "name": "devices",
             "description": "",
             "item": [
                 {
-                    "id": "942166de-2ec7-40e9-865c-bc8d7807c933",
+                    "id": "63c0b7a2-8605-4589-8c11-8a7490a13ac3",
                     "name": "Get paginated device data",
                     "request": {
                         "name": "Get paginated device data",
@@ -555,7 +1966,7 @@
                     },
                     "response": [
                         {
-                            "id": "b9ae150c-8dcd-4380-a152-01f2fcc582c2",
+                            "id": "ccb681b4-df17-49ec-b6e0-982c8f2bb6f1",
                             "name": "a paginated list of all devices",
                             "originalRequest": {
                                 "url": {
@@ -612,12 +2023,12 @@
                                     "value": "application/json"
                                 }
                             ],
-                            "body": "{\n  \"data\": [\n    {\n      \"id\": \"<uuid>\",\n      \"device_type_id\": \"<uuid>\",\n      \"name\": \"<string>\",\n      \"serial_number\": \"<string>\",\n      \"status\": \"inactive\",\n      \"created_at\": \"<dateTime>\",\n      \"updated_at\": \"<dateTime>\",\n      \"location\": \"<string>\",\n      \"last_seen\": \"<dateTime>\"\n    },\n    {\n      \"id\": \"<uuid>\",\n      \"device_type_id\": \"<uuid>\",\n      \"name\": \"<string>\",\n      \"serial_number\": \"<string>\",\n      \"status\": \"active\",\n      \"created_at\": \"<dateTime>\",\n      \"updated_at\": \"<dateTime>\",\n      \"location\": \"<string>\",\n      \"last_seen\": \"<dateTime>\"\n    }\n  ],\n  \"pagination\": {\n    \"page\": \"<integer>\",\n    \"page_size\": \"<integer>\",\n    \"total\": \"<integer>\",\n    \"total_pages\": \"<integer>\",\n    \"next_page\": \"<integer>\",\n    \"prev_page\": \"<integer>\"\n  }\n}",
+                            "body": "{\n  \"data\": [\n    {\n      \"id\": \"<uuid>\",\n      \"device_type_id\": \"<uuid>\",\n      \"name\": \"<string>\",\n      \"serial_number\": \"<string>\",\n      \"status\": \"error\",\n      \"created_at\": \"<dateTime>\",\n      \"updated_at\": \"<dateTime>\",\n      \"location\": \"<string>\",\n      \"last_seen\": \"<dateTime>\"\n    },\n    {\n      \"id\": \"<uuid>\",\n      \"device_type_id\": \"<uuid>\",\n      \"name\": \"<string>\",\n      \"serial_number\": \"<string>\",\n      \"status\": \"error\",\n      \"created_at\": \"<dateTime>\",\n      \"updated_at\": \"<dateTime>\",\n      \"location\": \"<string>\",\n      \"last_seen\": \"<dateTime>\"\n    }\n  ],\n  \"pagination\": {\n    \"page\": \"<integer>\",\n    \"page_size\": \"<integer>\",\n    \"total\": \"<integer>\",\n    \"total_pages\": \"<integer>\",\n    \"next_page\": \"<integer>\",\n    \"prev_page\": \"<integer>\"\n  }\n}",
                             "cookie": [],
                             "_postman_previewlanguage": "json"
                         },
                         {
-                            "id": "d92cd297-6b33-4680-a8b4-907f60d46da6",
+                            "id": "e052ac4c-e481-44a0-8d37-e34dd302d959",
                             "name": "No or invalid JWT token provided",
                             "originalRequest": {
                                 "url": {
@@ -679,7 +2090,7 @@
                             "_postman_previewlanguage": "json"
                         },
                         {
-                            "id": "85f4ebec-0430-411d-8d10-d855e843674c",
+                            "id": "9dc3c329-9944-40f9-b337-f0c232af2adf",
                             "name": "Resource not found",
                             "originalRequest": {
                                 "url": {
@@ -747,7 +2158,7 @@
                     }
                 },
                 {
-                    "id": "c264bfd3-40ca-439f-ad50-171cbe6bbb62",
+                    "id": "7ca4ccca-c1ca-4706-8301-dc7a35cc3e7d",
                     "name": "Create a new device",
                     "request": {
                         "name": "Create a new device",
@@ -778,7 +2189,7 @@
                         "method": "POST",
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"device_type_id\": \"<uuid>\",\n  \"name\": \"<string>\",\n  \"serial_number\": \"<string>\",\n  \"location\": \"<string>\",\n  \"status\": \"active\"\n}",
+                            "raw": "{\n  \"device_type_id\": \"<uuid>\",\n  \"name\": \"<string>\",\n  \"serial_number\": \"<string>\",\n  \"location\": \"<string>\",\n  \"status\": \"error\"\n}",
                             "options": {
                                 "raw": {
                                     "headerFamily": "json",
@@ -790,7 +2201,7 @@
                     },
                     "response": [
                         {
-                            "id": "16a038df-51cc-4f2c-971a-415551acef2c",
+                            "id": "a438c02d-2d99-49ba-adc6-db1b5e495446",
                             "name": "device created",
                             "originalRequest": {
                                 "url": {
@@ -824,7 +2235,7 @@
                                 "method": "POST",
                                 "body": {
                                     "mode": "raw",
-                                    "raw": "{\n  \"device_type_id\": \"<uuid>\",\n  \"name\": \"<string>\",\n  \"serial_number\": \"<string>\",\n  \"location\": \"<string>\",\n  \"status\": \"active\"\n}",
+                                    "raw": "{\n  \"device_type_id\": \"<uuid>\",\n  \"name\": \"<string>\",\n  \"serial_number\": \"<string>\",\n  \"location\": \"<string>\",\n  \"status\": \"error\"\n}",
                                     "options": {
                                         "raw": {
                                             "headerFamily": "json",
@@ -841,12 +2252,12 @@
                                     "value": "application/json"
                                 }
                             ],
-                            "body": "{\n  \"data\": {\n    \"id\": \"<uuid>\",\n    \"device_type_id\": \"<uuid>\",\n    \"name\": \"<string>\",\n    \"serial_number\": \"<string>\",\n    \"status\": \"error\",\n    \"created_at\": \"<dateTime>\",\n    \"updated_at\": \"<dateTime>\",\n    \"location\": \"<string>\",\n    \"last_seen\": \"<dateTime>\"\n  }\n}",
+                            "body": "{\n  \"data\": {\n    \"id\": \"<uuid>\",\n    \"device_type_id\": \"<uuid>\",\n    \"name\": \"<string>\",\n    \"serial_number\": \"<string>\",\n    \"status\": \"inactive\",\n    \"created_at\": \"<dateTime>\",\n    \"updated_at\": \"<dateTime>\",\n    \"location\": \"<string>\",\n    \"last_seen\": \"<dateTime>\"\n  }\n}",
                             "cookie": [],
                             "_postman_previewlanguage": "json"
                         },
                         {
-                            "id": "c9a1c35c-00e2-425c-877a-710d5a8dfe21",
+                            "id": "8e635665-aed8-4468-b87b-bc15ac231caf",
                             "name": "Bad request body",
                             "originalRequest": {
                                 "url": {
@@ -880,7 +2291,7 @@
                                 "method": "POST",
                                 "body": {
                                     "mode": "raw",
-                                    "raw": "{\n  \"device_type_id\": \"<uuid>\",\n  \"name\": \"<string>\",\n  \"serial_number\": \"<string>\",\n  \"location\": \"<string>\",\n  \"status\": \"active\"\n}",
+                                    "raw": "{\n  \"device_type_id\": \"<uuid>\",\n  \"name\": \"<string>\",\n  \"serial_number\": \"<string>\",\n  \"location\": \"<string>\",\n  \"status\": \"error\"\n}",
                                     "options": {
                                         "raw": {
                                             "headerFamily": "json",
@@ -902,7 +2313,7 @@
                             "_postman_previewlanguage": "json"
                         },
                         {
-                            "id": "5c1340b6-7f38-43ab-ba85-40d074611ad1",
+                            "id": "60496024-1e6a-4a5f-9746-69c4f5811996",
                             "name": "No or invalid JWT token provided",
                             "originalRequest": {
                                 "url": {
@@ -936,7 +2347,7 @@
                                 "method": "POST",
                                 "body": {
                                     "mode": "raw",
-                                    "raw": "{\n  \"device_type_id\": \"<uuid>\",\n  \"name\": \"<string>\",\n  \"serial_number\": \"<string>\",\n  \"location\": \"<string>\",\n  \"status\": \"active\"\n}",
+                                    "raw": "{\n  \"device_type_id\": \"<uuid>\",\n  \"name\": \"<string>\",\n  \"serial_number\": \"<string>\",\n  \"location\": \"<string>\",\n  \"status\": \"error\"\n}",
                                     "options": {
                                         "raw": {
                                             "headerFamily": "json",
@@ -968,7 +2379,7 @@
                     "description": "",
                     "item": [
                         {
-                            "id": "9a0d8733-a492-41f7-86bd-139776a39851",
+                            "id": "ca3bbe08-faa7-489f-a23e-23427fa6a09c",
                             "name": "Get a specific device based on ID in URL path",
                             "request": {
                                 "name": "Get a specific device based on ID in URL path",
@@ -1010,7 +2421,7 @@
                             },
                             "response": [
                                 {
-                                    "id": "3eab303b-08ae-4057-acb2-50e37b7e6520",
+                                    "id": "48d4d5e9-5dd9-47d4-9f0f-cb663b27e92b",
                                     "name": "device information by id",
                                     "originalRequest": {
                                         "url": {
@@ -1060,12 +2471,12 @@
                                             "value": "application/json"
                                         }
                                     ],
-                                    "body": "{\n  \"id\": \"<uuid>\",\n  \"device_type_id\": \"<uuid>\",\n  \"name\": \"<string>\",\n  \"serial_number\": \"<string>\",\n  \"status\": \"inactive\",\n  \"created_at\": \"<dateTime>\",\n  \"updated_at\": \"<dateTime>\",\n  \"location\": \"<string>\",\n  \"last_seen\": \"<dateTime>\"\n}",
+                                    "body": "{\n  \"id\": \"<uuid>\",\n  \"device_type_id\": \"<uuid>\",\n  \"name\": \"<string>\",\n  \"serial_number\": \"<string>\",\n  \"status\": \"error\",\n  \"created_at\": \"<dateTime>\",\n  \"updated_at\": \"<dateTime>\",\n  \"location\": \"<string>\",\n  \"last_seen\": \"<dateTime>\"\n}",
                                     "cookie": [],
                                     "_postman_previewlanguage": "json"
                                 },
                                 {
-                                    "id": "901ab1bf-94a2-4b1f-aca3-d62cdcedad1f",
+                                    "id": "4fa5b37e-2766-4126-bb66-ffbd5424721c",
                                     "name": "No or invalid JWT token provided",
                                     "originalRequest": {
                                         "url": {
@@ -1120,7 +2531,7 @@
                                     "_postman_previewlanguage": "json"
                                 },
                                 {
-                                    "id": "4040d172-5649-4fb2-9d9d-b77acf7d11c4",
+                                    "id": "6ac83dc7-aa8e-423e-be3a-14b6f0504611",
                                     "name": "Resource not found",
                                     "originalRequest": {
                                         "url": {
@@ -1181,7 +2592,7 @@
                             }
                         },
                         {
-                            "id": "69f42cbb-9193-473e-900e-3e68997f7724",
+                            "id": "bfcf23b0-7b29-4976-94ff-00f4b63bfbd1",
                             "name": "Update device",
                             "request": {
                                 "name": "Update device",
@@ -1236,7 +2647,7 @@
                             },
                             "response": [
                                 {
-                                    "id": "9bfc066c-0241-4a57-9303-adb40d160323",
+                                    "id": "4500f101-7514-4215-bbbf-ad3739d89497",
                                     "name": "device updated",
                                     "originalRequest": {
                                         "url": {
@@ -1299,12 +2710,12 @@
                                             "value": "application/json"
                                         }
                                     ],
-                                    "body": "{\n  \"data\": {\n    \"id\": \"<uuid>\",\n    \"device_type_id\": \"<uuid>\",\n    \"name\": \"<string>\",\n    \"serial_number\": \"<string>\",\n    \"status\": \"error\",\n    \"created_at\": \"<dateTime>\",\n    \"updated_at\": \"<dateTime>\",\n    \"location\": \"<string>\",\n    \"last_seen\": \"<dateTime>\"\n  }\n}",
+                                    "body": "{\n  \"data\": {\n    \"id\": \"<uuid>\",\n    \"device_type_id\": \"<uuid>\",\n    \"name\": \"<string>\",\n    \"serial_number\": \"<string>\",\n    \"status\": \"inactive\",\n    \"created_at\": \"<dateTime>\",\n    \"updated_at\": \"<dateTime>\",\n    \"location\": \"<string>\",\n    \"last_seen\": \"<dateTime>\"\n  }\n}",
                                     "cookie": [],
                                     "_postman_previewlanguage": "json"
                                 },
                                 {
-                                    "id": "07a9c118-e65b-4f56-a15e-9b1819b8c376",
+                                    "id": "03fb0b48-d457-430f-995e-7379b0b5a331",
                                     "name": "Bad request body",
                                     "originalRequest": {
                                         "url": {
@@ -1372,7 +2783,7 @@
                                     "_postman_previewlanguage": "json"
                                 },
                                 {
-                                    "id": "916de162-45e4-44e1-8d8e-42c536be2d3c",
+                                    "id": "ec6f69fc-18ff-4992-a74c-bdaefb383115",
                                     "name": "No or invalid JWT token provided",
                                     "originalRequest": {
                                         "url": {
@@ -1440,7 +2851,7 @@
                                     "_postman_previewlanguage": "json"
                                 },
                                 {
-                                    "id": "7c81c835-ec36-4c7a-9381-2725e9e3135f",
+                                    "id": "6a7fc694-530b-4990-baae-4ea4e378eaaf",
                                     "name": "Resource not found",
                                     "originalRequest": {
                                         "url": {
@@ -1514,7 +2925,7 @@
                             }
                         },
                         {
-                            "id": "92aac744-1a74-4e70-8ff6-2de45a2b3253",
+                            "id": "c265abd5-56a1-4b35-9bf2-a5f41a1f580c",
                             "name": "Delete device",
                             "request": {
                                 "name": "Delete device",
@@ -1556,7 +2967,7 @@
                             },
                             "response": [
                                 {
-                                    "id": "2ffcd792-2e9d-4551-bdc5-abf785b54afd",
+                                    "id": "4634d114-9bb1-408d-8b41-f732edf4c8f4",
                                     "name": "device deleted",
                                     "originalRequest": {
                                         "url": {
@@ -1601,7 +3012,7 @@
                                     "_postman_previewlanguage": "text"
                                 },
                                 {
-                                    "id": "53d53528-892c-464a-9133-b4e67e3509b1",
+                                    "id": "973f4570-c310-4541-9783-a1cb15f6f60f",
                                     "name": "No or invalid JWT token provided",
                                     "originalRequest": {
                                         "url": {
@@ -1656,7 +3067,7 @@
                                     "_postman_previewlanguage": "json"
                                 },
                                 {
-                                    "id": "d2878a69-4792-478b-8fcf-b1840e97b1d6",
+                                    "id": "7f9c47cc-5422-453d-8279-0cee5af1a819",
                                     "name": "Resource not found",
                                     "originalRequest": {
                                         "url": {
@@ -1725,7 +3136,7 @@
             "description": "",
             "item": [
                 {
-                    "id": "6d954f1a-2fca-4618-82c7-424609ffa6f7",
+                    "id": "cb36f511-3b38-4327-b285-ebcd339cb8ca",
                     "name": "Get paginated rule data",
                     "request": {
                         "name": "Get paginated rule data",
@@ -1774,7 +3185,7 @@
                     },
                     "response": [
                         {
-                            "id": "cfc7daff-a7bf-423f-94a1-7e691aaa0b07",
+                            "id": "5f105273-8d41-4cfd-9774-131f6a9153da",
                             "name": "a paginated list of rules",
                             "originalRequest": {
                                 "url": {
@@ -1831,12 +3242,12 @@
                                     "value": "application/json"
                                 }
                             ],
-                            "body": "{\n  \"data\": [\n    {\n      \"name\": \"<string>\",\n      \"description\": \"<string>\",\n      \"condition\": {\n        \"key_0\": true\n      },\n      \"last_triggered_at\": \"<dateTime>\",\n      \"is_enabled\": \"<boolean>\",\n      \"action_config\": [\n        {\n          \"key_0\": true\n        },\n        {\n          \"key_0\": 6571,\n          \"key_1\": true,\n          \"key_2\": \"string\"\n        }\n      ]\n    },\n    {\n      \"name\": \"<string>\",\n      \"description\": \"<string>\",\n      \"condition\": {\n        \"key_0\": \"string\",\n        \"key_1\": 942,\n        \"key_2\": false,\n        \"key_3\": 639.241548240137\n      },\n      \"last_triggered_at\": \"<dateTime>\",\n      \"is_enabled\": \"<boolean>\",\n      \"action_config\": [\n        {\n          \"key_0\": 4630,\n          \"key_1\": 6236,\n          \"key_2\": \"string\"\n        },\n        {\n          \"key_0\": false\n        }\n      ]\n    }\n  ],\n  \"pagination\": {\n    \"page\": \"<integer>\",\n    \"page_size\": \"<integer>\",\n    \"total\": \"<integer>\",\n    \"total_pages\": \"<integer>\",\n    \"next_page\": \"<integer>\",\n    \"prev_page\": \"<integer>\"\n  }\n}",
+                            "body": "{\n  \"data\": [\n    {\n      \"name\": \"<string>\",\n      \"description\": \"<string>\",\n      \"condition\": {\n        \"key_0\": 3205.904015037668,\n        \"key_1\": \"string\",\n        \"key_2\": true\n      },\n      \"last_triggered_at\": \"<dateTime>\",\n      \"is_enabled\": \"<boolean>\",\n      \"action_config\": [\n        {\n          \"key_0\": false,\n          \"key_1\": false\n        },\n        {\n          \"key_0\": true\n        }\n      ]\n    },\n    {\n      \"name\": \"<string>\",\n      \"description\": \"<string>\",\n      \"condition\": {\n        \"key_0\": \"string\"\n      },\n      \"last_triggered_at\": \"<dateTime>\",\n      \"is_enabled\": \"<boolean>\",\n      \"action_config\": [\n        {\n          \"key_0\": 6637.703659297829,\n          \"key_1\": 7142,\n          \"key_2\": true\n        },\n        {\n          \"key_0\": \"string\",\n          \"key_1\": \"string\"\n        }\n      ]\n    }\n  ],\n  \"pagination\": {\n    \"page\": \"<integer>\",\n    \"page_size\": \"<integer>\",\n    \"total\": \"<integer>\",\n    \"total_pages\": \"<integer>\",\n    \"next_page\": \"<integer>\",\n    \"prev_page\": \"<integer>\"\n  }\n}",
                             "cookie": [],
                             "_postman_previewlanguage": "json"
                         },
                         {
-                            "id": "3d07c00a-3ac0-4646-892a-583dc7ae04b3",
+                            "id": "f2baee8e-2854-4163-a81a-28bde5aae157",
                             "name": "No or invalid JWT token provided",
                             "originalRequest": {
                                 "url": {
@@ -1898,7 +3309,7 @@
                             "_postman_previewlanguage": "json"
                         },
                         {
-                            "id": "508fb78c-4edf-4ef7-8bab-088031d7b9f9",
+                            "id": "fac20555-6e86-46c6-a715-bf1be79ec418",
                             "name": "Resource not found",
                             "originalRequest": {
                                 "url": {
@@ -1966,7 +3377,7 @@
                     }
                 },
                 {
-                    "id": "8c694e80-0ea9-4791-87a9-4ead55f95be2",
+                    "id": "a250e7be-a02c-448f-a803-62e9f0b2e58c",
                     "name": "Create a new rule",
                     "request": {
                         "name": "Create a new rule",
@@ -1997,7 +3408,7 @@
                         "method": "POST",
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"name\": \"<string>\",\n  \"description\": \"<string>\",\n  \"condition\": {\n    \"key_0\": 8282.322731756882,\n    \"key_1\": 2677\n  },\n  \"is_enabled\": \"<boolean>\",\n  \"device_id\": \"<string>\",\n  \"action_config\": [\n    {\n      \"key_0\": 4577,\n      \"key_1\": 1040.5497699308896\n    },\n    {\n      \"key_0\": 2536.7967710303387\n    }\n  ]\n}",
+                            "raw": "{\n  \"name\": \"<string>\",\n  \"description\": \"<string>\",\n  \"condition\": {\n    \"key_0\": 320,\n    \"key_1\": 7897.742066856317,\n    \"key_2\": false,\n    \"key_3\": \"string\"\n  },\n  \"is_enabled\": \"<boolean>\",\n  \"device_id\": \"<string>\",\n  \"action_config\": [\n    {\n      \"key_0\": false\n    },\n    {\n      \"key_0\": \"string\",\n      \"key_1\": 1953,\n      \"key_2\": 41.42596903758289,\n      \"key_3\": 7298.153296815371\n    }\n  ]\n}",
                             "options": {
                                 "raw": {
                                     "headerFamily": "json",
@@ -2009,7 +3420,7 @@
                     },
                     "response": [
                         {
-                            "id": "d6fd9042-954f-401d-b659-0217f49df5ce",
+                            "id": "a9f3d96d-1a59-4505-ba1f-6b219ef6be3d",
                             "name": "rule created",
                             "originalRequest": {
                                 "url": {
@@ -2043,7 +3454,7 @@
                                 "method": "POST",
                                 "body": {
                                     "mode": "raw",
-                                    "raw": "{\n  \"name\": \"<string>\",\n  \"description\": \"<string>\",\n  \"condition\": {\n    \"key_0\": 8282.322731756882,\n    \"key_1\": 2677\n  },\n  \"is_enabled\": \"<boolean>\",\n  \"device_id\": \"<string>\",\n  \"action_config\": [\n    {\n      \"key_0\": 4577,\n      \"key_1\": 1040.5497699308896\n    },\n    {\n      \"key_0\": 2536.7967710303387\n    }\n  ]\n}",
+                                    "raw": "{\n  \"name\": \"<string>\",\n  \"description\": \"<string>\",\n  \"condition\": {\n    \"key_0\": 320,\n    \"key_1\": 7897.742066856317,\n    \"key_2\": false,\n    \"key_3\": \"string\"\n  },\n  \"is_enabled\": \"<boolean>\",\n  \"device_id\": \"<string>\",\n  \"action_config\": [\n    {\n      \"key_0\": false\n    },\n    {\n      \"key_0\": \"string\",\n      \"key_1\": 1953,\n      \"key_2\": 41.42596903758289,\n      \"key_3\": 7298.153296815371\n    }\n  ]\n}",
                                     "options": {
                                         "raw": {
                                             "headerFamily": "json",
@@ -2060,12 +3471,12 @@
                                     "value": "application/json"
                                 }
                             ],
-                            "body": "{\n  \"name\": \"<string>\",\n  \"description\": \"<string>\",\n  \"condition\": {\n    \"key_0\": 4193.944597634716,\n    \"key_1\": true\n  },\n  \"last_triggered_at\": \"<dateTime>\",\n  \"is_enabled\": \"<boolean>\",\n  \"action_config\": [\n    {\n      \"key_0\": 1560\n    },\n    {\n      \"key_0\": 4331,\n      \"key_1\": 4499\n    }\n  ]\n}",
+                            "body": "{\n  \"name\": \"<string>\",\n  \"description\": \"<string>\",\n  \"condition\": {\n    \"key_0\": 8554.909357905372,\n    \"key_1\": true\n  },\n  \"last_triggered_at\": \"<dateTime>\",\n  \"is_enabled\": \"<boolean>\",\n  \"action_config\": [\n    {\n      \"key_0\": false,\n      \"key_1\": \"string\",\n      \"key_2\": \"string\"\n    },\n    {\n      \"key_0\": 1098\n    }\n  ]\n}",
                             "cookie": [],
                             "_postman_previewlanguage": "json"
                         },
                         {
-                            "id": "45320938-5fb4-41d2-9d84-a79abf7c1af5",
+                            "id": "3accf5ae-bdb6-44fa-9dda-3f1bf94af065",
                             "name": "Bad request body",
                             "originalRequest": {
                                 "url": {
@@ -2099,7 +3510,7 @@
                                 "method": "POST",
                                 "body": {
                                     "mode": "raw",
-                                    "raw": "{\n  \"name\": \"<string>\",\n  \"description\": \"<string>\",\n  \"condition\": {\n    \"key_0\": 8282.322731756882,\n    \"key_1\": 2677\n  },\n  \"is_enabled\": \"<boolean>\",\n  \"device_id\": \"<string>\",\n  \"action_config\": [\n    {\n      \"key_0\": 4577,\n      \"key_1\": 1040.5497699308896\n    },\n    {\n      \"key_0\": 2536.7967710303387\n    }\n  ]\n}",
+                                    "raw": "{\n  \"name\": \"<string>\",\n  \"description\": \"<string>\",\n  \"condition\": {\n    \"key_0\": 320,\n    \"key_1\": 7897.742066856317,\n    \"key_2\": false,\n    \"key_3\": \"string\"\n  },\n  \"is_enabled\": \"<boolean>\",\n  \"device_id\": \"<string>\",\n  \"action_config\": [\n    {\n      \"key_0\": false\n    },\n    {\n      \"key_0\": \"string\",\n      \"key_1\": 1953,\n      \"key_2\": 41.42596903758289,\n      \"key_3\": 7298.153296815371\n    }\n  ]\n}",
                                     "options": {
                                         "raw": {
                                             "headerFamily": "json",
@@ -2121,7 +3532,7 @@
                             "_postman_previewlanguage": "json"
                         },
                         {
-                            "id": "d8ba6ef8-d641-430c-9b5b-340c2a94a814",
+                            "id": "2ff87b72-c4ee-4f0a-a789-b352fb5ba7a4",
                             "name": "No or invalid JWT token provided",
                             "originalRequest": {
                                 "url": {
@@ -2155,7 +3566,7 @@
                                 "method": "POST",
                                 "body": {
                                     "mode": "raw",
-                                    "raw": "{\n  \"name\": \"<string>\",\n  \"description\": \"<string>\",\n  \"condition\": {\n    \"key_0\": 8282.322731756882,\n    \"key_1\": 2677\n  },\n  \"is_enabled\": \"<boolean>\",\n  \"device_id\": \"<string>\",\n  \"action_config\": [\n    {\n      \"key_0\": 4577,\n      \"key_1\": 1040.5497699308896\n    },\n    {\n      \"key_0\": 2536.7967710303387\n    }\n  ]\n}",
+                                    "raw": "{\n  \"name\": \"<string>\",\n  \"description\": \"<string>\",\n  \"condition\": {\n    \"key_0\": 320,\n    \"key_1\": 7897.742066856317,\n    \"key_2\": false,\n    \"key_3\": \"string\"\n  },\n  \"is_enabled\": \"<boolean>\",\n  \"device_id\": \"<string>\",\n  \"action_config\": [\n    {\n      \"key_0\": false\n    },\n    {\n      \"key_0\": \"string\",\n      \"key_1\": 1953,\n      \"key_2\": 41.42596903758289,\n      \"key_3\": 7298.153296815371\n    }\n  ]\n}",
                                     "options": {
                                         "raw": {
                                             "headerFamily": "json",
@@ -2177,7 +3588,7 @@
                             "_postman_previewlanguage": "json"
                         },
                         {
-                            "id": "eb13453a-a502-4a99-a9da-50da5d2b7bfc",
+                            "id": "19d05b15-9c31-4e60-8653-a8692c9d9ece",
                             "name": "Resource not found",
                             "originalRequest": {
                                 "url": {
@@ -2211,7 +3622,7 @@
                                 "method": "POST",
                                 "body": {
                                     "mode": "raw",
-                                    "raw": "{\n  \"name\": \"<string>\",\n  \"description\": \"<string>\",\n  \"condition\": {\n    \"key_0\": 8282.322731756882,\n    \"key_1\": 2677\n  },\n  \"is_enabled\": \"<boolean>\",\n  \"device_id\": \"<string>\",\n  \"action_config\": [\n    {\n      \"key_0\": 4577,\n      \"key_1\": 1040.5497699308896\n    },\n    {\n      \"key_0\": 2536.7967710303387\n    }\n  ]\n}",
+                                    "raw": "{\n  \"name\": \"<string>\",\n  \"description\": \"<string>\",\n  \"condition\": {\n    \"key_0\": 320,\n    \"key_1\": 7897.742066856317,\n    \"key_2\": false,\n    \"key_3\": \"string\"\n  },\n  \"is_enabled\": \"<boolean>\",\n  \"device_id\": \"<string>\",\n  \"action_config\": [\n    {\n      \"key_0\": false\n    },\n    {\n      \"key_0\": \"string\",\n      \"key_1\": 1953,\n      \"key_2\": 41.42596903758289,\n      \"key_3\": 7298.153296815371\n    }\n  ]\n}",
                                     "options": {
                                         "raw": {
                                             "headerFamily": "json",
@@ -2243,7 +3654,7 @@
                     "description": "",
                     "item": [
                         {
-                            "id": "89ac2fb6-e0ce-4cb2-b934-51c95fce7e09",
+                            "id": "32565cf9-d4f2-4935-8ba5-e251c7bbd6f3",
                             "name": "Get a specific rule based on id in url paths",
                             "request": {
                                 "name": "Get a specific rule based on id in url paths",
@@ -2285,7 +3696,7 @@
                             },
                             "response": [
                                 {
-                                    "id": "431b8364-5bff-4ae2-9b39-9a1905932107",
+                                    "id": "ce4331cd-6542-4812-a61a-19755478b109",
                                     "name": "rule information by id",
                                     "originalRequest": {
                                         "url": {
@@ -2335,12 +3746,12 @@
                                             "value": "application/json"
                                         }
                                     ],
-                                    "body": "{\n  \"name\": \"<string>\",\n  \"description\": \"<string>\",\n  \"condition\": {\n    \"key_0\": 4193.944597634716,\n    \"key_1\": true\n  },\n  \"last_triggered_at\": \"<dateTime>\",\n  \"is_enabled\": \"<boolean>\",\n  \"action_config\": [\n    {\n      \"key_0\": 1560\n    },\n    {\n      \"key_0\": 4331,\n      \"key_1\": 4499\n    }\n  ]\n}",
+                                    "body": "{\n  \"name\": \"<string>\",\n  \"description\": \"<string>\",\n  \"condition\": {\n    \"key_0\": 8554.909357905372,\n    \"key_1\": true\n  },\n  \"last_triggered_at\": \"<dateTime>\",\n  \"is_enabled\": \"<boolean>\",\n  \"action_config\": [\n    {\n      \"key_0\": false,\n      \"key_1\": \"string\",\n      \"key_2\": \"string\"\n    },\n    {\n      \"key_0\": 1098\n    }\n  ]\n}",
                                     "cookie": [],
                                     "_postman_previewlanguage": "json"
                                 },
                                 {
-                                    "id": "2f108e91-8996-4cce-ada8-a799677f85f9",
+                                    "id": "ef402f1e-d561-4e19-933b-256408220399",
                                     "name": "No or invalid JWT token provided",
                                     "originalRequest": {
                                         "url": {
@@ -2395,7 +3806,7 @@
                                     "_postman_previewlanguage": "json"
                                 },
                                 {
-                                    "id": "f3d9a4b7-3e4b-443e-8085-6e99be64386a",
+                                    "id": "8b5d6e69-cd13-487f-ae10-fec0191858e4",
                                     "name": "Resource not found",
                                     "originalRequest": {
                                         "url": {
@@ -2456,7 +3867,7 @@
                             }
                         },
                         {
-                            "id": "c24490ed-7a18-4e83-a64b-1063019403e7",
+                            "id": "db1a1e1d-51d2-4f48-82b2-177204843faf",
                             "name": "Update activation of rule",
                             "request": {
                                 "name": "Update activation of rule",
@@ -2511,7 +3922,7 @@
                             },
                             "response": [
                                 {
-                                    "id": "f3eb2347-ed62-4b58-a539-e20d4e7e7400",
+                                    "id": "30eb8702-13f6-4b0a-b443-5a23dfd2acc9",
                                     "name": "rule is_active enabled successfully",
                                     "originalRequest": {
                                         "url": {
@@ -2574,12 +3985,12 @@
                                             "value": "application/json"
                                         }
                                     ],
-                                    "body": "{\n  \"name\": \"<string>\",\n  \"description\": \"<string>\",\n  \"condition\": {\n    \"key_0\": 4193.944597634716,\n    \"key_1\": true\n  },\n  \"last_triggered_at\": \"<dateTime>\",\n  \"is_enabled\": \"<boolean>\",\n  \"action_config\": [\n    {\n      \"key_0\": 1560\n    },\n    {\n      \"key_0\": 4331,\n      \"key_1\": 4499\n    }\n  ]\n}",
+                                    "body": "{\n  \"name\": \"<string>\",\n  \"description\": \"<string>\",\n  \"condition\": {\n    \"key_0\": 8554.909357905372,\n    \"key_1\": true\n  },\n  \"last_triggered_at\": \"<dateTime>\",\n  \"is_enabled\": \"<boolean>\",\n  \"action_config\": [\n    {\n      \"key_0\": false,\n      \"key_1\": \"string\",\n      \"key_2\": \"string\"\n    },\n    {\n      \"key_0\": 1098\n    }\n  ]\n}",
                                     "cookie": [],
                                     "_postman_previewlanguage": "json"
                                 },
                                 {
-                                    "id": "54b0adc0-c0e3-4c92-acbb-06f280510aad",
+                                    "id": "2883c80f-61c1-4bbb-b18b-e1ad34ea02f4",
                                     "name": "No or invalid JWT token provided",
                                     "originalRequest": {
                                         "url": {
@@ -2647,7 +4058,7 @@
                                     "_postman_previewlanguage": "json"
                                 },
                                 {
-                                    "id": "56eb6c7d-fc5d-4d98-b8c2-1fa30bed27ac",
+                                    "id": "c0c967a2-b81c-4100-a737-c9617bbaa143",
                                     "name": "Resource not found",
                                     "originalRequest": {
                                         "url": {
@@ -2721,7 +4132,7 @@
                             }
                         },
                         {
-                            "id": "3761cc41-111b-4bd9-88db-70af53ebef2b",
+                            "id": "00d5aee8-8fdd-4e55-b6e9-310b908414b3",
                             "name": "Delete a specific rule based by id",
                             "request": {
                                 "name": "Delete a specific rule based by id",
@@ -2763,7 +4174,7 @@
                             },
                             "response": [
                                 {
-                                    "id": "c1632357-4b0d-4db3-a6af-e4c2bb959d4c",
+                                    "id": "5a57a091-3f3e-4392-b904-676074619f1a",
                                     "name": "rule successfully deleted",
                                     "originalRequest": {
                                         "url": {
@@ -2813,12 +4224,12 @@
                                             "value": "application/json"
                                         }
                                     ],
-                                    "body": "{\n  \"name\": \"<string>\",\n  \"description\": \"<string>\",\n  \"condition\": {\n    \"key_0\": 4193.944597634716,\n    \"key_1\": true\n  },\n  \"last_triggered_at\": \"<dateTime>\",\n  \"is_enabled\": \"<boolean>\",\n  \"action_config\": [\n    {\n      \"key_0\": 1560\n    },\n    {\n      \"key_0\": 4331,\n      \"key_1\": 4499\n    }\n  ]\n}",
+                                    "body": "{\n  \"name\": \"<string>\",\n  \"description\": \"<string>\",\n  \"condition\": {\n    \"key_0\": 8554.909357905372,\n    \"key_1\": true\n  },\n  \"last_triggered_at\": \"<dateTime>\",\n  \"is_enabled\": \"<boolean>\",\n  \"action_config\": [\n    {\n      \"key_0\": false,\n      \"key_1\": \"string\",\n      \"key_2\": \"string\"\n    },\n    {\n      \"key_0\": 1098\n    }\n  ]\n}",
                                     "cookie": [],
                                     "_postman_previewlanguage": "json"
                                 },
                                 {
-                                    "id": "78624fc9-0f52-43d7-af01-12b1bc77415c",
+                                    "id": "242768dd-12e0-46ee-9b72-5a251baed1be",
                                     "name": "No or invalid JWT token provided",
                                     "originalRequest": {
                                         "url": {
@@ -2873,7 +4284,7 @@
                                     "_postman_previewlanguage": "json"
                                 },
                                 {
-                                    "id": "6a4316f1-b0f6-40e9-abac-9192bc0a3b8b",
+                                    "id": "3b954a52-a746-4e15-9f85-da03d7ad665a",
                                     "name": "Resource not found",
                                     "originalRequest": {
                                         "url": {
@@ -2946,7 +4357,7 @@
                     "description": "",
                     "item": [
                         {
-                            "id": "3c83c083-1faa-4f28-8f75-0625ca006db1",
+                            "id": "7a0d116f-47bf-4538-a621-72129f3081f3",
                             "name": "Obtain a test token",
                             "request": {
                                 "name": "Obtain a test token",
@@ -2977,7 +4388,7 @@
                             },
                             "response": [
                                 {
-                                    "id": "43305bd8-31f1-4227-8dc9-9562bc68450c",
+                                    "id": "b031f9de-1d16-4ec1-bd3c-62dd2cdc6ebb",
                                     "name": "get a fake token",
                                     "originalRequest": {
                                         "url": {
@@ -3021,7 +4432,7 @@
                                     "_postman_previewlanguage": "json"
                                 },
                                 {
-                                    "id": "3fa220b1-0482-4de0-8acc-4ef4686611d0",
+                                    "id": "cdd99aac-3dde-4f2d-86ee-c89ccea12cb1",
                                     "name": "Bad request body",
                                     "originalRequest": {
                                         "url": {
@@ -3089,11 +4500,15 @@
     "variable": [
         {
             "key": "baseUrl",
-            "value": "http://127.0.0.1:8000/api/v1"
+            "value": "https://iot-industry.redocly.app/_mock/openapi"
+        },
+        {
+            "key": "authToken",
+            "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyLCJleHAiOjE3MTYyMzkwMjJ9.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
         }
     ],
     "info": {
-        "_postman_id": "f77ee6e1-907a-4fe8-8f23-e1411eb479d3",
+        "_postman_id": "0674d6f0-624a-454b-a320-97a8f8f62724",
         "name": "Industry 4.0 IoT",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "description": {

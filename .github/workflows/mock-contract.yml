@@ -11,66 +11,34 @@ on:
   workflow_dispatch:
 
 jobs:
-  prism-schemathesis:
+  contract-tests:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Install Schemathesis
-        run: |
-          python -m pip install --upgrade pip
-          pip install schemathesis
-
-      - name: Setup Node (for npx Prism)
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: "20"
 
-      - name: Start Prism mock server
+      - name: Install tools
         run: |
-          npx -y @stoplight/prism-cli@latest mock docs/api.yaml -h 0.0.0.0 -p 4010 > prism.log 2>&1 &
-          echo $! > prism.pid
+          npm i -g @redocly/cli newman
 
-      - name: Wait for Prism to be ready
+      # 1) Ensure spec + examples are valid (same as lint job)
+      - name: Lint OpenAPI (fails on invalid examples)
+        run: redocly lint docs/api.yaml
+
+      # 3) Run Postman collection against the Redocly mock server
+      - name: Run contract (Postman collection)
+        env:
+          BASE_URL: https://iot-industry.redocly.app/_mock/openapi
         run: |
-          for i in {1..30}; do
-            if curl -fsS http://localhost:4010/auth/fake >/dev/null 2>&1; then
-              echo "Prism is up"
-              exit 0
-            fi
-            sleep 1
-          done
-          echo "Prism failed to start"
-          echo "---- prism.log ----"
-          cat prism.log || true
-          exit 1
+          # IMPORTANT: set your Postman env's baseUrl to the mock path:
+          # e.g. http://127.0.0.1:4000/_mock/openapi/api/
+          newman run docs/postman/IoT-Hub-alpha.postman_collection.json \
+            -e docs/postman/local-mock.postman_environment.json
 
-      - name: Run Schemathesis against Prism
-        run: |
-          # Use ONE of these blocks depending on your Schemathesis version.
-          schemathesis run docs/api.yaml \
-            --url=http://localhost:4010 \
-            --max-examples=2 \
-            --exclude-checks=unsupported_method \
-            --exclude-checks=missing_required_header \
-            --exclude-checks=ignored_auth
-
-      - name: Show Prism logs on failure
-        if: failure()
-        run: |
-          echo "---- prism.log ----"
-          cat prism.log || true
-
-      - name: Stop Prism
+      - name: Stop preview
         if: always()
         run: |
-          if [ -f prism.pid ]; then
-            kill "$(cat prism.pid)" || true
-          fi
+          kill $(cat preview.pid) || true
