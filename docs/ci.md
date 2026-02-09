@@ -44,6 +44,21 @@ but currently only runs 3.13 because it is the latest.
 Dependency caching is enabled via the
 `actions/setup-python` pip cache to speed up repeat runs.
 
+## Flaky Test Guidance
+
+If CI fails due to a flaky test, follow this approach:
+
+1. Re-run the failing test locally to confirm.
+   - `pytest -k <test_name>`
+2. If it is flaky:
+   - Add a short comment in the PR describing the symptom and reproduction rate.
+   - Open a tracking issue and link it in the PR.
+3. Only if necessary, temporarily mark the test as `xfail` with a reason and issue link.
+4. Do not skip or delete tests to “make CI green” without documenting why.
+
+When possible, prefer fixing root causes: timeouts, random ordering, reliance on real time,
+or external services.
+
 ## Run locally
 
 From the repository root:
