@@ -9,14 +9,14 @@ This guide describes how tests are organized, how to run them locally, and how t
 - `backend/tests/integration/`: multi-component tests (database + domain flow)
 - `backend/tests/smoke/`: fast, high-signal checks for demos
 - `backend/tests/utils/`: shared helpers for tests
-- `backend/fixtures/`: sample JSON payload for tests
+- `backend/fixtures/`: sample JSON payloads for tests
 
 ## Run Tests Locally
 
 From a dev container or Docker Compose:
 
 ```bash
-docker compose run --rm web pytest -q --maxfail=1 --cov=backend --cov-report=xml
+docker compose run --rm web pytest -q --maxfail=1 --cov=apps --cov-report=xml:coverage.xml
 ```
 
 If you are running directly on the host:

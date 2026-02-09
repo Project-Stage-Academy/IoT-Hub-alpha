@@ -17,6 +17,8 @@ Our CI pipeline is defined in [`.github/workflows/ci.yml`](../.github/workflows/
 2. Tests (depends on Lint)
    - Runs `pytest` with coverage output in `coverage.xml` and `coverage.html` .
    - Uploads `coverage.xml` and `coverage.html`  as a workflow artifact.
+   - Coverage exclusions are configured in `backend/.coveragerc` (management commands and
+     other non-runtime code are omitted).
 3. Build (depends on Tests)
    - Builds the Django Docker image from `backend/Dockerfile` as a smoke build (no push).
 4. Updates the status badge in README.md to show passing or failing based on the workflow result.
