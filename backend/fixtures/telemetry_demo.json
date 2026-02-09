@@ -1,0 +1,32 @@
+[
+  {
+    "device_id": "REPLACE_WITH_DEVICE_UUID",
+    "schema_version": "0.0.1",
+    "payload": {
+      "temperature": 22.5,
+      "humidity": 45
+    },
+    "value": 22.5,
+    "serial_number": "DEMO001"
+  },
+  {
+    "device_id": "REPLACE_WITH_DEVICE_UUID",
+    "schema_version": "0.0.1",
+    "payload": {
+      "temperature": 23.0,
+      "humidity": 46
+    },
+    "value": 23.0,
+    "serial_number": "DEMO001"
+  },
+  {
+    "device_id": "REPLACE_WITH_DEVICE_UUID",
+    "schema_version": "0.0.1",
+    "payload": {
+      "temperature": 23.5,
+      "humidity": 47
+    },
+    "value": 23.5,
+    "serial_number": "DEMO001"
+  }
+]

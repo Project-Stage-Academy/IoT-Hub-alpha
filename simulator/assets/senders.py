@@ -1,7 +1,9 @@
 import json
 import time
 import requests
+import ssl
 from typing import Protocol, Any, Callable
+import paho.mqtt.client as mqtt
 from .data_structures import PayloadEnvelope, SendResult
 from requests.exceptions import (
     ConnectTimeout,
@@ -38,8 +40,9 @@ class HttpSender(Sender):
     ) -> SendResult:
         start = time.perf_counter()
 
-        if not session:
-            raise ValueError("Session failed to initialize")
+        if not session or not isinstance(session, requests.Session):
+            return self._fail(item, start, "Bad session", None)
+
         try:
             response = session.post(
                 self.base_url,
@@ -71,7 +74,11 @@ class HttpSender(Sender):
             return self._fail(item, start, "request_exception", exc)
 
     def _fail(
-        self, item: PayloadEnvelope, start: float, error_type: str, exc: Exception
+        self,
+        item: PayloadEnvelope,
+        start: float,
+        error_type: str,
+        exc: Exception | None,
     ) -> SendResult:
 
         latency = int((time.perf_counter() - start) * 1000)
@@ -79,83 +86,70 @@ class HttpSender(Sender):
         return SendResult(
             code_got=None,
             code_expected=item.expected,
-            status="FAIL",
+            status="Fail",
             latency=latency,
             error=error_type,
         )
 
 
-class MqttSender(Sender):
+class MqttPublisher(Sender):
     """
     mqtt sender
     """
 
-    def __init__(
-        self,
-        broker_url: str,
-        topic: str,
-        client: Any | None = None,
-        encoder: Callable[[dict], str] | None = None,
-    ) -> None:
-
-        self.broker_url = broker_url
+    def __init__(self, topic: str, mqtt_sleep: int) -> None:
         self.topic = topic
-        self.client = client
-        self.encoder = encoder or json.dumps
-        self.mock_send_result = SendResult.model_validate(
-            {
-                "code_got": 200,
-                "code_expected": 200,
-                "status": "Pass",
-                "latency": 20,
-                "error": None,
-            }
-        )
+        self.mqtt_sleep = mqtt_sleep
 
-    def send(
-        self, item: PayloadEnvelope, session: requests.Session | None
-    ) -> SendResult:
-
-        if not self.client:
-            print("MQTT Sim not implemented at this stage!")
-            return self.mock_send_result
+    def send(self, item: PayloadEnvelope, session: mqtt.Client | None) -> SendResult:
 
         start = time.perf_counter()
 
+        if not session or not isinstance(session, mqtt.Client):
+            raise ValueError("Bad session")
         try:
-
-            payload = self.encoder(item.data.model_dump())
-            publish_result = self.client.publish(self.topic, payload)
-            code_got = self._publish_code(publish_result)
-            status = "Pass" if code_got == item.expected else "Fail"
+            topic = (
+                f'{self.topic.strip("/")}/{item.data.ssn if item.data.ssn else "error"}'
+            )
+            info = session.publish(topic, item.data.model_dump_json())
+            info.wait_for_publish(timeout=5)
             latency = int((time.perf_counter() - start) * 1000)
+            time.sleep(self.mqtt_sleep)
+
+            if info.rc != mqtt.MQTT_ERR_SUCCESS:
+                print("publish failed:", info.rc)
 
             return SendResult(
-                code_got=code_got,
-                code_expected=item.expected,
-                status=status,
+                code_got=info.rc,
+                code_expected=0,
+                status="Pass" if info.rc == 0 else "Fail",
                 latency=latency,
-                error=None if status == "Pass" else "publish_error",
+                error=None,
             )
+        except TimeoutError as exc:
+            return self._fail(item, start, "Timeouterror ", exc)
 
-        except Exception:
-            latency = int((time.perf_counter() - start) * 1000)
+        except OSError as exc:
+            return self._fail(item, start, "OS error ", exc)
 
-            return SendResult(
-                code_got=None,
-                code_expected=item.expected,
-                status="FAIL",
-                latency=latency,
-                error="publish_exception",
-            )
+        except (ValueError, TypeError) as exc:
+            return self._fail(item, start, "Value/Type error ", exc)
 
-    @staticmethod
-    def _publish_code(publish_result: Any) -> int:
+        except RuntimeError as exc:
+            return self._fail(item, start, "runtime error ", exc)
 
-        if hasattr(publish_result, "rc"):
-            return 200 if publish_result.rc == 0 else 500
-
-        if isinstance(publish_result, tuple) and publish_result:
-            return 200 if publish_result[0] == 0 else 500
-
-        return 200
+    def _fail(
+        self,
+        item: PayloadEnvelope,
+        start: float,
+        error_type: str,
+        exc: Exception | None,
+    ) -> SendResult:
+        latency = int((time.perf_counter() - start) * 1000)
+        return SendResult(
+            code_got=1,
+            code_expected=0,
+            status="Fail",
+            latency=latency,
+            error=error_type,
+        )

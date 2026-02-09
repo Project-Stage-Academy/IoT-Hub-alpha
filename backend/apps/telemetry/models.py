@@ -12,7 +12,8 @@ class Telemetry(models.Model):
     timestamp = models.DateTimeField(auto_now_add=True)
     payload = models.JSONField(
         help_text=(
-            'Schema: {"version": "0.0.1", "serial_number": "SN123456", ' '"value": 5.2}'
+            'Schema: {"schema_version": "1.0", "serial_number": "SN123456", '
+            '"value": 5.2}'
         )
     )
 
@@ -20,9 +21,13 @@ class Telemetry(models.Model):
         db_table = "telemetry"
         ordering = ["-timestamp"]
         indexes = [
+            # Composite index for device + timestamp queries (most common pattern)
             models.Index(
-                fields=["device", "timestamp"], name="idx_telemetry_device_time"
+                fields=["device", "-timestamp"], name="idx_telemetry_device_time"
             ),
+            # Index for timestamp range queries
+            models.Index(fields=["-timestamp"], name="idx_telemetry_timestamp"),
+            # GIN index for JSONB payload queries
             GinIndex(fields=["payload"], name="idx_telemetry_payload_gin"),
         ]
         verbose_name_plural = "Telemetry"

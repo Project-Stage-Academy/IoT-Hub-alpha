@@ -7,13 +7,13 @@ REQUEST_ID_GENERATOR = "uuid.uuid4"
 
 ALLOWED_HOSTS = ["localhost", "127.0.0.1", "0.0.0.0", "web"]
 
+# CSRF settings for HTTPS proxy
 CSRF_TRUSTED_ORIGINS = [
     "https://localhost",
     "https://127.0.0.1",
-    "http://localhost",
-    "http://127.0.0.1",
 ]
 
+# Proxy headers for HTTPS
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
