@@ -40,7 +40,8 @@ paths:
           description: Get telemetry data of specific device by uuid
           schema:
             type: string
-          example: a1b2c3d4-e5f6-7890-1234-567890abcdef
+            format: uuid
+            example: a1b2c3d4-e5f6-7890-1234-567890abcdef
       responses:
         "200":
           description: Page of telemetry data (may be empty)
@@ -196,7 +197,7 @@ paths:
           schema:
             type: string
             format: uuid
-          example: a1b2c3d4-e5f6-7890-1234-567890abcdef
+            example: a1b2c3d4-e5f6-7890-1234-567890abcdef
         - name: device
           in: query
           description: Alias for device_id
@@ -259,7 +260,7 @@ paths:
           required: true
           description: Event numeric id
           schema:
-            type: integer
+            type: number
             format: int64
           example: 321
       responses:
@@ -492,6 +493,23 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/RuleCreate"
+            examples:
+              create:
+                value:
+                  name: "Low Vibration Alert Lathe"
+                  description: "Alerts maintenance when vibration drops below expected operating range"
+                  condition:
+                    type: leaf
+                    operator: gt
+                    threshold: 5
+                    window_seconds: 15
+                    occurances: 3
+                  action_config:
+                    - type: notification
+                      recipients: ["test@test.com"]
+                      template_id: 5
+                  is_enabled: true
+                  device_id: "a80031eb-189a-49d5-93ab-11bd465143e9"
       responses:
         "201":
           description: rule created
@@ -549,13 +567,16 @@ paths:
           application/json:
             schema:
               type: object
-              required:
-                - enabled
+              required: [enabled]
               properties:
                 enabled:
                   type: boolean
-                  description: enable or disable rules
                   example: true
+            examples:
+              enable:
+                value: { "enabled": true }
+              disable:
+                value: { "enabled": false }
       responses:
         "200":
           description: rule is_active enabled successfully
@@ -583,10 +604,6 @@ paths:
       responses:
         "204":
           description: rule successfully deleted
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Rules"
         "404":
           $ref: "#/components/responses/NotFoundError"
         "401":
@@ -622,7 +639,7 @@ components:
       schema:
         type: integer
         minimum: 1
-      example: 1
+        example: 1
     PageSizeParam:
       name: page_size
       in: query
@@ -631,7 +648,7 @@ components:
         type: integer
         minimum: 1
         maximum: 1000
-      example: 10
+        example: 10
   schemas:
     PaginationMeta:
       type: object

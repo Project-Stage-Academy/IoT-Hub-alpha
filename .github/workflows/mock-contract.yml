@@ -20,19 +20,11 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Install tools
+      - name: Contract smoke
         run: |
-          npm i -g @redocly/cli newman
-
-      - name: Run contract (Postman collection)
-        env:
-          BASE_URL: https://iot-industry.redocly.app/_mock/openapi
-        run: |
-          # IMPORTANT: set your Postman env's baseUrl to the mock path:
-          # e.g. http://127.0.0.1:4000/_mock/openapi/api/
-          newman run docs/postman/postman_collection.json \
-          --timeout-request 10000 \
-          --timeout 60000
+          chmod +x scripts/contract-smoke.sh
+          BASE_URL="https://iot-industry.redocly.app/_mock/openapi" \
+          scripts/contract-smoke.sh
 
       - name: Stop preview
         if: always()
