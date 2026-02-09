@@ -30,7 +30,9 @@ jobs:
         run: |
           # IMPORTANT: set your Postman env's baseUrl to the mock path:
           # e.g. http://127.0.0.1:4000/_mock/openapi/api/
-          newman run docs/postman/postman_collection.json
+          newman run docs/postman/postman_collection.json \
+          --timeout-request 10000 \
+          --timeout 60000
 
       - name: Stop preview
         if: always()

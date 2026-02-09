@@ -4500,7 +4500,7 @@
     "variable": [
         {
             "key": "baseUrl",
-            "value": "111"
+            "value": "https://iot-industry.redocly.app/_mock/openapi"
         },
         {
             "key": "authToken",
