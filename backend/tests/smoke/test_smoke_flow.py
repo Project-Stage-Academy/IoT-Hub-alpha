@@ -69,9 +69,7 @@ def test_smoke_rule_disabled_no_event(device, telemetry_factory):
 
 @pytest.mark.django_db
 @pytest.mark.smoke
-def test_smoke_stop_machine_action_creates_event_no_delivery(
-    device, telemetry_factory
-):
+def test_smoke_stop_machine_action_creates_event_no_delivery(device, telemetry_factory):
     Rule.objects.create(
         device=device,
         name="Stop Machine Smoke Rule",
