@@ -7,26 +7,18 @@ on:
     paths:
       - "docs/api.yaml"
       - ".github/workflows/mock-contract.yml"
-      - "scripts/**"
   workflow_dispatch:
 
 jobs:
   contract-tests:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-
       - name: Contract smoke
+        env:
+          BASE_URL: https://iot-industry.redocly.app/_mock/openapi
         run: |
           chmod +x scripts/contract-smoke.sh
-          BASE_URL="https://iot-industry.redocly.app/_mock/openapi" \
           scripts/contract-smoke.sh
-
-      - name: Stop preview
-        if: always()
-        run: |
-          kill $(cat preview.pid) || true
