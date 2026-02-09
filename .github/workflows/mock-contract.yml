@@ -24,11 +24,6 @@ jobs:
         run: |
           npm i -g @redocly/cli newman
 
-      # 1) Ensure spec + examples are valid (same as lint job)
-      - name: Lint OpenAPI (fails on invalid examples)
-        run: redocly lint docs/api.yaml
-
-      # 3) Run Postman collection against the Redocly mock server
       - name: Run contract (Postman collection)
         env:
           BASE_URL: https://iot-industry.redocly.app/_mock/openapi
