@@ -110,7 +110,6 @@ request GET \
   "Telemetry: list" \
   "${auth[@]}"
 
-# NOTE: spec has `security: []` for POST /telemetry, so no Authorization header here (keep it that way)
 request POST \
   "${BASE_URL}/telemetry" \
   "Telemetry: ingest" \
