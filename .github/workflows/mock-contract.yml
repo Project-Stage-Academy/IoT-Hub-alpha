@@ -60,7 +60,7 @@ jobs:
 
       - name: Run Newman against Prism
         run: |
-          newman run /tmp/postman_collection.with-tests.json \
+          newman run ${POSTMAN_COLLECTION} \
             --env-var "baseUrl=${BASE_URL}" \
             --bail \
             --color off
