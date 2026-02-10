@@ -80,7 +80,10 @@ if ! wait_for_http "${BASE_URL}/auth/fake" 60 0.25; then
   exit 1
 fi
 
-echo "==> 4) Run Newman against Prism"
+echo "==> 4) Inject 2xx tests into collection"
+python scripts/postman_rule_inject.py "$POSTMAN_COLLECTION"
+
+echo "==> 5) Run Newman against Prism"
 # Ensure your Postman env contains baseUrl = http://127.0.0.1:4010/api/v1
 # (or whatever BASE_URL is)
 timeout "$HARD_TIMEOUT" newman run "$POSTMAN_COLLECTION" \

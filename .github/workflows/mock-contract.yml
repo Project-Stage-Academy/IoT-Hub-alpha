@@ -58,6 +58,10 @@ jobs:
           tail -n 200 prism.log || true
           exit 1
 
+      - name: Inject tests
+        run: |
+          python scripts/inject_tests.py docs/postman/postman_collection.json
+
       - name: Run Newman against Prism
         run: |
           newman run ${POSTMAN_COLLECTION} \
