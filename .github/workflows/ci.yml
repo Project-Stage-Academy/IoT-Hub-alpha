@@ -83,6 +83,83 @@ jobs:
       - name: Validate Grafana Provisioning Config YAML
         run: yamllint devops/grafana/provisioning/dashboards/
 
+  prism-newman:
+    runs-on: ubuntu-latest
+    needs: [lint]
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
+
+    env:
+      SPEC_PATH: docs/api.yaml
+      POSTMAN_COLLECTION: docs/postman/postman_collection.json
+      PRISM_HOST: 127.0.0.1
+      PRISM_PORT: "4010"
+      BASE_URL: http://127.0.0.1:4010
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install CLI tools
+        run: |
+          npm i -g @redocly/cli newman
+          npm i -g @stoplight/prism-cli
+
+      - name: Start Prism mock server
+        run: |
+          prism mock "${SPEC_PATH}" --dynamic -h "${PRISM_HOST}" -p "${PRISM_PORT}" > prism.log 2>&1 &
+          echo $! > prism.pid
+
+      - name: Wait for Prism to be ready
+        run: |
+          set -euo pipefail
+          # Probe a real endpoint under your server base path (/api/v1)
+          for i in {1..80}; do
+            if curl -fsS "${BASE_URL}/auth/fake" >/dev/null 2>&1; then
+              echo "Prism is up"
+              exit 0
+            fi
+            sleep 0.25
+          done
+
+          echo "Prism did not start in time"
+          echo "---- prism.log (tail) ----"
+          tail -n 200 prism.log || true
+          exit 1
+
+      - name: Inject tests
+        run: |
+          python scripts/postman_rule_inject.py docs/postman/postman_collection.json
+
+      - name: Run Newman against Prism
+        run: |
+          newman run ${POSTMAN_COLLECTION} \
+            --env-var "baseUrl=${BASE_URL}" \
+            --bail \
+            --color off
+
+      - name: Stop Prism
+        if: always()
+        run: |
+          if [ -f prism.pid ]; then
+            kill "$(cat prism.pid)" >/dev/null 2>&1 || true
+          fi
+
+      - name: Upload Prism logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: prism-log
+          path: prism.log
+
   tests:
     runs-on: ubuntu-latest
     needs: [lint, config-validation]
