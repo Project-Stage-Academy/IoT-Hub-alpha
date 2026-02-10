@@ -177,6 +177,41 @@ services:
     networks:
       - iot_hub_net
       
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: iot_hub_mosquitto
+    restart: unless-stopped
+    ports:
+      - "${MQTT_BROKER_PORT:-1883}:1883"
+    volumes:
+      - mosquitto_data:/mosquitto/data
+      - mosquitto_log:/mosquitto/log
+    command: mosquitto -c /mosquitto-no-auth.conf
+    healthcheck:
+      test: ["CMD-SHELL", "mosquitto_sub -t '$$SYS/#' -C 1 -i healthcheck -W 3 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging: *default-logging
+    networks:
+      - iot_hub_net
+
+  mqtt_adapter:
+    build: ./backend
+    container_name: iot_hub_mqtt_adapter
+    entrypoint: ["/app/scripts/entrypoint.sh"]
+    command: python manage.py mqtt_adapter
+    env_file:
+      - .env
+    depends_on:
+      mosquitto:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+    logging: *default-logging
+    networks:
+      - iot_hub_net
+
   simulator:
     build:
       context: .
@@ -198,3 +233,5 @@ volumes:
   redis_data:
   prometheus_data:
   grafana_data:
+  mosquitto_data:
+  mosquitto_log:
