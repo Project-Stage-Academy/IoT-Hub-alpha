@@ -191,17 +191,15 @@ class Command(BaseCommand):
         signal.signal(signal.SIGTERM, _shutdown)
 
         try:
-            timeout = getattr(settings, "MQTT_CONNECT_TIMEOUT", 10)
-            socket.setdefaulttimeout(timeout)
+            socket.setdefaulttimeout(settings.MQTT_CONNECT_TIMEOUT)
             client.connect(host, port, keepalive=60)
-            socket.setdefaulttimeout(None)
             self.stdout.write("MQTT adapter running. Press Ctrl+C to stop.")
             client.loop_forever()
         except TimeoutError:
             self.stderr.write(
                 self.style.ERROR(
                     f"Connection to MQTT broker at {host}:{port} "
-                    f"timed out after {timeout}s"
+                    f"timed out after {settings.MQTT_CONNECT_TIMEOUT}s"
                 )
             )
             sys.exit(1)
