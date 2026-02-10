@@ -78,7 +78,7 @@ Rules:
 - description must include: deprecated date, removal date, replacement.
 - x-deprecation is required for machine-readability.
 
-Examples
+
 Example: breaking change done correctly
 
 - Add /v2/rules/...
@@ -101,3 +101,20 @@ schema_version: "1.0"
 Each schema version has its own structure that must be followed, 
 
 any new schema must be documented.
+
+## Currently accepted schema versions and their structure:
+
+All telemetry schema MUST contain a X-Device-Serial-Number header.
+```
+"X-Device-Serial-Number": "TST-DEV01-001"
+```
+
+### 1.0 :
+
+payload
+```
+{
+  schema_version: string
+  value: integer
+}
+```

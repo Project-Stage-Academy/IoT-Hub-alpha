@@ -35,13 +35,15 @@ If validation fails, fix errors before committing.
 
 Postman collections can be regenerated from the api.yaml file like so:
 - Open postman
-- Import api.yaml
-- Export json to
+- Import docs/api.yaml (File -> Import or  Ctrl + O)
+- Export json to (... -> More -> Export -> Continue with Export -> Export JSON)
 ```
 docs/postman/postman_collection.json
 ```
 
 validate api + collection:
+This script validate OpenApi lint and check collection contract against a local prism server.
+
 ```
 scripts/validate-openapi.sh
 ```

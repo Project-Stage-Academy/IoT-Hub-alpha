@@ -1,11 +1,11 @@
 {
   "info": {
-    "_postman_id": "0c306874-5644-4a1c-bb08-66f13b9d8f20",
+    "_postman_id": "1f5542ad-ef56-4320-8824-04a163b12618",
     "name": "Industry 4.0 IoT",
     "description": "IoT Service for industrial use\n\nContact Support:\n Name: Api Owner\n Email: support@industry.com",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "50199810",
-    "_collection_link": "https://go.postman.co/collection/50199810-0c306874-5644-4a1c-bb08-66f13b9d8f20?source=collection_link"
+    "_collection_link": "https://go.postman.co/collection/50199810-1f5542ad-ef56-4320-8824-04a163b12618?source=collection_link"
   },
   "item": [
     {
@@ -1312,7 +1312,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/events?page=1&page_size=1&device_id=a1b2c3d4-e5f6-7890-1234-567890abcdef&device=f87556af-2b44-0a2f-8938-86eacc6de39c&rule_id=29e31015-4733-49f3-855a-ef7f30e6c147&rule=f87556af-2b44-0a2f-8938-86eacc6de39c&severity=warning&acknowledged=true",
+              "raw": "{{baseUrl}}/events?page=1&page_size=1&device_id=a1b2c3d4-e5f6-7890-1234-567890abcdef&device=5ca699e3-950a-ea6c-7a7e-7cae3bc0438e&rule_id=29e31015-4733-49f3-855a-ef7f30e6c147&rule=5ca699e3-950a-ea6c-7a7e-7cae3bc0438e&severity=warning&acknowledged=true",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -1337,7 +1337,7 @@
                 },
                 {
                   "key": "device",
-                  "value": "f87556af-2b44-0a2f-8938-86eacc6de39c",
+                  "value": "5ca699e3-950a-ea6c-7a7e-7cae3bc0438e",
                   "description": "Alias for device_id"
                 },
                 {
@@ -1347,7 +1347,7 @@
                 },
                 {
                   "key": "rule",
-                  "value": "f87556af-2b44-0a2f-8938-86eacc6de39c",
+                  "value": "5ca699e3-950a-ea6c-7a7e-7cae3bc0438e",
                   "description": "Alias for rule_id"
                 },
                 {
@@ -1381,7 +1381,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseUrl}}/events?page=1&page_size=1&device_id=a1b2c3d4-e5f6-7890-1234-567890abcdef&device=f87556af-2b44-0a2f-8938-86eacc6de39c&rule_id=29e31015-4733-49f3-855a-ef7f30e6c147&rule=f87556af-2b44-0a2f-8938-86eacc6de39c&severity=warning&acknowledged=true",
+                  "raw": "{{baseUrl}}/events?page=1&page_size=1&device_id=a1b2c3d4-e5f6-7890-1234-567890abcdef&device=5ca699e3-950a-ea6c-7a7e-7cae3bc0438e&rule_id=29e31015-4733-49f3-855a-ef7f30e6c147&rule=5ca699e3-950a-ea6c-7a7e-7cae3bc0438e&severity=warning&acknowledged=true",
                   "host": [
                     "{{baseUrl}}"
                   ],
@@ -1407,7 +1407,7 @@
                     {
                       "description": "Alias for device_id",
                       "key": "device",
-                      "value": "f87556af-2b44-0a2f-8938-86eacc6de39c"
+                      "value": "5ca699e3-950a-ea6c-7a7e-7cae3bc0438e"
                     },
                     {
                       "description": "Filter events by rule UUID",
@@ -1417,7 +1417,7 @@
                     {
                       "description": "Alias for rule_id",
                       "key": "rule",
-                      "value": "f87556af-2b44-0a2f-8938-86eacc6de39c"
+                      "value": "5ca699e3-950a-ea6c-7a7e-7cae3bc0438e"
                     },
                     {
                       "description": "Filter events by severity",
@@ -1460,7 +1460,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseUrl}}/events?page=1&page_size=1&device_id=a1b2c3d4-e5f6-7890-1234-567890abcdef&device=f87556af-2b44-0a2f-8938-86eacc6de39c&rule_id=29e31015-4733-49f3-855a-ef7f30e6c147&rule=f87556af-2b44-0a2f-8938-86eacc6de39c&severity=warning&acknowledged=true",
+                  "raw": "{{baseUrl}}/events?page=1&page_size=1&device_id=a1b2c3d4-e5f6-7890-1234-567890abcdef&device=5ca699e3-950a-ea6c-7a7e-7cae3bc0438e&rule_id=29e31015-4733-49f3-855a-ef7f30e6c147&rule=5ca699e3-950a-ea6c-7a7e-7cae3bc0438e&severity=warning&acknowledged=true",
                   "host": [
                     "{{baseUrl}}"
                   ],
@@ -1486,7 +1486,7 @@
                     {
                       "description": "Alias for device_id",
                       "key": "device",
-                      "value": "f87556af-2b44-0a2f-8938-86eacc6de39c"
+                      "value": "5ca699e3-950a-ea6c-7a7e-7cae3bc0438e"
                     },
                     {
                       "description": "Filter events by rule UUID",
@@ -1496,7 +1496,7 @@
                     {
                       "description": "Alias for rule_id",
                       "key": "rule",
-                      "value": "f87556af-2b44-0a2f-8938-86eacc6de39c"
+                      "value": "5ca699e3-950a-ea6c-7a7e-7cae3bc0438e"
                     },
                     {
                       "description": "Filter events by severity",
@@ -1539,7 +1539,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseUrl}}/events?page=1&page_size=1&device_id=a1b2c3d4-e5f6-7890-1234-567890abcdef&device=f87556af-2b44-0a2f-8938-86eacc6de39c&rule_id=29e31015-4733-49f3-855a-ef7f30e6c147&rule=f87556af-2b44-0a2f-8938-86eacc6de39c&severity=warning&acknowledged=true",
+                  "raw": "{{baseUrl}}/events?page=1&page_size=1&device_id=a1b2c3d4-e5f6-7890-1234-567890abcdef&device=5ca699e3-950a-ea6c-7a7e-7cae3bc0438e&rule_id=29e31015-4733-49f3-855a-ef7f30e6c147&rule=5ca699e3-950a-ea6c-7a7e-7cae3bc0438e&severity=warning&acknowledged=true",
                   "host": [
                     "{{baseUrl}}"
                   ],
@@ -1565,7 +1565,7 @@
                     {
                       "description": "Alias for device_id",
                       "key": "device",
-                      "value": "f87556af-2b44-0a2f-8938-86eacc6de39c"
+                      "value": "5ca699e3-950a-ea6c-7a7e-7cae3bc0438e"
                     },
                     {
                       "description": "Filter events by rule UUID",
@@ -1575,7 +1575,7 @@
                     {
                       "description": "Alias for rule_id",
                       "key": "rule",
-                      "value": "f87556af-2b44-0a2f-8938-86eacc6de39c"
+                      "value": "5ca699e3-950a-ea6c-7a7e-7cae3bc0438e"
                     },
                     {
                       "description": "Filter events by severity",
@@ -1618,7 +1618,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseUrl}}/events?page=1&page_size=1&device_id=a1b2c3d4-e5f6-7890-1234-567890abcdef&device=f87556af-2b44-0a2f-8938-86eacc6de39c&rule_id=29e31015-4733-49f3-855a-ef7f30e6c147&rule=f87556af-2b44-0a2f-8938-86eacc6de39c&severity=warning&acknowledged=true",
+                  "raw": "{{baseUrl}}/events?page=1&page_size=1&device_id=a1b2c3d4-e5f6-7890-1234-567890abcdef&device=5ca699e3-950a-ea6c-7a7e-7cae3bc0438e&rule_id=29e31015-4733-49f3-855a-ef7f30e6c147&rule=5ca699e3-950a-ea6c-7a7e-7cae3bc0438e&severity=warning&acknowledged=true",
                   "host": [
                     "{{baseUrl}}"
                   ],
@@ -1644,7 +1644,7 @@
                     {
                       "description": "Alias for device_id",
                       "key": "device",
-                      "value": "f87556af-2b44-0a2f-8938-86eacc6de39c"
+                      "value": "5ca699e3-950a-ea6c-7a7e-7cae3bc0438e"
                     },
                     {
                       "description": "Filter events by rule UUID",
@@ -1654,7 +1654,7 @@
                     {
                       "description": "Alias for rule_id",
                       "key": "rule",
-                      "value": "f87556af-2b44-0a2f-8938-86eacc6de39c"
+                      "value": "5ca699e3-950a-ea6c-7a7e-7cae3bc0438e"
                     },
                     {
                       "description": "Filter events by severity",
@@ -3953,6 +3953,19 @@
     {
       "key": "baseUrl",
       "value": "/api/v1"
+    }
+  ],
+  "event": [
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "pm.test('Status is 2xx', function () {",
+          "  pm.expect(pm.response.code).to.be.within(200, 299);",
+          "});"
+        ]
+      }
     }
   ]
 }
