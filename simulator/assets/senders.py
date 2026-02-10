@@ -1,6 +1,8 @@
 import time
 import requests
+import ssl
 from typing import Protocol
+import paho.mqtt.client as mqtt
 from .data_structures import PayloadEnvelope, SendResult
 from requests.exceptions import (
     ConnectTimeout,
@@ -18,7 +20,7 @@ class Sender(Protocol):
     """
 
     def send(
-        self, item: PayloadEnvelope, session: requests.Session | None
+        self, item: PayloadEnvelope, session: requests.Session | mqtt.Client | None
     ) -> SendResult: ...
 
 
@@ -35,8 +37,10 @@ class HttpSender(Sender):
         self, item: PayloadEnvelope, session: requests.Session | None
     ) -> SendResult:
         start = time.perf_counter()
-        if not session:
-            raise ValueError("Session failed to initialize")
+
+        if not session or not isinstance(session, requests.Session):
+            return self._fail(item, start, "Bad session", None)
+
         try:
             response = session.post(
                 self.base_url,
@@ -72,33 +76,74 @@ class HttpSender(Sender):
             return self._fail(item, start, "request_exception", exc)
 
     def _fail(
-        self, item: PayloadEnvelope, start: float, error_type: str, exc: Exception
+        self,
+        item: PayloadEnvelope,
+        start: float,
+        error_type: str,
+        exc: Exception | None,
     ) -> SendResult:
         latency = int((time.perf_counter() - start) * 1000)
         return SendResult(
             code_got=None,
             code_expected=item.expected,
-            status="FAIL",
+            status="Fail",
             latency=latency,
             error=error_type,
         )
 
 
-class MqttSender(Sender):
+class MqttPublisher(Sender):
     """
     mqtt sender
     """
 
-    def __init__(self, broker_url: str, topic: str) -> None:
-        self.broker_url = broker_url
+    def __init__(self, topic: str, mqtt_sleep: int) -> None:
         self.topic = topic
-        self.mock_send_result = SendResult.model_validate(
-            {"code_got": 200, "code_expected": 200, "latency": 20}
-        )
+        self.mqtt_sleep = mqtt_sleep
 
-    def send(
-        self, item: PayloadEnvelope, session: requests.Session | None
-    ) -> SendResult:
-        # Not Implemented!
-        print("MQTT Sim not implemented at this stage!")
-        return self.mock_send_result
+    def send(self, item: PayloadEnvelope, session: mqtt.Client | None) -> SendResult:
+
+        start = time.perf_counter()
+
+        if not session or not isinstance(session, mqtt.Client):
+            raise ValueError("Bad session")
+        try:
+            topic = (
+                f'{self.topic.strip("/")}/{item.data.ssn if item.data.ssn else "error"}'
+            )
+            info = session.publish(topic, item.data.model_dump_json())
+            info.wait_for_publish(timeout=5)
+            latency = int((time.perf_counter() - start) * 1000)
+            time.sleep(self.mqtt_sleep)
+
+            if info.rc != mqtt.MQTT_ERR_SUCCESS:
+                print("publish failed:", info.rc)
+
+            return SendResult(
+                code_got=info.rc,
+                code_expected=0,
+                status="Pass" if info.rc == 0 else "Fail",
+                latency=latency,
+                error=None,
+            )
+        except TimeoutError as exc:
+            return self._fail(item, start, "Timeouterror ", exc)
+
+        except OSError as exc:
+            return self._fail(item, start, "OS error ", exc)
+
+        except (ValueError, TypeError) as exc:
+            return self._fail(item, start, "Value/Type error ", exc)
+        
+        except RuntimeError as exc:
+            return self._fail(item, start, "runtime error ", exc)
+
+    def _fail(self,item: PayloadEnvelope,start: float,error_type: str,exc: Exception | None,) -> SendResult:
+        latency = int((time.perf_counter() - start) * 1000)
+        return SendResult(
+            code_got=1,
+            code_expected=0,
+            status="Fail",
+            latency=latency,
+            error=error_type,
+            )

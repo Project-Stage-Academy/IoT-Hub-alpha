@@ -4,7 +4,7 @@ try:
     from .assets.data_structures import PayloadEnvelope
     from .assets.main import main_sim
     from .assets.helpers import get_config
-except:
+except ImportError:
     from assets.data_structures import PayloadEnvelope
     from assets.main import main_sim
     from assets.helpers import get_config
@@ -29,8 +29,9 @@ def main() -> None:
         prog="Data Sending Simulator",
         usage="How to",
         description=(
-            f"Send test telemetry data to HTTP/MQTT endpoint \n"
-            f"supports infinite data stream, checks responses and compares them to set values, can preform loadtesting"
+            "Send test telemetry data to HTTP/MQTT endpoint \n"
+            "supports infinite data stream, checks responses and "
+            "compares them to set values, can preform loadtesting"
         ),
         epilog="For further info consult docs/simulator.md",
     )
@@ -91,11 +92,20 @@ def main() -> None:
         help="enabled CLI printouts",
         action="store_true",
     )
+    parser.add_argument(
+        "-mqs",
+        "--mqqt_sleep",
+        help="Changes safety sleep on mqtt cooldown, "
+        "setting to 0 may cause unstability, default 0.1",
+        type=float,
+        default=0.1
+    )
 
     raw = parser.parse_args()
+    raw.mode = raw.mode.lower()
     raw.log_file = config.log_file
     raw.default_timeout = config.default_timeout
-    main_sim(raw)
+    main_sim(raw, config)
 
 
 if __name__ == "__main__":

@@ -20,6 +20,9 @@ class PayloadEnvelope(BaseModel):
 
 class Config(BaseModel):
     default_url: str
+    mqtt_url: str
+    mqtt_topic: str
+    mqtt_port: int
     default_data_file: list[str]
     log_file: str
     default_timeout: float

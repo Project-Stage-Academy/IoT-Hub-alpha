@@ -1,12 +1,14 @@
 from typing import Sequence
 from time import sleep
-import requests
 from .senders import Sender
 from .reporting import Reporter
-from .data_structures import PayloadEnvelope, RunStats
+from .data_structures import Config, PayloadEnvelope, RunStats
+from .session_connection import SessionContext
 
 
 def run_loop(
+    config: Config,
+    mode: str,
     tasks: Sequence[PayloadEnvelope],
     sender: Sender,
     reporter: Reporter,
@@ -29,12 +31,15 @@ def run_loop(
     :return: Description
     :rtype: RunStats
     """
+    if not tasks:
+        raise ValueError("No tasks")
+
     stats = RunStats()
     total_tasks = len(tasks) * count
 
     reporter.start_report(total_tasks)
     i = 0
-    with requests.Session() as session:
+    with SessionContext(mode, config) as session:
         while True:
             item = tasks[i % len(tasks)]
             result = sender.send(item, session)

@@ -46,7 +46,9 @@ class Reporter:
         if self.verbose:
             error = f", Error: {result.error}" if result.error else None
             print(
-                f"{item.name}: code={result.code_got}, expected={result.code_expected} latency={result.latency} ms {error if error else ''}"
+                f"{item.name}: code={result.code_got}, "
+                f"expected={result.code_expected} latency={result.latency} "
+                f"ms {error if error else ''}"
             )
 
         if self.log_path:
@@ -75,8 +77,10 @@ class Reporter:
         pass_rate = (stats.passed / stats.sent) * 100 if stats.sent else 0.0
         print(
             f"Run ended \n"
-            f"Sent: {stats.sent}, passed: {stats.passed}, failed: {stats.failed}, errors: {stats.errors}\n"
-            f"Pass rate = {round(pass_rate, 1)}%, Ran for: {round(total_run_time, 2)} s"
+            f"Sent: {stats.sent}, passed: {stats.passed}, "
+            f"failed: {stats.failed}, errors: {stats.errors}\n"
+            f"Pass rate = {round(pass_rate, 1)}%, Ran for: "
+            f"{round(total_run_time, 2)} s"
         )
 
         if self.log_path:

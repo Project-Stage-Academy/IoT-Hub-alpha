@@ -33,7 +33,13 @@ def export_to_csv(modeladmin, request, queryset):
 class TelemetryAdmin(admin.ModelAdmin):
     list_display = ["id", "device", "timestamp"]
     list_filter = ["device", "timestamp"]
+    list_select_related = ["device"]
     search_fields = ["device__name", "device__serial_number"]
     readonly_fields = ["id", "timestamp", "payload"]
     date_hierarchy = "timestamp"
+    list_per_page = 50
     actions = [export_to_csv]
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.select_related("device")
