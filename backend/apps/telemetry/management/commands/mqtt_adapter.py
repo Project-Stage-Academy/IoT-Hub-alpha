@@ -11,6 +11,7 @@ Usage:
 import json
 import logging
 import signal
+import socket
 import sys
 
 from django.conf import settings
@@ -113,33 +114,33 @@ class Command(BaseCommand):
         parser.add_argument(
             "--host",
             type=str,
-            default=None,
+            default=settings.MQTT_BROKER_HOST,
             help=f"MQTT broker host (default: {settings.MQTT_BROKER_HOST})",
         )
         parser.add_argument(
             "--port",
             type=int,
-            default=None,
+            default=settings.MQTT_BROKER_PORT,
             help=f"MQTT broker port (default: {settings.MQTT_BROKER_PORT})",
         )
         parser.add_argument(
             "--topic",
             type=str,
-            default=None,
+            default=settings.MQTT_TOPIC,
             help=f"MQTT topic to subscribe (default: {settings.MQTT_TOPIC})",
         )
         parser.add_argument(
             "--qos",
             type=int,
-            default=None,
+            default=settings.MQTT_QOS,
             help=f"MQTT QoS level (default: {settings.MQTT_QOS})",
         )
 
     def handle(self, *args, **options):
-        host = options["host"] or settings.MQTT_BROKER_HOST
-        port = options["port"] or settings.MQTT_BROKER_PORT
-        topic = options["topic"] or settings.MQTT_TOPIC
-        qos = options["qos"] if options["qos"] is not None else settings.MQTT_QOS
+        host = options["host"]
+        port = options["port"]
+        topic = options["topic"]
+        qos = options["qos"]
 
         self.stdout.write(f"Connecting to MQTT broker at {host}:{port}")
         self.stdout.write(f"Subscribing to topic: {topic} (QoS {qos})")
@@ -190,9 +191,20 @@ class Command(BaseCommand):
         signal.signal(signal.SIGTERM, _shutdown)
 
         try:
+            timeout = getattr(settings, "MQTT_CONNECT_TIMEOUT", 10)
+            socket.setdefaulttimeout(timeout)
             client.connect(host, port, keepalive=60)
+            socket.setdefaulttimeout(None)
             self.stdout.write("MQTT adapter running. Press Ctrl+C to stop.")
             client.loop_forever()
+        except TimeoutError:
+            self.stderr.write(
+                self.style.ERROR(
+                    f"Connection to MQTT broker at {host}:{port} "
+                    f"timed out after {timeout}s"
+                )
+            )
+            sys.exit(1)
         except ConnectionRefusedError:
             self.stderr.write(
                 self.style.ERROR(f"Cannot connect to MQTT broker at {host}:{port}")
