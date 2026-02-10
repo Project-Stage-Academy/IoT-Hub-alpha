@@ -16,6 +16,7 @@ import sys
 
 from django.conf import settings
 from django.core.management.base import BaseCommand
+from django.db import connection
 
 import paho.mqtt.client as mqtt
 from paho.mqtt.enums import CallbackAPIVersion
@@ -47,6 +48,8 @@ def handle_mqtt_message(topic: str, payload_bytes: bytes) -> dict:
 
     Returns a dict with status information for logging/testing.
     """
+    connection.ensure_connection()
+
     try:
         data = json.loads(payload_bytes)
     except (json.JSONDecodeError, UnicodeDecodeError) as exc:
