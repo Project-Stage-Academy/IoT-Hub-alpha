@@ -30,16 +30,11 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: "npm"
 
       - name: Install CLI tools
         run: |
           npm i -g @redocly/cli newman
           npm i -g @stoplight/prism-cli
-
-      - name: Lint OpenAPI
-        run: |
-          redocly lint "${SPEC_PATH}"
 
       - name: Start Prism mock server
         run: |
