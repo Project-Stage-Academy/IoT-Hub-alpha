@@ -20,7 +20,7 @@ jobs:
 
       PRISM_HOST: 127.0.0.1
       PRISM_PORT: "4010"
-      BASE_URL: http://127.0.0.1:4010/api/v1
+      BASE_URL: http://127.0.0.1:4010
 
     steps:
       - name: Checkout
