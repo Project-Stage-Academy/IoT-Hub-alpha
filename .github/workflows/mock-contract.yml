@@ -60,7 +60,7 @@ jobs:
 
       - name: Inject tests
         run: |
-          python scripts/inject_tests.py docs/postman/postman_collection.json
+          python scripts/postman_rule_inject.py docs/postman/postman_collection.json
 
       - name: Run Newman against Prism
         run: |
