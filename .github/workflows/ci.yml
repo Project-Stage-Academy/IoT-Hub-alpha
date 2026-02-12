@@ -108,6 +108,17 @@ jobs:
         with:
           node-version: "20"
 
+      - name: Set npm cache dir
+        run: npm config set cache ~/.npm --global
+
+      - name: Cache npm downloads (global tools)
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-tools-node20-${{ hashFiles('.github/npm-tools.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-tools-node20-
+
       - name: Install CLI tools
         run: |
           npm i -g @redocly/cli newman
