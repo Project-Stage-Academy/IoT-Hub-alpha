@@ -68,6 +68,37 @@ def test_ingest_telemetry_single_invalid_payload(api_client, device):
 
 
 @pytest.mark.django_db
+def test_ingest_telemetry_invalid_device_serial(api_client):
+    _require_telemetry_api(api_client)
+    payload = {"schema_version": "1.0", "value": 2443}
+    headers = {"HTTP_X_DEVICE_SERIAL_NUMBER": "SN-DOES-NOT-EXIST"}
+
+    response = api_client.post(
+        "/api/v1/telemetry/",
+        data=payload,
+        content_type="application/json",
+        **headers,
+    )
+
+    assert response.status_code == 400
+
+
+@pytest.mark.django_db
+def test_ingest_telemetry_malformed_json(api_client, device):
+    _require_telemetry_api(api_client)
+    headers = {"HTTP_X_DEVICE_SERIAL_NUMBER": device.serial_number}
+
+    response = api_client.post(
+        "/api/v1/telemetry/",
+        data="not valid json",
+        content_type="application/json",
+        **headers,
+    )
+
+    assert response.status_code == 400
+
+
+@pytest.mark.django_db
 def test_ingest_telemetry_batch_success(api_client, device):
     _require_telemetry_api(api_client, path="/api/v1/telemetry/batch/")
     payload = [
