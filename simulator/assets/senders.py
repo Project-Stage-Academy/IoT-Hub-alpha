@@ -1,7 +1,8 @@
+import json
 import time
 import requests
 import ssl
-from typing import Protocol
+from typing import Protocol, Any, Callable
 import paho.mqtt.client as mqtt
 from .data_structures import PayloadEnvelope, SendResult
 from requests.exceptions import (
@@ -20,8 +21,9 @@ class Sender(Protocol):
     """
 
     def send(
-        self, item: PayloadEnvelope, session: requests.Session | mqtt.Client | None
-    ) -> SendResult: ...
+        self, item: PayloadEnvelope, session: requests.Session | None
+    ) -> SendResult:
+        pass
 
 
 class HttpSender(Sender):
@@ -48,6 +50,7 @@ class HttpSender(Sender):
                 json=item.data.model_dump(exclude={"ssn"}),
                 timeout=self.timeout,
             )
+
             latency = int((time.perf_counter() - start) * 1000)
             return SendResult(
                 code_got=response.status_code,
@@ -59,19 +62,14 @@ class HttpSender(Sender):
 
         except ConnectTimeout as exc:
             return self._fail(item, start, "connect_timeout", exc)
-
         except ReadTimeout as exc:
             return self._fail(item, start, "read_timeout", exc)
-
         except SSLError as exc:
             return self._fail(item, start, "ssl_error", exc)
-
         except ConnectionError as exc:
             return self._fail(item, start, "connection_error", exc)
-
         except HTTPError as exc:
             return self._fail(item, start, "http_error", exc)
-
         except RequestException as exc:
             return self._fail(item, start, "request_exception", exc)
 
@@ -82,7 +80,9 @@ class HttpSender(Sender):
         error_type: str,
         exc: Exception | None,
     ) -> SendResult:
+
         latency = int((time.perf_counter() - start) * 1000)
+
         return SendResult(
             code_got=None,
             code_expected=item.expected,
@@ -134,11 +134,17 @@ class MqttPublisher(Sender):
 
         except (ValueError, TypeError) as exc:
             return self._fail(item, start, "Value/Type error ", exc)
-        
+
         except RuntimeError as exc:
             return self._fail(item, start, "runtime error ", exc)
 
-    def _fail(self,item: PayloadEnvelope,start: float,error_type: str,exc: Exception | None,) -> SendResult:
+    def _fail(
+        self,
+        item: PayloadEnvelope,
+        start: float,
+        error_type: str,
+        exc: Exception | None,
+    ) -> SendResult:
         latency = int((time.perf_counter() - start) * 1000)
         return SendResult(
             code_got=1,
@@ -146,4 +152,4 @@ class MqttPublisher(Sender):
             status="Fail",
             latency=latency,
             error=error_type,
-            )
+        )
