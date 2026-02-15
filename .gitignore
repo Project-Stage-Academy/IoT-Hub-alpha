@@ -235,3 +235,4 @@ sim_log.jsonl
 .vscode/settings.json
 
 devops/apt-repo/auth/.htpasswd
+node_modules

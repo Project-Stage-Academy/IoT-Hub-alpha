@@ -10,7 +10,7 @@ class TestTelemetryIngestionSyncMode:
     def test_single_ingestion_success(self, sync_mode, client, device):
         payload = {
             "schema_version": "1.0",
-            "value": 25.5,
+            "value": 2550,
         }
 
         response = client.post(
@@ -108,11 +108,11 @@ class TestTelemetryIngestionSyncMode:
         payload = [
             {
                 "schema_version": "1.0",
-                "value": 1.0,
+                "value": 100,
             },
             {
                 "schema_version": "1.0",
-                "value": 2.0,
+                "value": 200,
             },
         ]
 
@@ -166,12 +166,12 @@ class TestTelemetryIngestionSyncMode:
         payload = [
             {
                 "schema_version": "1.0",
-                "value": 1.0,
+                "value": 100,
             },
             {},
             {
                 "schema_version": "1.0",
-                "value": 3.0,
+                "value": 300,
             },
         ]
 
@@ -237,7 +237,7 @@ class TestTelemetryIngestionAsyncMode:
 
         payload = {
             "schema_version": "1.0",
-            "value": 25.5,
+            "value": 2550,
         }
 
         response = client.post(
@@ -264,11 +264,11 @@ class TestTelemetryIngestionAsyncMode:
         payload = [
             {
                 "schema_version": "1.0",
-                "value": 1.0,
+                "value": 100,
             },
             {
                 "schema_version": "1.0",
-                "value": 2.0,
+                "value": 200,
             },
         ]
 

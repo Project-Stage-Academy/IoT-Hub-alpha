@@ -14,6 +14,11 @@ services:
       - backend-migrate-data:/app
     environment:
       DJANGO_SETTINGS_MODULE: config.settings.local
+  mqtt_adapter:
+    volumes:
+      - ./backend:/app
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.local
 
 volumes:
   backend-worker-data:
