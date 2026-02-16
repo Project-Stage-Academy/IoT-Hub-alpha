@@ -181,7 +181,9 @@ def test_dispatch_msg_validates_each_recipient():
     with (
         patch("apps.rules.services.actions.get_template", return_value=DummyTemplate()),
         patch("apps.rules.services.actions.event_handler", return_value=Mock()),
-        patch("apps.notifications.tasks.enqueue_notification_deliveries", return_value=[]),
+        patch(
+            "apps.notifications.tasks.enqueue_notification_deliveries", return_value=[]
+        ),
         patch(
             "apps.rules.services.actions.NormalizedRecipient.model_validate"
         ) as mock_validate,
