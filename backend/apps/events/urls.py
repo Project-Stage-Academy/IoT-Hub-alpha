@@ -1,6 +1,11 @@
 from django.urls import path
 
-from .views import EventAcknowledgeView, EventDetailView, EventListView, EventResolveView
+from .views import (
+    EventAcknowledgeView,
+    EventDetailView,
+    EventListView,
+    EventResolveView,
+)
 
 urlpatterns = [
     path("", EventListView.as_view(), name="event_list"),

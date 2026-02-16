@@ -20,7 +20,7 @@ does **not** propose new fields.
 
 - `timestamp` (DateTime, auto_now_add)  
   When the event was recorded.  
-  In API responses this is exposed as `fired_at` and `created_at`.
+  In API responses this is exposed as `created_at` and as fallback for `fired_at`.
 
 - `severity` (enum: `critical`, `warning`, `info`)  
   Derived from notification template priority.
@@ -122,7 +122,7 @@ Delivery attempts are tracked in `attempt_count`, with retry/backoff for webhook
 ## API Mapping (Events)
 
 The Events API exposes:
-- `fired_at` and `created_at` → `Event.timestamp`
+- `fired_at` → `Event.telemetry_snapshot.timestamp` (fallback: `Event.timestamp`)
+- `created_at` → `Event.timestamp`
 - `acknowledged` → `status != new`
 - `payload` → `telemetry_snapshot.payload`
-

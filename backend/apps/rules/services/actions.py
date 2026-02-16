@@ -165,7 +165,9 @@ def event_handler(
 
     snapshot = {
         "device_id": str(rule.device_id),
-        "timestamp": timezone.now().isoformat(),
+        "timestamp": (
+            aggregate.end.isoformat() if aggregate.end else timezone.now().isoformat()
+        ),
         "payload": {
             "values": aggregate.values,
             "start": aggregate.start.isoformat() if aggregate.start else None,

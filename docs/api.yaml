@@ -850,7 +850,6 @@ components:
       required:
         - name
         - description
-        - comparison_operator
         - condition
         - is_enabled
         - device_id
@@ -897,7 +896,6 @@ components:
       required:
         - name
         - description
-        - comparison_operator
         - condition
         - last_triggered_at
         - is_enabled

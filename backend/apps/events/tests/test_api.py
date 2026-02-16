@@ -24,12 +24,8 @@ def _make_user_with_perms(*codenames: str):
 @pytest.mark.django_db
 def test_events_list_filters_and_acknowledged():
     dt = DeviceType.objects.create(name="temp", metric_unit="C")
-    dev1 = Device.objects.create(
-        name="Device-1", serial_number="D-001", device_type=dt
-    )
-    dev2 = Device.objects.create(
-        name="Device-2", serial_number="D-002", device_type=dt
-    )
+    dev1 = Device.objects.create(name="Device-1", serial_number="D-001", device_type=dt)
+    dev2 = Device.objects.create(name="Device-2", serial_number="D-002", device_type=dt)
     rule1 = Rule.objects.create(
         device=dev1,
         name="Rule-1",
@@ -53,7 +49,7 @@ def test_events_list_filters_and_acknowledged():
         execution_results=[],
         telemetry_snapshot={
             "device_id": str(dev1.id),
-            "timestamp": timezone.now().isoformat(),
+            "timestamp": "2026-01-15T10:30:00+00:00",
             "payload": {"values": [11.0]},
         },
         status=Event.EventStatus.NEW,
@@ -81,20 +77,22 @@ def test_events_list_filters_and_acknowledged():
     body = resp.json()
     assert body["pagination"]["total"] == 1
     assert body["data"][0]["message"] == "event-1"
+    assert body["data"][0]["fired_at"] == "2026-01-15T10:30:00+00:00"
+    assert body["data"][0]["created_at"] != body["data"][0]["fired_at"]
+    assert body["data"][0]["acknowledged"] is False
 
     resp = client.get("/api/v1/events/?acknowledged=true")
     assert resp.status_code == 200
     body = resp.json()
     assert body["pagination"]["total"] == 1
     assert body["data"][0]["message"] == "event-2"
+    assert body["data"][0]["acknowledged"] is True
 
 
 @pytest.mark.django_db
 def test_events_ack_updates_status():
     dt = DeviceType.objects.create(name="temp", metric_unit="C")
-    dev = Device.objects.create(
-        name="Device-1", serial_number="D-001", device_type=dt
-    )
+    dev = Device.objects.create(name="Device-1", serial_number="D-001", device_type=dt)
     rule = Rule.objects.create(
         device=dev,
         name="Rule-1",

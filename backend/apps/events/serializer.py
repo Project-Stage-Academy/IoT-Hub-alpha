@@ -47,11 +47,16 @@ class EventSerializer:
             if not isinstance(snapshot, dict):
                 snapshot = {}
 
+            created_at = self.instance.timestamp.isoformat()
+            fired_at = snapshot.get("timestamp")
+            if not isinstance(fired_at, str) or not fired_at:
+                fired_at = created_at
+
             payload["rule_id"] = str(self.instance.rule_id)
             payload["device_id"] = str(self.instance.rule.device_id)
-            payload["fired_at"] = self.instance.timestamp.isoformat()
-            payload["created_at"] = self.instance.timestamp.isoformat()
-            payload["acknowledged"] = self.instance.status != Event.EventStatus.NEW
+            payload["fired_at"] = fired_at
+            payload["created_at"] = created_at
+            payload["acknowledged"] = self.instance.acknowledged
             payload["payload"] = snapshot.get("payload")
 
             self._cached_dict = payload

@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import csv
-import json
 from datetime import datetime, time
 from pathlib import Path
 
@@ -10,7 +8,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime, parse_date
 
-from apps.events.models import Event
+from apps.events.services.csv_export import EventCsvExportService
 
 
 class Command(BaseCommand):
@@ -38,91 +36,66 @@ class Command(BaseCommand):
             action="store_true",
             help="Include JSON columns (execution_results, telemetry_snapshot, payload).",
         )
+        parser.add_argument(
+            "--until",
+            required=False,
+            help=(
+                "Optional upper bound (inclusive), ISO-8601 datetime "
+                "or date YYYY-MM-DD."
+            ),
+        )
 
     def handle(self, *args, **opts) -> None:
         since_raw: str = opts["since"]
+        until_raw: str | None = opts.get("until")
         output_raw: str = opts["output"]
         limit: int | None = opts["limit"]
         full: bool = opts["full"]
 
-        since_dt = self._parse_since(since_raw)
-        output_path = self._resolve_output(output_raw)
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-
-        qs = (
-            Event.objects.select_related("rule", "rule__device")
-            .filter(timestamp__gte=since_dt)
-            .order_by("timestamp")
+        since_dt = self._parse_boundary(
+            since_raw, arg_name="since", use_end_of_day=False
         )
-        if limit:
-            qs = qs[:limit]
-
-        fieldnames = [
-            "id",
-            "fired_at",
-            "rule_name",
-            "rule_id",
-            "device_serial",
-            "device_id",
-            "severity",
-            "status",
-            "acknowledged",
-            "message",
-        ]
-        if full:
-            fieldnames.extend(
-                ["execution_results", "telemetry_snapshot", "payload"]
+        until_dt: datetime | None = None
+        if until_raw:
+            until_dt = self._parse_boundary(
+                until_raw, arg_name="until", use_end_of_day=True
             )
+            if until_dt < since_dt:
+                raise CommandError("--until must be greater than or equal to --since.")
 
-        count = 0
-        with output_path.open("w", newline="", encoding="utf-8") as handle:
-            writer = csv.DictWriter(handle, fieldnames=fieldnames)
-            writer.writeheader()
-            for event in qs.iterator():
-                snapshot = event.telemetry_snapshot or {}
-                payload = snapshot.get("payload")
+        if limit is not None and limit < 1:
+            raise CommandError("--limit must be >= 1.")
 
-                row = {
-                    "id": event.id,
-                    "fired_at": event.timestamp.isoformat(),
-                    "rule_name": getattr(event.rule, "name", ""),
-                    "rule_id": str(event.rule_id),
-                    "device_serial": getattr(
-                        getattr(event.rule, "device", None), "serial_number", ""
-                    ),
-                    "device_id": str(getattr(event.rule, "device_id", "")),
-                    "severity": event.severity,
-                    "status": event.status,
-                    "acknowledged": event.status != Event.EventStatus.NEW,
-                    "message": event.message,
-                }
-                if full:
-                    row.update(
-                        {
-                            "execution_results": json.dumps(event.execution_results),
-                            "telemetry_snapshot": json.dumps(snapshot),
-                            "payload": json.dumps(payload)
-                            if payload is not None
-                            else "",
-                        }
-                    )
-                writer.writerow(row)
-                count += 1
+        output_path = self._resolve_output(output_raw)
+        exporter = EventCsvExportService(
+            since_dt=since_dt,
+            until_dt=until_dt,
+            limit=limit,
+            full=full,
+        )
+        count = exporter.export(output_path=output_path)
 
         self.stdout.write(
             self.style.SUCCESS(f"Exported {count} event(s) to {output_path}")
         )
 
-    def _parse_since(self, raw: str) -> datetime:
+    def _parse_boundary(
+        self,
+        raw: str,
+        *,
+        arg_name: str,
+        use_end_of_day: bool,
+    ) -> datetime:
         dt = parse_datetime(raw)
         if dt is None:
             date_only = parse_date(raw)
             if date_only:
-                dt = datetime.combine(date_only, time.min)
+                default_time = time.max if use_end_of_day else time.min
+                dt = datetime.combine(date_only, default_time)
 
         if dt is None:
             raise CommandError(
-                "Invalid --since. Use ISO-8601 datetime or YYYY-MM-DD."
+                f"Invalid --{arg_name}. Use ISO-8601 datetime or YYYY-MM-DD."
             )
 
         if timezone.is_naive(dt):
