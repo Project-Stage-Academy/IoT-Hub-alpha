@@ -73,7 +73,7 @@ class TestTelemetrySerializer:
         data = {
             "serial_number": device.serial_number,
             "schema_version": "1.0",
-            "value": 42,
+            "value": 4200,
         }
 
         serializer = TelemetrySerializer(data=data)
@@ -86,7 +86,7 @@ class TestTelemetrySerializer:
         data = {
             "serial_number": device.serial_number,
             "schema_version": "1.0",
-            "value": 42.5,
+            "value": 4250,
         }
 
         serializer = TelemetrySerializer(data=data)
@@ -98,7 +98,7 @@ class TestTelemetrySerializer:
         data = {
             "serial_number": device.serial_number,
             "schema_version": "1.0",
-            "value": "123.45",
+            "value": "12345",
         }
 
         serializer = TelemetrySerializer(data=data)
@@ -151,7 +151,7 @@ class TestTelemetrySerializer:
         data = {
             "serial_number": device.serial_number,
             "schema_version": "1.0",
-            "value": 42.5,
+            "value": 4250,
         }
 
         serializer = TelemetrySerializer(data=data)

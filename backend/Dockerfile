@@ -11,9 +11,11 @@ RUN apt-get update \
 WORKDIR /app
 
 COPY requirements.txt .
+COPY requirements-dev.txt .
 RUN python -m venv $VENV_PATH \
     && $VENV_PATH/bin/pip install --no-cache-dir --upgrade pip \
-    && $VENV_PATH/bin/pip install --no-cache-dir -r requirements.txt
+    && $VENV_PATH/bin/pip install --no-cache-dir -r requirements.txt \
+    && $VENV_PATH/bin/pip install --no-cache-dir -r requirements-dev.txt
 
 COPY . .
 

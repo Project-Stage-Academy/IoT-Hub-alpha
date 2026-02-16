@@ -13,6 +13,9 @@ class SessionContext:
 
     username = os.getenv("MQTT_USERNAME", "test")
     password = os.getenv("MQTT_PASSWORD", "test")
+    use_tls = (
+        False if os.getenv("MQTT_USE_TLS", "false") in ["false", "False", "0"] else True
+    )
 
     def __init__(self, mode: str, config: Config):
         self.mode = mode
@@ -35,7 +38,8 @@ class SessionContext:
             self.client.connect_timeout = self.timeout
             socket.setdefaulttimeout(self.timeout)
             self.client.username_pw_set(self.username, self.password)
-            self.client.tls_set()
+            if SessionContext.use_tls:
+                self.client.tls_set()
             self.client.connect(self.broker_url, self.port, 60)
             self.client.loop_start()
             return self.client
