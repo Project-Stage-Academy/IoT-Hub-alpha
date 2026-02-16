@@ -49,7 +49,8 @@ class DeliveryStrategy(Protocol):
         task: Any,
         delivery: NotificationDelivery,
         now: datetime,
-    ) -> None: ...
+    ) -> None:
+        pass
 
 
 def enqueue_notification_deliveries(

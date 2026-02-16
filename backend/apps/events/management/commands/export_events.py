@@ -34,7 +34,10 @@ class Command(BaseCommand):
         parser.add_argument(
             "--full",
             action="store_true",
-            help="Include JSON columns (execution_results, telemetry_snapshot, payload).",
+            help=(
+                "Include JSON columns "
+                "(execution_results, telemetry_snapshot, payload)."
+            ),
         )
         parser.add_argument(
             "--until",
