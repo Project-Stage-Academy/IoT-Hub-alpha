@@ -1,7 +1,7 @@
 import uuid
 from django.db import models
 from django.contrib.postgres.indexes import GinIndex
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ValidationError as DjangoValidationError
 from apps.devices.models import Device
 from .services.data_structure import Condition
 
@@ -9,35 +9,42 @@ from .services.data_structure import Condition
 def validate_action_config(value):
     """Validates action_config JSON structure."""
     if not isinstance(value, list):
-        raise ValidationError("action_config must be a list of action items")
+        raise DjangoValidationError("action_config must be a list of action items")
 
     for item in value:
         if not isinstance(item, dict):
-            raise ValidationError("Each action item must be a dictionary")
+            raise DjangoValidationError("Each action item must be a dictionary")
 
         if "type" not in item:
-            raise ValidationError("Each action item must have a 'type' field")
+            raise DjangoValidationError("Each action item must have a 'type' field")
 
         cooldown_minutes = item.get("cooldown_minutes")
         if cooldown_minutes is not None:
             if not isinstance(cooldown_minutes, int):
-                raise ValidationError("cooldown_minutes must be an integer")
+                raise DjangoValidationError("cooldown_minutes must be an integer")
             if cooldown_minutes < 0:
-                raise ValidationError("cooldown_minutes must be >= 0")
+                raise DjangoValidationError("cooldown_minutes must be >= 0")
 
         action_type = item.get("type")
 
         # Type-specific validation
         if action_type == "notification":
             if "template_id" not in item:
-                raise ValidationError("Notification action must include template_id")
+                raise DjangoValidationError(
+                    "Notification action must include template_id"
+                )
         elif action_type == "stop_machine":
             if "machine_id" not in item:
-                raise ValidationError("stop_machine action must include machine_id")
+                raise DjangoValidationError(
+                    "stop_machine action must include machine_id"
+                )
 
 
 def validate_condition(condition):
-    Condition.model_validate(condition)
+    try:
+        Condition.model_validate(condition)
+    except Exception as e:
+        raise DjangoValidationError(str(e))
 
 
 class Rule(models.Model):

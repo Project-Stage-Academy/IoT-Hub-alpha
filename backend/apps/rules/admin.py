@@ -4,7 +4,7 @@ from django.contrib import messages
 from django.http import HttpRequest, HttpResponse
 from django.urls import path
 from django.shortcuts import redirect
-from .models import Rule
+from .models import Rule, validate_condition, validate_action_config
 from .tasks import process_telemetry
 from .admin_widget import ConditionWidget, ActionWidget
 from django.core.exceptions import PermissionDenied
@@ -30,12 +30,30 @@ def disable_rules(modeladmin, request, queryset):
     )
 
 
+class RuleAdminForm(forms.ModelForm):
+    class Meta:
+        model = Rule
+        fields = "__all__"
+
+    def clean_condition(self):
+        value = self.cleaned_data.get("condition")
+        validate_condition(value)  # raises Django ValidationError -> shown inline
+        return value
+
+    def clean_action_config(self):
+        value = self.cleaned_data.get("action_config")
+        validate_action_config(value)
+        return value
+
+
 @admin.register(Rule)
 class RuleAdmin(admin.ModelAdmin):
 
     class Media:
         js = ("admin/condition_ui.js",)
         css = {"all": ("admin/condition_ui.css",)}
+
+    form = RuleAdminForm
 
     list_display = [
         "name",
