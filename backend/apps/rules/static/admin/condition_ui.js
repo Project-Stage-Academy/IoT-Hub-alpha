@@ -10,7 +10,7 @@
       <div class="cui-backdrop"></div>
       <div class="cui-panel" role="dialog" aria-modal="true">
         <div class="cui-header">
-          <strong>Condition UI — Instructions</strong>
+          <strong>Condition Instructions</strong>
           <button type="button" class="cui-close" aria-label="Close">✕</button>
         </div>
 
@@ -97,7 +97,7 @@
       <div class="cui-backdrop"></div>
       <div class="cui-panel" role="dialog" aria-modal="true">
         <div class="cui-header">
-          <strong>Action UI — Instructions</strong>
+          <strong>Action Config Instructions</strong>
           <button type="button" class="cui-close" aria-label="Close">✕</button>
         </div>
 
@@ -113,7 +113,7 @@
             <li><code>machine_id(stop_machine)</code>: string (TEMP-SN1-001)</li>
           </ul>
 
-          <p><b>Example containing one notification and 1 stop machine</b></p>
+          <p><b>Example containing one notification and one stop machine</b></p>
           <pre class="cui-code">
 [
   {"type": "notification", "template_id": 5}, 

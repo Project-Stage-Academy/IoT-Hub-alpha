@@ -37,7 +37,7 @@ class RuleAdminForm(forms.ModelForm):
 
     def clean_condition(self):
         value = self.cleaned_data.get("condition")
-        validate_condition(value)  # raises Django ValidationError -> shown inline
+        validate_condition(value)
         return value
 
     def clean_action_config(self):
