@@ -23,3 +23,26 @@ class ConditionWidget(forms.Textarea):
         </div>
         """
         return mark_safe(html)
+
+
+class ActionWidget(forms.Textarea):
+    def render(self, name, value, attrs=None, renderer=None):
+        textarea = super().render(name, value, attrs, renderer)
+
+        field_id = attrs.get("id", "")
+
+        html = f"""
+        <div style="display:flex; gap:26px; align-items:center;">
+            <div style="flex:1;">
+                {textarea}
+            </div>
+            <div>
+                <button type="button"
+                        class="button action-ui-open"
+                        data-target="{field_id}">
+                    Help
+                </button>
+            </div>
+        </div>
+        """
+        return mark_safe(html)
