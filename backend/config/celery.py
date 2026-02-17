@@ -9,7 +9,7 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", settings_module)
 
 app = Celery("config")
 app.config_from_object("django.conf:settings", namespace="CELERY")
-app.autodiscover_tasks(["apps.rules"])
+app.autodiscover_tasks(["apps.rules", "apps.notifications", "apps.telemetry"])
 
 
 @setup_logging.connect

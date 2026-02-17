@@ -4,7 +4,7 @@ from dataclasses import asdict
 from functools import lru_cache
 from django.utils import timezone
 from datetime import timedelta
-from apps.notifications.models import NotificationTemplate
+from apps.notifications.models import NotificationTemplate, NotificationPriority
 from .data_structure import ActionConfig
 from apps.events.models import Event
 from apps.rules.models import Rule
@@ -74,13 +74,38 @@ def dispatch_msg(
     except EventCooldownActive:
         return
 
+    recipients = []
     for recipient in notif_template.recipients:
-        recipient_clean = NormalizedRecipient.model_validate(recipient)  # noqa: F841
-        # Add notification task here
-        logger.info(
-            "rules.notification.enqueue",
-            extra={"event_id": str(event), "rule_id": str(rule)},
+        recipient_clean = NormalizedRecipient.model_validate(recipient)
+        recipients.append(recipient_clean)
+
+    try:
+        from apps.notifications.tasks import enqueue_notification_deliveries
+    except Exception as exc:  # noqa: BLE001 - best effort enqueue
+        logger.warning(
+            "rules.notification.enqueue_failed",
+            extra={"event_id": event.id, "error": str(exc)},
         )
+        return
+
+    deliveries = enqueue_notification_deliveries(
+        event=event,
+        template=notif_template,
+        recipients=recipients,
+        rendered_message=message,
+    )
+
+    event.execution_results = [
+        {
+            "type": "notification",
+            "template_id": notif_template.id,
+            "status": "queued",
+            "recipient_count": len(deliveries),
+        }
+    ]
+    event.save(update_fields=["execution_results"])
+
+    return
 
 
 def stop_machine(action_config, rule, aggregate):
@@ -138,13 +163,32 @@ def event_handler(
         )
         raise EventCooldownActive
 
+    snapshot = {
+        "device_id": str(rule.device_id),
+        "timestamp": (
+            aggregate.end.isoformat() if aggregate.end else timezone.now().isoformat()
+        ),
+        "payload": {
+            "values": aggregate.values,
+            "start": aggregate.start.isoformat() if aggregate.start else None,
+            "end": aggregate.end.isoformat() if aggregate.end else None,
+        },
+    }
+    priority_map = {
+        NotificationPriority.LOW: Event.EventSeverity.INFO,
+        NotificationPriority.MEDIUM: Event.EventSeverity.WARNING,
+        NotificationPriority.HIGH: Event.EventSeverity.CRITICAL,
+        NotificationPriority.CRITICAL: Event.EventSeverity.CRITICAL,
+    }
+    severity = priority_map.get(notif_template.priority, Event.EventSeverity.INFO)
+
     new_event = Event(
         timestamp=timezone.now(),
-        severity=notif_template.priority,
+        severity=severity,
         message=message,
-        execution_results={"status": "new"},
+        execution_results=[],
         rule=rule,
-        telemetry_snapshot=aggregate.to_dict(),
+        telemetry_snapshot=snapshot,
     )
     new_event.save()
     return new_event

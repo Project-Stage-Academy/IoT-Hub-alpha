@@ -104,3 +104,7 @@ class Event(models.Model):
 
     def __str__(self):
         return f"Event {self.id} - Rule {self.rule_id} - {self.severity}"
+
+    @property
+    def acknowledged(self) -> bool:
+        return self.status != Event.EventStatus.NEW
