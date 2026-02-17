@@ -56,8 +56,13 @@ class Rule(models.Model):
     condition = models.JSONField(
         validators=[validate_condition],
         help_text=(
-            'Schema: [{"type": "notification", "template_id": 5}, '
-            '{"type": "stop_machine", "machine_id": "M-123"}]'
+            "Schema: [{{"
+            '"type": "leaf", '
+            '"operator": "gt", '
+            '"threshold": 25.5, '
+            '"occurrences": 3, '
+            '"window_seconds": 60'
+            "}]"
         ),
     )
     action_config = models.JSONField(
