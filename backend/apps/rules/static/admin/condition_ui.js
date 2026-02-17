@@ -37,7 +37,7 @@
 }</pre>
 
                   <p><b>Minimal example (and/or)</b></p>
-          <pre class="cui-code">{
+          <pre class="cui-code">
 {
     "type": "or",
     "conditions": [
@@ -55,7 +55,7 @@
     }
 ]
 }
-}</pre>
+</pre>
 
           <p><b>Minimal example (Nested And/Ors)</b></p>
           <pre class="cui-code">{
