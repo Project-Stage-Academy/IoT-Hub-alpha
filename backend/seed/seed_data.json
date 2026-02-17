@@ -120,8 +120,7 @@
       "action_config": [
         {
           "type": "notification",
-          "template_id": "Critical Vibration Alert",
-          "recipients": ["maintenance@factory.com", "supervisor@factory.com"]
+          "template_id": "Critical Vibration Alert"
         }
       ],
       "is_enabled": true
@@ -142,8 +141,7 @@
         },
         {
           "type": "notification",
-          "template_id": "Temperature Emergency",
-          "recipients": ["emergency@factory.com"]
+          "template_id": "Temperature Emergency"
         }
       ],
       "is_enabled": true
@@ -160,8 +158,7 @@
       "action_config": [
         {
           "type": "notification",
-          "template_id": "Power Consumption Warning",
-          "recipients": ["energy@factory.com"]
+          "template_id": "Power Consumption Warning"
         }
       ],
       "is_enabled": true
@@ -188,8 +185,7 @@
       "action_config": [
         {
           "type": "notification",
-          "template_id": "Flow Rate Warning",
-          "recipients": ["management@factory.com"]
+          "template_id": "Flow Rate Warning"
         }
       ],
       "is_enabled": true
@@ -206,8 +202,7 @@
       "action_config": [
         {
           "type": "notification",
-          "template_id": "Flow Rate Warning",
-          "recipients": ["management@factory.com"]
+          "template_id": "Flow Rate Warning"
         }
       ],
       "is_enabled": true
@@ -236,8 +231,7 @@
       "action_config": [
         {
           "type": "notification",
-          "template_id": "Humidity Warning",
-          "recipients": ["management@factory.com"]
+          "template_id": "Humidity Warning"
         }
       ],
       "is_enabled": true
@@ -254,8 +248,7 @@
       "action_config": [
         {
           "type": "notification",
-          "template_id": "Power Consumption Warning",
-          "recipients": ["management@factory.com"]
+          "template_id": "Power Consumption Warning"
         }
       ],
       "is_enabled": true
@@ -272,12 +265,7 @@
       "action_config": [
         {
           "type": "notification",
-          "template_id": "Power Consumption Warning",
-          "recipients": [
-            "management@factory.com",
-            "energy@support.com",
-            "supervisor@factory.com"
-          ]
+          "template_id": "Power Consumption Warning"
         }
       ],
       "is_enabled": true
@@ -294,8 +282,7 @@
       "action_config": [
         {
           "type": "notification",
-          "template_id": "Power Consumption Warning",
-          "recipients": ["management@factory.com"]
+          "template_id": "Power Consumption Warning"
         }
       ],
       "is_enabled": false

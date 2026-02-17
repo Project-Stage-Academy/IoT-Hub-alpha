@@ -77,7 +77,6 @@ class RuleAdmin(admin.ModelAdmin):
         return custom + urls
 
     def save_model(self, request, obj, form, change):
-        # change=False => create, change=True => update
         if change:
             if not request.user.has_perm("rules.change_rule"):
                 raise PermissionDenied("You can't update rules.")
@@ -85,7 +84,6 @@ class RuleAdmin(admin.ModelAdmin):
             if not request.user.has_perm("rules.add_rule"):
                 raise PermissionDenied("You can't create rules.")
 
-        # Example: set owner on create
         if not change and hasattr(obj, "created_by_id") and not obj.created_by_id:
             obj.created_by = request.user
 
