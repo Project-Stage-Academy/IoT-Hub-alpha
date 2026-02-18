@@ -1,0 +1,26 @@
+# =============================================================================
+# Mosquitto ACL — IoT Hub Alpha
+# =============================================================================
+#
+# Pattern substitutions:
+#   %u  = authenticated username
+#   %c  = client id
+#
+# Access types: read | write | readwrite | deny
+
+# ---- MQTT Adapter (internal service) ----------------------------------------
+# The adapter consumes telemetry from all devices and device status events.
+user mqtt_adapter
+topic read telemetry/#
+topic read devices/+/status
+topic readwrite $SYS/broker/log/#
+
+# ---- Device clients ----------------------------------------------------------
+# Each device authenticates with username = its serial number.
+# It may only publish telemetry to its own subtopic and manage its own status.
+
+# Allow device to publish telemetry under its own serial number
+pattern write telemetry/%u
+
+# Allow device to publish/read its own status (for LWT / online messages)
+pattern readwrite devices/%u/status

@@ -250,6 +250,9 @@ MQTT_QOS = int(os.getenv("MQTT_QOS", "1"))
 MQTT_USE_TLS = os.getenv("MQTT_USE_TLS", "false").lower() in ("true", "1", "yes")
 MQTT_CONNECT_TIMEOUT = int(os.getenv("MQTT_CONNECT_TIMEOUT", "10"))
 
+# Telemetry producer backend: "log" (stub) or "kafka" (when available)
+TELEMETRY_PRODUCER_BACKEND = os.getenv("TELEMETRY_PRODUCER_BACKEND", "log")
+
 RATE_LIMIT_ENABLED = os.getenv("RATE_LIMIT_ENABLED", "False").lower() in (
     "true",
     "1",
