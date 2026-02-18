@@ -77,15 +77,7 @@
       </div>
     `;
     document.body.appendChild(modal);
-
-    const close = () => modal.classList.remove("open");
-    modal.querySelector(".cui-backdrop").addEventListener("click", close);
-    modal.querySelector(".cui-close").addEventListener("click", close);
-    modal.querySelector(".cui-ok").addEventListener("click", close);
-
-    document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape" && modal.classList.contains("open")) close();
-    });
+    handleClose(modal)
   }
 
   function ensureModalAction() {
@@ -127,7 +119,10 @@
       </div>
     `;
     document.body.appendChild(modal);
+    handleClose(modal)
+  }
 
+  function handleClose(modal) {
     const close = () => modal.classList.remove("open");
     modal.querySelector(".cui-backdrop").addEventListener("click", close);
     modal.querySelector(".cui-close").addEventListener("click", close);
