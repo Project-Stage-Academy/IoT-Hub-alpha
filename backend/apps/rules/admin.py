@@ -75,12 +75,14 @@ class RuleAdmin(admin.ModelAdmin):
 
         if db_field.name == "condition":
             formfield.widget = HelpWidget(
-                attrs={"rows": 8, "style": "width:100%;"},
-                target="condition"
+                attrs={"rows": 8, "style": "width:100%;"}, target="condition"
             )
 
         if db_field.name == "action_config":
-            formfield.widget = HelpWidget(target="action", attrs={"rows": 8, "style": "width:100%;"},)
+            formfield.widget = HelpWidget(
+                target="action",
+                attrs={"rows": 8, "style": "width:100%;"},
+            )
 
         return formfield
 

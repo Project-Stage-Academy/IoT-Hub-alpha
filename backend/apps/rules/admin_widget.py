@@ -6,8 +6,8 @@ class HelpWidget(forms.Textarea):
     def __init__(self, attrs=None, target=""):
         super().__init__(attrs)
         self.target = target
-    
-    def render(self, name, value, target = None, attrs = None, renderer = None):
+
+    def render(self, name, value, target=None, attrs=None, renderer=None):
         textarea = super().render(name, value, attrs, renderer)
 
         field_id = attrs.get("id", "")
