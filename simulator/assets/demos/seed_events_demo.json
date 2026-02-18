@@ -1,0 +1,267 @@
+{
+  "device_types": [
+    {
+      "name": "vibration_sensor",
+      "description": "Vibration sensor",
+      "metric_name": "vibration",
+      "metric_unit": "mm_s",
+      "metric_min": "0.0000",
+      "metric_max": "20.0000"
+    },
+    {
+      "name": "temperature_sensor",
+      "description": "Temperature sensor",
+      "metric_name": "temperature",
+      "metric_unit": "celsius",
+      "metric_min": "-40.0000",
+      "metric_max": "120.0000"
+    },
+    {
+      "name": "power_meter",
+      "description": "Power meter",
+      "metric_name": "power",
+      "metric_unit": "kwh",
+      "metric_min": "0.0000",
+      "metric_max": "100.0000"
+    },
+    {
+      "name": "flow_meter",
+      "description": "Flow meter",
+      "metric_name": "flow_rate",
+      "metric_unit": "l_min",
+      "metric_min": "0.0000",
+      "metric_max": "500.0000"
+    },
+    {
+      "name": "humidity_sensor",
+      "description": "Humidity sensor",
+      "metric_name": "humidity",
+      "metric_unit": "percent",
+      "metric_min": "0.0000",
+      "metric_max": "100.0000"
+    },
+    {
+      "name": "current_sensor",
+      "description": "Current sensor",
+      "metric_name": "current",
+      "metric_unit": "ampere",
+      "metric_min": "0.0000",
+      "metric_max": "200.0000"
+    }
+  ],
+  "devices": [
+    {
+      "device_type": "vibration_sensor",
+      "name": "Lathe #1 Vibration Sensor",
+      "serial_number": "VIB-SN-001",
+      "location": "Workshop A",
+      "status": "active"
+    },
+    {
+      "device_type": "temperature_sensor",
+      "name": "CNC Mill #2 Temperature Sensor",
+      "serial_number": "TEMP-SN-002",
+      "location": "Workshop B",
+      "status": "active"
+    },
+    {
+      "device_type": "power_meter",
+      "name": "Press #3 Power Meter",
+      "serial_number": "PWR-SN-003",
+      "location": "Workshop A",
+      "status": "active"
+    },
+    {
+      "device_type": "flow_meter",
+      "name": "Cooling Circuit Flow Meter",
+      "serial_number": "FLW-SN-001",
+      "location": "Basement A",
+      "status": "active"
+    },
+    {
+      "device_type": "humidity_sensor",
+      "name": "Workshop 3A Humidity Sensor",
+      "serial_number": "HMD-SN-001",
+      "location": "Workshop 3A",
+      "status": "active"
+    },
+    {
+      "device_type": "current_sensor",
+      "name": "Hangar 3A Current Sensor",
+      "serial_number": "CUR-SN-001",
+      "location": "Hangar 3A",
+      "status": "active"
+    }
+  ],
+  "rules": [
+    {
+      "device": "VIB-SN-001",
+      "name": "Vibration High Alert",
+      "description": "Vibration above normal",
+      "condition": {
+        "type": "leaf",
+        "operator": "gt",
+        "threshold": 12.0
+      },
+      "action_config": [
+        {
+          "type": "notification",
+          "template_id": "Ops Alert"
+        }
+      ],
+      "is_enabled": true
+    },
+    {
+      "device": "TEMP-SN-002",
+      "name": "Temperature Critical",
+      "description": "Critical temperature",
+      "condition": {
+        "type": "leaf",
+        "operator": "gt",
+        "threshold": 80.0
+      },
+      "action_config": [
+        {
+          "type": "notification",
+          "template_id": "Webhook Alert"
+        }
+      ],
+      "is_enabled": true
+    },
+    {
+      "device": "PWR-SN-003",
+      "name": "Power High",
+      "description": "Power above normal",
+      "condition": {
+        "type": "leaf",
+        "operator": "gt",
+        "threshold": 70.0
+      },
+      "action_config": [
+        {
+          "type": "notification",
+          "template_id": "Ops Alert"
+        }
+      ],
+      "is_enabled": true
+    },
+    {
+      "device": "FLW-SN-001",
+      "name": "Flow Out of Range",
+      "description": "Flow too low or too high",
+      "condition": {
+        "type": "or",
+        "conditions": [
+          {
+            "type": "leaf",
+            "operator": "gt",
+            "threshold": 300.0
+          },
+          {
+            "type": "leaf",
+            "operator": "lt",
+            "threshold": 20.0
+          }
+        ]
+      },
+      "action_config": [
+        {
+          "type": "notification",
+          "template_id": "Ops Alert"
+        }
+      ],
+      "is_enabled": true
+    },
+    {
+      "device": "HMD-SN-001",
+      "name": "Humidity Sustained High",
+      "description": "High humidity for a sustained period",
+      "condition": {
+        "type": "leaf",
+        "operator": "gt",
+        "threshold": 60.5,
+        "occurrences": 5,
+        "window_seconds": 300
+      },
+      "action_config": [
+        {
+          "type": "notification",
+          "template_id": "Webhook Alert"
+        }
+      ],
+      "is_enabled": true
+    },
+    {
+      "device": "CUR-SN-001",
+      "name": "Current High",
+      "description": "High current draw",
+      "condition": {
+        "type": "leaf",
+        "operator": "gt",
+        "threshold": 120.2
+      },
+      "action_config": [
+        {
+          "type": "notification",
+          "template_id": "Ops Alert"
+        }
+      ],
+      "is_enabled": true
+    }
+  ],
+  "notification_templates": [
+    {
+      "name": "Ops Alert",
+      "message_template": "ALERT: {severity} on {device_name}. Value: {value} {unit}.",
+      "recipients": [
+        { "type": "email", "address": "ops@factory.com" },
+        { "type": "sms", "phone": "+380501234567" }
+      ],
+      "priority": 2,
+      "retry_count": 3,
+      "retry_delay_minutes": 5,
+      "is_active": true
+    },
+    {
+      "name": "Webhook Alert",
+      "message_template": "WEBHOOK: {severity} on {device_name}. Value: {value} {unit}.",
+      "recipients": [
+        { "type": "webhook", "url": "https://httpbin.org/post" },
+        { "type": "email", "address": "alerts@factory.com" }
+      ],
+      "priority": 1,
+      "retry_count": 5,
+      "retry_delay_minutes": 2,
+      "is_active": true
+    }
+  ],
+  "telemetry": [
+    { "device": "VIB-SN-001", "payload": { "schema_version": "1.0", "value": 8.01 } },
+    { "device": "VIB-SN-001", "payload": { "schema_version": "1.0", "value": 12.05 } },
+    { "device": "VIB-SN-001", "payload": { "schema_version": "1.0", "value": 13.07 } },
+    { "device": "VIB-SN-001", "payload": { "schema_version": "1.0", "value": 11.11 } },
+
+    { "device": "TEMP-SN-002", "payload": { "schema_version": "1.0", "value": 75.11 } },
+    { "device": "TEMP-SN-002", "payload": { "schema_version": "1.0", "value": 82.22 } },
+    { "device": "TEMP-SN-002", "payload": { "schema_version": "1.0", "value": 101.33 } },
+    { "device": "TEMP-SN-002", "payload": { "schema_version": "1.0", "value": 79.99 } },
+
+    { "device": "PWR-SN-003", "payload": { "schema_version": "1.0", "value": 65.44 } },
+    { "device": "PWR-SN-003", "payload": { "schema_version": "1.0", "value": 72.55 } },
+    { "device": "PWR-SN-003", "payload": { "schema_version": "1.0", "value": 88.66 } },
+
+    { "device": "FLW-SN-001", "payload": { "schema_version": "1.0", "value": 18.66 } },
+    { "device": "FLW-SN-001", "payload": { "schema_version": "1.0", "value": 350.77 } },
+    { "device": "FLW-SN-001", "payload": { "schema_version": "1.0", "value": 21.21 } },
+
+    { "device": "HMD-SN-001", "payload": { "schema_version": "1.0", "value": 61.1 } },
+    { "device": "HMD-SN-001", "payload": { "schema_version": "1.0", "value": 62.2 } },
+    { "device": "HMD-SN-001", "payload": { "schema_version": "1.0", "value": 63.3 } },
+    { "device": "HMD-SN-001", "payload": { "schema_version": "1.0", "value": 64.4 } },
+    { "device": "HMD-SN-001", "payload": { "schema_version": "1.0", "value": 65.5 } },
+    { "device": "HMD-SN-001", "payload": { "schema_version": "1.0", "value": 59.9 } },
+
+    { "device": "CUR-SN-001", "payload": { "schema_version": "1.0", "value": 121.6 } },
+    { "device": "CUR-SN-001", "payload": { "schema_version": "1.0", "value": 130.7 } }
+  ]
+}
