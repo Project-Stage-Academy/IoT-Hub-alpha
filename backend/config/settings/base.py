@@ -211,6 +211,70 @@ TELEMETRY_ASYNC_INGESTION = os.getenv("TELEMETRY_ASYNC_INGESTION", "false").lowe
     "yes",
 )
 TELEMETRY_MAX_BATCH_SIZE = int(os.getenv("TELEMETRY_MAX_BATCH_SIZE", "1000"))
+TELEMETRY_PIPELINE_MODE = os.getenv("TELEMETRY_PIPELINE_MODE", "direct").strip().lower()
+if TELEMETRY_PIPELINE_MODE not in {"direct", "kafka"}:
+    raise ValueError(
+        "Invalid TELEMETRY_PIPELINE_MODE='"
+        f"{TELEMETRY_PIPELINE_MODE}'. Allowed values: direct, kafka"
+    )
+
+# Kafka ingestion settings (used when TELEMETRY_PIPELINE_MODE=kafka)
+KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "kafka:9092").strip()
+KAFKA_CLIENT_ID = os.getenv("KAFKA_CLIENT_ID", "iot-hub-backend").strip()
+KAFKA_SECURITY_PROTOCOL = os.getenv("KAFKA_SECURITY_PROTOCOL", "PLAINTEXT").strip()
+KAFKA_SASL_MECHANISM = os.getenv("KAFKA_SASL_MECHANISM", "").strip()
+KAFKA_SASL_USERNAME = os.getenv("KAFKA_SASL_USERNAME", "").strip()
+KAFKA_SASL_PASSWORD = os.getenv("KAFKA_SASL_PASSWORD", "").strip()
+
+KAFKA_TOPIC_TELEMETRY_RAW = os.getenv(
+    "KAFKA_TOPIC_TELEMETRY_RAW", "telemetry.raw"
+).strip()
+KAFKA_TOPIC_TELEMETRY_CLEAN = os.getenv(
+    "KAFKA_TOPIC_TELEMETRY_CLEAN", "telemetry.clean"
+).strip()
+KAFKA_TOPIC_TELEMETRY_DLQ = os.getenv(
+    "KAFKA_TOPIC_TELEMETRY_DLQ", "telemetry.dlq"
+).strip()
+KAFKA_TOPIC_EVENT = os.getenv("KAFKA_TOPIC_EVENT", "event.topic").strip()
+
+KAFKA_PIPELINE_TOPICS = (
+    KAFKA_TOPIC_TELEMETRY_RAW,
+    KAFKA_TOPIC_TELEMETRY_CLEAN,
+    KAFKA_TOPIC_TELEMETRY_DLQ,
+    KAFKA_TOPIC_EVENT,
+)
+if any(not topic for topic in KAFKA_PIPELINE_TOPICS):
+    raise ValueError("Kafka topic names must not be empty")
+if len(KAFKA_PIPELINE_TOPICS) != len(set(KAFKA_PIPELINE_TOPICS)):
+    raise ValueError("Kafka topic names must be unique")
+
+KAFKA_PRODUCER_ACKS = os.getenv("KAFKA_PRODUCER_ACKS", "all").strip()
+try:
+    KAFKA_PRODUCER_LINGER_MS = int(os.getenv("KAFKA_PRODUCER_LINGER_MS", "20"))
+    KAFKA_PRODUCER_BATCH_SIZE = int(os.getenv("KAFKA_PRODUCER_BATCH_SIZE", "65536"))
+    KAFKA_REQUEST_TIMEOUT_MS = int(os.getenv("KAFKA_REQUEST_TIMEOUT_MS", "30000"))
+except ValueError as exc:
+    raise ValueError("Kafka numeric settings must be valid integers") from exc
+KAFKA_PRODUCER_COMPRESSION_TYPE = os.getenv(
+    "KAFKA_PRODUCER_COMPRESSION_TYPE", "none"
+).strip()
+
+KAFKA_PRODUCER_CONFIG = {
+    "bootstrap.servers": KAFKA_BOOTSTRAP_SERVERS,
+    "client.id": KAFKA_CLIENT_ID,
+    "security.protocol": KAFKA_SECURITY_PROTOCOL,
+    "acks": KAFKA_PRODUCER_ACKS,
+    "linger.ms": KAFKA_PRODUCER_LINGER_MS,
+    "batch.size": KAFKA_PRODUCER_BATCH_SIZE,
+    "compression.type": KAFKA_PRODUCER_COMPRESSION_TYPE,
+    "request.timeout.ms": KAFKA_REQUEST_TIMEOUT_MS,
+}
+if KAFKA_SASL_MECHANISM:
+    KAFKA_PRODUCER_CONFIG["sasl.mechanism"] = KAFKA_SASL_MECHANISM
+if KAFKA_SASL_USERNAME:
+    KAFKA_PRODUCER_CONFIG["sasl.username"] = KAFKA_SASL_USERNAME
+if KAFKA_SASL_PASSWORD:
+    KAFKA_PRODUCER_CONFIG["sasl.password"] = KAFKA_SASL_PASSWORD
 
 WEBHOOKS_ENABLED = os.getenv("DJANGO_WEBHOOKS_ENABLED", "false").lower() in (
     "true",
