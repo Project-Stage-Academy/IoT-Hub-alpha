@@ -6,7 +6,7 @@ from django.urls import path
 from django.shortcuts import redirect
 from .models import Rule, validate_condition, validate_action_config
 from .tasks import process_telemetry
-from .admin_widget import ConditionWidget, ActionWidget
+from .admin_widget import HelpWidget
 from django.core.exceptions import PermissionDenied
 
 
@@ -74,12 +74,13 @@ class RuleAdmin(admin.ModelAdmin):
         formfield = super().formfield_for_dbfield(db_field, request, **kwargs)
 
         if db_field.name == "condition":
-            formfield.widget = ConditionWidget(
-                attrs={"rows": 8, "style": "width:100%;"}
+            formfield.widget = HelpWidget(
+                attrs={"rows": 8, "style": "width:100%;"},
+                target="condition"
             )
 
         if db_field.name == "action_config":
-            formfield.widget = ActionWidget(attrs={"rows": 8, "style": "width:100%;"})
+            formfield.widget = HelpWidget(target="action", attrs={"rows": 8, "style": "width:100%;"},)
 
         return formfield
 
