@@ -1,6 +1,8 @@
 """
-MQTT Adapter - subscribes to a broker topic and forwards validated
-messages into the same ingestion path used by the HTTP endpoint.
+MQTT Adapter — subscribes to a Mosquitto broker and publishes raw
+telemetry payloads to the ``telemetry.raw`` topic via the producer
+abstraction.  Also handles device connection/disconnect events on
+``devices/+/status``.
 
 Usage:
     python manage.py mqtt_adapter
@@ -16,14 +18,15 @@ import sys
 
 from django.conf import settings
 from django.core.management.base import BaseCommand
-from django.db import connection
 
 import paho.mqtt.client as mqtt
 from paho.mqtt.enums import CallbackAPIVersion
 
-from apps.telemetry.services import TelemetryValidator, TelemetryBatchProcessor
+from apps.telemetry.producers import get_producer, build_raw_event
 
 logger = logging.getLogger(__name__)
+
+DEVICE_STATUS_TOPIC = "devices/+/status"
 
 
 def _extract_serial_number(topic: str) -> str | None:
@@ -41,15 +44,14 @@ def _extract_serial_number(topic: str) -> str | None:
 
 def handle_mqtt_message(topic: str, payload_bytes: bytes) -> dict:
     """
-    Core ingestion function: parse, validate, persist.
+    Core MQTT ingestion function: parse and publish raw payload.
 
-    This is the same logical path as the HTTP POST view:
-      TelemetryValidator.validate_single  ->  TelemetryBatchProcessor.process_single
+    Publishes the raw telemetry data to the ``telemetry.raw`` topic
+    via the producer abstraction.  Validation and persistence are
+    handled downstream by the Kafka consumer (separate story).
 
     Returns a dict with status information for logging/testing.
     """
-    connection.ensure_connection()
-
     try:
         data = json.loads(payload_bytes)
     except (json.JSONDecodeError, UnicodeDecodeError) as exc:
@@ -76,35 +78,26 @@ def handle_mqtt_message(topic: str, payload_bytes: bytes) -> dict:
 
     data["serial_number"] = serial_number
 
-    validated, error = TelemetryValidator.validate_single(data)
-    if error:
-        logger.warning(
-            "MQTT message validation failed",
-            extra={"topic": topic, "error": error},
-        )
-        return {"status": "error", "reason": "validation_failed", "detail": error}
-
+    # Publish raw payload to telemetry.raw topic
     try:
-        telemetry = TelemetryBatchProcessor.process_single(validated)
-        logger.info(
-            "MQTT telemetry ingested",
-            extra={
-                "topic": topic,
-                "telemetry_id": telemetry.id,
-                "device_id": str(telemetry.device_id),
-            },
+        producer = get_producer()
+        producer.publish_raw(
+            data=build_raw_event(data, source="mqtt", serial_number=serial_number),
+            source="mqtt",
+            serial_number=serial_number,
         )
-        return {
-            "status": "created",
-            "telemetry_id": telemetry.id,
-            "device_id": str(telemetry.device_id),
-        }
     except Exception as exc:
-        logger.exception(
-            "MQTT telemetry persistence failed",
+        logger.error(
+            "MQTT failed to publish raw event",
             extra={"topic": topic, "error": str(exc)},
         )
-        return {"status": "error", "reason": "persistence_failed", "detail": str(exc)}
+        return {"status": "error", "reason": "publish_failed", "detail": str(exc)}
+
+    logger.info(
+        "MQTT telemetry published to telemetry.raw",
+        extra={"topic": topic, "serial_number": serial_number},
+    )
+    return {"status": "accepted", "serial_number": serial_number}
 
 
 class Command(BaseCommand):
@@ -112,6 +105,36 @@ class Command(BaseCommand):
         "Run a lightweight MQTT adapter that subscribes to a dev topic "
         "and routes messages into the telemetry ingestion pipeline."
     )
+
+    # Device connection event handling
+
+    @staticmethod
+    def _handle_device_status(topic: str, payload_bytes: bytes) -> None:
+        """
+        Handle messages on ``devices/<serial>/status``.
+
+        Devices are expected to:
+        * publish ``online`` to their status topic on connect
+        * set LWT (Last Will and Testament) to ``offline`` on the same topic
+        """
+        parts = topic.strip("/").split("/")
+        if len(parts) < 2:
+            return
+
+        serial_number = parts[-2] if parts[-1] == "status" else parts[-1]
+        try:
+            status = payload_bytes.decode("utf-8", errors="replace").strip().lower()
+        except Exception:
+            status = "unknown"
+
+        logger.info(
+            "Device status change",
+            extra={
+                "serial_number": serial_number,
+                "status": status,
+                "topic": topic,
+            },
+        )
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -161,6 +184,9 @@ class Command(BaseCommand):
                 self.stdout.write(self.style.SUCCESS("Connected to MQTT broker"))
                 client.subscribe(topic, qos=qos)
                 self.stdout.write(f"Subscribed to: {topic}")
+                # Subscribe to device status topics for connect/disconnect events
+                client.subscribe(DEVICE_STATUS_TOPIC, qos=1)
+                self.stdout.write(f"Subscribed to: {DEVICE_STATUS_TOPIC}")
             else:
                 self.stderr.write(self.style.ERROR(f"Connection failed: {reason_code}"))
 
@@ -169,6 +195,10 @@ class Command(BaseCommand):
                 "MQTT message received",
                 extra={"topic": msg.topic, "payload_size": len(msg.payload)},
             )
+            # Route device status messages separately
+            if msg.topic.endswith("/status") and msg.topic.startswith("devices/"):
+                self._handle_device_status(msg.topic, msg.payload)
+                return
             handle_mqtt_message(msg.topic, msg.payload)
 
         def on_disconnect(client, userdata, flags, reason_code, properties=None):
