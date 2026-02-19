@@ -32,7 +32,7 @@ class HttpSender(Sender):
     """
 
     def __init__(self, base_url: str, timeout: float) -> None:
-        self.base_url = base_url.rstrip("/")
+        self.base_url = f'{base_url.rstrip("/")}/'
         self.timeout = timeout
 
     def send(
