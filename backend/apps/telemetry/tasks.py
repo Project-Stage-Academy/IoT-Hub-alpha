@@ -1,14 +1,44 @@
 import logging
 from uuid import UUID
-
 from celery import shared_task
 from django.db import OperationalError, InterfaceError
 from django.db.utils import DatabaseError
+from django.conf import settings
 from django.utils.dateparse import parse_datetime
-
+from django.db import transaction
+from apps.telemetry.models import Telemetry
+from apps.telemetry.models import Device
 from .services import TelemetryBatchProcessor
+from celery.exceptions import MaxRetriesExceededError
+from apps.telemetry.sevice_layer.publish_to_dlq import publish_flush_to_dlq
+from apps.telemetry.sevice_layer.kafka_producer import get_producer
+
+
+
 
 logger = logging.getLogger(__name__)
+
+@shared_task(bind=True, max_retries=3, default_retry_delay=60)
+def bulk_telemetry_write(self, flush):
+    producer = get_producer()
+    serials = {p.get('device_serial') for p in flush}
+    device_by_serial = Device.objects.in_bulk(serials, field_name="serial_number")
+        
+    telem_data = []
+    for p in flush:
+        d = device_by_serial.get(p.get('device_serial'))
+        if not d:
+            raise KeyError(f"Device not in DB: {d}")
+        telem_data.append(Telemetry(payload=p.get('payload'), device_id=d.id))
+        
+    try:
+        with transaction.atomic():
+            Telemetry.objects.bulk_create(telem_data, batch_size=settings.DB_WRITER_BATCH_SIZE)
+    except Exception as e:
+        try:
+            raise self.retry(exc=e, countdown=60 * (2**self.request.retries))
+        except MaxRetriesExceededError:
+            publish_flush_to_dlq(producer, flush, reason="Failed DB Write")
 
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=60)

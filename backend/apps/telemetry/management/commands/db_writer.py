@@ -13,7 +13,7 @@ from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
-
+from apps.telemetry.sevice_layer.write_buffer import WriteBuffer
 from apps.telemetry.services import TelemetryValidator
 
 logger = logging.getLogger(__name__)
@@ -93,12 +93,16 @@ class Command(BaseCommand):
         poll_timeout = options["poll_timeout"]
         max_messages = options["max_messages"]
 
-        consumer = Consumer(self._build_consumer_config(group_id))
+        raw_consumer = Consumer(self._build_consumer_config(group_id))
+        clean_consumer = Consumer(self._build_consumer_config(group_id="db-writer-clean"))
         producer = Producer(settings.KAFKA_PRODUCER_CONFIG)
 
         self._install_signal_handlers()
-        consumer.subscribe([raw_topic])
-
+        raw_consumer.subscribe([raw_topic])
+        clean_consumer.subscribe([clean_topic])
+        
+        write_buffer = WriteBuffer(clean_consumer, poll_timeout)
+        
         self.stdout.write(
             self.style.SUCCESS(
                 f"kafka_db_writer_stub started: raw={raw_topic}, clean={clean_topic}, "
@@ -113,7 +117,8 @@ class Command(BaseCommand):
 
         try:
             while self._running:
-                message = consumer.poll(poll_timeout)
+                write_buffer.handle()
+                message = raw_consumer.poll(poll_timeout)
                 if message is None:
                     continue
 
@@ -145,7 +150,7 @@ class Command(BaseCommand):
                         envelope=routed["envelope"],
                         timeout_seconds=publish_timeout,
                     )
-                    consumer.commit(message=message, asynchronous=False)
+                    raw_consumer.commit(message=message, asynchronous=False)
                 except Exception as exc:
                     logger.exception(
                         "kafka_db_writer_stub.route_failed",
@@ -186,10 +191,11 @@ class Command(BaseCommand):
                     break
         finally:
             producer.flush(publish_timeout)
-            consumer.close()
+            raw_consumer.close()
+            write_buffer.close()
             self.stdout.write(
                 self.style.SUCCESS(
-                    f"kafka_db_writer_stub stopped: processed={processed}, "
+                    f"kafka_db_writer stopped: processed={processed}, "
                     f"clean={clean_count}, dlq={dlq_count}"
                 )
             )
