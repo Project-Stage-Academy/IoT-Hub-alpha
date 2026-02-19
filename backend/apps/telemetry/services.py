@@ -7,9 +7,11 @@ import logging
 from typing import Any
 from django.core.exceptions import ValidationError
 from django.db import transaction
+from jsonschema import validate
 
 from .serializer import TelemetrySerializer
 from .models import Telemetry
+from .models import TelemetrySchema
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +21,53 @@ def extract_validation_errors(error: ValidationError) -> dict:
     return (
         error.message_dict if hasattr(error, "message_dict") else {"error": str(error)}
     )
+
+
+def apply_transformations(data: dict, rules: dict) -> dict:
+    """
+    Apply transformations based on provided rules
+    """
+    result = data.copy()
+
+    for old_key, new_key in rules.get("rename", {}).items():
+        if old_key in result:
+            result[new_key] = result.pop(old_key)
+
+    for key, factor in rules.get("multiply", {}).items():
+        if key in result and isinstance(result[key], (int, float)):
+            result[key] = result[key] * factor
+
+    for key, decimals in rules.get("round", {}).items():
+        if key in result and isinstance(result[key], (int, float)):
+            result[key] = round(result[key], decimals)
+
+    return result
+
+
+def process_telemetry_payload(raw_payload: dict):
+    """
+    Main pipeline for processing incoming telemetry payload.
+    """
+    schema_version = raw_payload.get("schema_version")
+    if not schema_version:
+        return None, "Missing field 'schema_version' in payload"
+
+    try:
+        schema_obj = TelemetrySchema.objects.get(version=schema_version, is_active=True)
+    except TelemetrySchema.DoesNotExist:
+        return None, f"Active version schema'{schema_version}' not found in database"
+
+    try:
+        validate(instance=raw_payload, schema=schema_obj.validation_schema)
+    except ValidationError as e:
+        error_msg = f"Validation error: field {e.json_path} -> {e.message}"
+        return None, error_msg
+
+    try:
+        clean_data = apply_transformations(raw_payload, schema_obj.transformation_rules)
+        return clean_data, None
+    except Exception as e:
+        return None, f"Error applying transformations: {str(e)}"
 
 
 class TelemetryValidator:

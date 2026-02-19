@@ -4,7 +4,7 @@ import json
 from django.contrib import admin
 from django.http import HttpResponse
 
-from .models import Telemetry
+from .models import Telemetry, TelemetrySchema
 
 
 @admin.action(description="Export selected telemetry to CSV")
@@ -43,3 +43,9 @@ class TelemetryAdmin(admin.ModelAdmin):
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         return qs.select_related("device")
+
+
+@admin.register(TelemetrySchema)
+class TelemetrySchemaAdmin(admin.ModelAdmin):
+    list_display = ["version", "validation_schema", "transformation_rules", "is_active"]
+    list_per_page = 50

@@ -4,6 +4,38 @@ from django.contrib.postgres.indexes import GinIndex
 from apps.devices.models import Device
 
 
+class TelemetrySchema(models.Model):
+    """
+    Save validation rules (jsonschema) and transformation rules for
+    different telemetry versions.
+    """
+
+    version = models.CharField(
+        max_length=50, unique=True, help_text="Example: '1.0', '2.0'"
+    )
+
+    validation_schema = models.JSONField(
+        default=dict,
+        help_text="Official JSON Schema for validating incoming telemetry data.",
+    )
+
+    transformation_rules = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Rules for normalizing telemetry data."
+        'Example: {"rename": {"val": "temperature"}}',
+    )
+
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = "telemetry_schema"
+        verbose_name_plural = "Telemetry Schemas"
+
+    def __str__(self):
+        return f"Schema v{self.version}"
+
+
 class Telemetry(models.Model):
     id = models.BigAutoField(primary_key=True)
     device = models.ForeignKey(
@@ -21,13 +53,10 @@ class Telemetry(models.Model):
         db_table = "telemetry"
         ordering = ["-timestamp"]
         indexes = [
-            # Composite index for device + timestamp queries (most common pattern)
             models.Index(
                 fields=["device", "-timestamp"], name="idx_telemetry_device_time"
             ),
-            # Index for timestamp range queries
             models.Index(fields=["-timestamp"], name="idx_telemetry_timestamp"),
-            # GIN index for JSONB payload queries
             GinIndex(fields=["payload"], name="idx_telemetry_payload_gin"),
         ]
         verbose_name_plural = "Telemetry"
