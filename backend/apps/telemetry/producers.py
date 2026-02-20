@@ -9,8 +9,8 @@ When Kafka is available, implement ``KafkaProducer`` and set
 ``TELEMETRY_PRODUCER_BACKEND=kafka`` in Django settings.
 """
 
-import copy
 import logging
+import threading
 from typing import Any, Protocol, runtime_checkable
 
 from django.conf import settings
@@ -78,11 +78,14 @@ class LogProducer:
 
 # Singleton accessor
 _producer_instance: TelemetryProducer | None = None
+_producer_lock = threading.Lock()
 
 
 def get_producer() -> TelemetryProducer:
     """
     Return the singleton :class:`TelemetryProducer` instance.
+
+    Uses double-check locking for thread-safe initialisation.
 
     The concrete class is selected by ``settings.TELEMETRY_PRODUCER_BACKEND``:
 
@@ -91,26 +94,29 @@ def get_producer() -> TelemetryProducer:
     """
     global _producer_instance
     if _producer_instance is None:
-        backend = getattr(settings, "TELEMETRY_PRODUCER_BACKEND", "log")
-        if backend == "kafka":
-            raise NotImplementedError(
-                "KafkaProducer is not yet implemented. "
-                "Set TELEMETRY_PRODUCER_BACKEND='log' or leave unset."
-            )
-        _producer_instance = LogProducer()
-        logger.info(
-            "Telemetry producer initialised",
-            extra={"backend": backend},
-        )
+        with _producer_lock:
+            if _producer_instance is None:  # Double-check locking
+                backend = getattr(settings, "TELEMETRY_PRODUCER_BACKEND", "log")
+                if backend == "kafka":
+                    raise NotImplementedError(
+                        "KafkaProducer is not yet implemented. "
+                        "Set TELEMETRY_PRODUCER_BACKEND='log' or leave unset."
+                    )
+                _producer_instance = LogProducer()
+                logger.info(
+                    "Telemetry producer initialised",
+                    extra={"backend": backend},
+                )
     return _producer_instance
 
 
 def reset_producer() -> None:
     """Reset the singleton (useful for tests)."""
     global _producer_instance
-    if _producer_instance is not None:
-        _producer_instance.close()
-    _producer_instance = None
+    with _producer_lock:
+        if _producer_instance is not None:
+            _producer_instance.close()
+        _producer_instance = None
 
 
 def build_raw_event(
@@ -123,10 +129,13 @@ def build_raw_event(
 
     The envelope carries metadata (source, timestamp) alongside the
     original payload so downstream consumers can route and audit.
+
+    .. note:: The payload is **not** deep-copied because it is serialised
+       to JSON immediately downstream and never mutated after creation.
     """
     return {
         "source": source,
         "serial_number": serial_number,
         "received_at": timezone.now().isoformat(),
-        "raw_payload": copy.deepcopy(raw_payload),
+        "raw_payload": raw_payload,
     }

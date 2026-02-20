@@ -59,14 +59,24 @@ def handle_mqtt_message(topic: str, payload_bytes: bytes) -> dict:
             "MQTT malformed JSON payload",
             extra={"topic": topic, "error": str(exc)},
         )
-        return {"status": "error", "reason": "malformed_json", "detail": str(exc)}
+        return {
+            "status": "error",
+            "serial_number": None,
+            "reason": "malformed_json",
+            "detail": str(exc),
+        }
 
     if not isinstance(data, dict):
         logger.warning(
             "MQTT payload is not a JSON object",
             extra={"topic": topic},
         )
-        return {"status": "error", "reason": "invalid_payload_type"}
+        return {
+            "status": "error",
+            "serial_number": None,
+            "reason": "invalid_payload_type",
+            "detail": None,
+        }
 
     serial_number = data.get("serial_number") or _extract_serial_number(topic)
     if not serial_number:
@@ -74,7 +84,12 @@ def handle_mqtt_message(topic: str, payload_bytes: bytes) -> dict:
             "MQTT message missing serial_number",
             extra={"topic": topic},
         )
-        return {"status": "error", "reason": "missing_serial_number"}
+        return {
+            "status": "error",
+            "serial_number": None,
+            "reason": "missing_serial_number",
+            "detail": None,
+        }
 
     data["serial_number"] = serial_number
 
@@ -91,13 +106,23 @@ def handle_mqtt_message(topic: str, payload_bytes: bytes) -> dict:
             "MQTT failed to publish raw event",
             extra={"topic": topic, "error": str(exc)},
         )
-        return {"status": "error", "reason": "publish_failed", "detail": str(exc)}
+        return {
+            "status": "error",
+            "serial_number": serial_number,
+            "reason": "publish_failed",
+            "detail": str(exc),
+        }
 
     logger.info(
         "MQTT telemetry published to telemetry.raw",
         extra={"topic": topic, "serial_number": serial_number},
     )
-    return {"status": "accepted", "serial_number": serial_number}
+    return {
+        "status": "accepted",
+        "serial_number": serial_number,
+        "reason": None,
+        "detail": None,
+    }
 
 
 class Command(BaseCommand):
@@ -172,12 +197,6 @@ class Command(BaseCommand):
         self.stdout.write(f"Subscribing to topic: {topic} (QoS {qos})")
 
         client = mqtt.Client(CallbackAPIVersion.VERSION2)
-
-        if settings.MQTT_USERNAME:
-            client.username_pw_set(settings.MQTT_USERNAME, settings.MQTT_PASSWORD)
-
-        if settings.MQTT_USE_TLS:
-            client.tls_set()
 
         def on_connect(client, userdata, flags, reason_code, properties=None):
             if reason_code == 0:

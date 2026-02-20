@@ -47,14 +47,13 @@ class TestBuildRawEvent:
         assert "received_at" in event
         assert event["raw_payload"] == raw
 
-    def test_deep_copies_payload(self):
+    def test_shares_payload_reference(self):
+        """raw_payload is the same object."""
         raw = {"nested": {"key": "original"}}
 
         event = build_raw_event(raw, source="mqtt", serial_number="SN1")
 
-        # Mutate the original — event must be unaffected
-        raw["nested"]["key"] = "mutated"
-        assert event["raw_payload"]["nested"]["key"] == "original"
+        assert event["raw_payload"] is raw
 
     def test_source_values(self):
         raw = {"value": 1}
