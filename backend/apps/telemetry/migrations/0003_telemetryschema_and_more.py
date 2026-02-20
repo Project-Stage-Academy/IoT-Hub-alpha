@@ -26,7 +26,7 @@ class Migration(migrations.Migration):
                 (
                     "version",
                     models.CharField(
-                        help_text="Наприклад: '1.0' або 'sensor_v2'",
+                        help_text="Example: '1.0', '2.0'",
                         max_length=50,
                         unique=True,
                     ),
@@ -35,7 +35,7 @@ class Migration(migrations.Migration):
                     "validation_schema",
                     models.JSONField(
                         default=dict,
-                        help_text="Офіційна JSON Schema для перевірки структури вхідних даних.",
+                        help_text="Official JSON Schema for validating input data structure.",
                     ),
                 ),
                 (
@@ -43,7 +43,7 @@ class Migration(migrations.Migration):
                     models.JSONField(
                         blank=True,
                         default=dict,
-                        help_text='Правила нормалізації. Наприклад: {"rename": {"val": "temperature"}}',
+                        help_text='Rules for normalizing data. Example: {"rename": {"val": "temperature"}}',
                     ),
                 ),
                 ("is_active", models.BooleanField(default=True)),

@@ -48,4 +48,6 @@ class TelemetryAdmin(admin.ModelAdmin):
 @admin.register(TelemetrySchema)
 class TelemetrySchemaAdmin(admin.ModelAdmin):
     list_display = ["version", "validation_schema", "transformation_rules", "is_active"]
+    list_filter = ["is_active"]
+    search_fields = ["version"]
     list_per_page = 50
