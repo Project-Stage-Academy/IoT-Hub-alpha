@@ -14,7 +14,10 @@ from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
-from apps.telemetry.services import TelemetryValidator
+from apps.telemetry.services import process_telemetry_payload
+from apps.devices.models import Device
+from dateutil.parser import parse as parse_date
+from jsonschema import validate, ValidationError
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +27,27 @@ except ImportError:  # pragma: no cover - depends on runtime environment
     Consumer = None  # type: ignore[assignment]
     Producer = None  # type: ignore[assignment]
     KafkaError = None  # type: ignore[assignment]
+
+# Статична схема для "конверта" (можна винести на рівень класу або модуля)
+ENVELOPE_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "request_id": {"type": "string", "minLength": 1},
+        "ingest_protocol": {"type": "string", "minLength": 1},
+        "serial_number": {"type": "string", "minLength": 1},
+        "payload": {"type": "object"},
+        "received_at": {"type": "string", "format": "date-time"},
+        "ingest_index": {"type": "integer", "minimum": 0},
+    },
+    "required": [
+        "request_id",
+        "ingest_protocol",
+        "serial_number",
+        "payload",
+        "received_at",
+        "ingest_index",
+    ],
+}
 
 
 class RawContractError(Exception):
@@ -417,16 +441,31 @@ class Command(BaseCommand):
         payload_input = dict(contract["payload"])
         payload_input["serial_number"] = contract["serial_number"]
 
-        validated, error = TelemetryValidator.validate_single(payload_input)
+        clean_payload, error = process_telemetry_payload(payload_input)
+
         if error:
             raise RawContractError("payload_validation_failed", error)
 
+        try:
+            device = Device.objects.get(serial_number=contract["serial_number"])
+        except Device.DoesNotExist:
+            raise RawContractError(
+                "unknown_device",
+                f"Device with serial number: {contract['serial_number']} not found!",
+            )
+
         normalized = {
-            "device_id": str(validated["device"].id),
-            "payload": validated["payload"],
+            "device_id": str(device.id),
+            "payload": clean_payload,
         }
-        if validated.get("timestamp") is not None:
-            normalized["timestamp"] = self._to_utc(validated["timestamp"]).isoformat()
+
+        timestamp_val = clean_payload.get("timestamp")
+        if timestamp_val is not None:
+            if isinstance(timestamp_val, str):
+                normalized["timestamp"] = timestamp_val
+            else:
+                normalized["timestamp"] = self._to_utc(timestamp_val).isoformat()
+
         return normalized
 
     def _build_event_id(
