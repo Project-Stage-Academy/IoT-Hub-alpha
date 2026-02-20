@@ -187,11 +187,9 @@ services:
       - mosquitto_data:/mosquitto/data
       - mosquitto_log:/mosquitto/log
       - ./devops/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
-      - ./devops/mosquitto/acl:/mosquitto/config/acl:ro
-      - ./devops/mosquitto/passwords:/mosquitto/config/passwords:ro
     command: mosquitto -c /mosquitto/config/mosquitto.conf
     healthcheck:
-      test: ["CMD-SHELL", "mosquitto_sub -u $${MQTT_USERNAME:-mqtt_adapter} -P $${MQTT_PASSWORD:-mqtt_adapter_secret} -t '$$SYS/#' -C 1 -i healthcheck -W 3 || exit 1"]
+      test: ["CMD-SHELL", "mosquitto_sub -t '$$SYS/#' -C 1 -i healthcheck -W 3 || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3

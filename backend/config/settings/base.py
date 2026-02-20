@@ -115,8 +115,8 @@ CELERY_TIMER = int(os.getenv("CELERY_RUN_PROCESS_TELEMETRY_TIMER_MINUTES", 5)) *
 CELERY_BEAT_SCHEDULE = {
     "run-rule-processor-every-5m": {
         "task": "apps.rules.tasks.process_telemetry",
-        "schedule": CELERY_TIMER
-    }
+        "schedule": CELERY_TIMER,
+    },
 }
 
 LANGUAGE_CODE = "en-us"
@@ -244,10 +244,7 @@ elif setup_celery_logging_context is not None:
 MQTT_BROKER_HOST = os.getenv("MQTT_BROKER_HOST", "mosquitto")
 MQTT_BROKER_PORT = int(os.getenv("MQTT_BROKER_PORT", "1883"))
 MQTT_TOPIC = os.getenv("MQTT_TOPIC", "telemetry/#")
-MQTT_USERNAME = os.getenv("MQTT_USERNAME", "")
-MQTT_PASSWORD = os.getenv("MQTT_PASSWORD", "")
 MQTT_QOS = int(os.getenv("MQTT_QOS", "1"))
-MQTT_USE_TLS = os.getenv("MQTT_USE_TLS", "false").lower() in ("true", "1", "yes")
 MQTT_CONNECT_TIMEOUT = int(os.getenv("MQTT_CONNECT_TIMEOUT", "10"))
 
 # Telemetry producer backend: "log" (stub) or "kafka" (when available)
