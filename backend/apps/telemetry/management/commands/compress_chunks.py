@@ -86,9 +86,7 @@ class Command(BaseCommand):
                         FROM timescaledb_information.chunks
                         WHERE hypertable_name = 'telemetry'
                         AND chunk_name IN ({})
-                    """.format(
-                        placeholders
-                    )
+                    """.format(placeholders)
                     cursor.execute(sql_query, chunk_names)
                     # Build dictionary: chunk_name -> size_in_mb
                     for chunk_name, size in cursor.fetchall():

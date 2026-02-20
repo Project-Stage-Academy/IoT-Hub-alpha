@@ -119,16 +119,14 @@ class Command(BaseCommand):
                 # Use identifier quoting for table names, not parameter substitution
                 from psycopg2 import sql as psycopg2_sql
 
-                query = psycopg2_sql.SQL(
-                    """
+                query = psycopg2_sql.SQL("""
                     SELECT
                         COUNT(*) as total_records,
                         MIN(timestamp) as earliest,
                         MAX(timestamp) as latest,
                         COUNT(DISTINCT device_id) as unique_devices
                     FROM {}
-                """
-                ).format(psycopg2_sql.Identifier(table_name))
+                """).format(psycopg2_sql.Identifier(table_name))
                 cursor.execute(query.as_string(cursor.connection))
 
                 result = cursor.fetchone()
@@ -150,8 +148,7 @@ class Command(BaseCommand):
             self.stdout.write("=" * 100 + "\n")
 
             try:
-                cursor.execute(
-                    """
+                cursor.execute("""
                     SELECT
                         id,
                         proc_name,
@@ -160,8 +157,7 @@ class Command(BaseCommand):
                     FROM _timescaledb_config.bgw_job
                     WHERE proc_name IN ('policy_retention', 'policy_compression')
                     ORDER BY id
-                """
-                )
+                """)
 
                 policies = cursor.fetchall()
 
