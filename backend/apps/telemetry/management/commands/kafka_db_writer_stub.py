@@ -28,7 +28,6 @@ except ImportError:  # pragma: no cover - depends on runtime environment
     Producer = None  # type: ignore[assignment]
     KafkaError = None  # type: ignore[assignment]
 
-# Статична схема для "конверта" (можна винести на рівень класу або модуля)
 ENVELOPE_SCHEMA = {
     "type": "object",
     "properties": {
@@ -354,46 +353,24 @@ class Command(BaseCommand):
         return parsed
 
     def _validate_raw_contract(self, raw_obj: dict[str, Any]) -> dict[str, Any]:
-        required_fields = [
-            "request_id",
-            "ingest_protocol",
-            "serial_number",
-            "payload",
-            "received_at",
-            "ingest_index",
-        ]
-        missing = [field for field in required_fields if field not in raw_obj]
-        if missing:
-            raise RawContractError("missing_fields", {"missing": missing})
+        try:
+            validate(instance=raw_obj, schema=ENVELOPE_SCHEMA)
+        except ValidationError as e:
+            error_field = (
+                e.json_path.replace("$.", "") if e.json_path != "$" else "root"
+            )
+            raise RawContractError(
+                "invalid_contract", f"Schema error at '{error_field}': {e.message}"
+            )
 
         request_id = raw_obj["request_id"]
-        if not isinstance(request_id, str) or not request_id.strip():
-            raise RawContractError(
-                "invalid_request_id",
-                "request_id must be non-empty",
-            )
         try:
             UUID(request_id)
         except ValueError as exc:
             raise RawContractError("invalid_request_id", str(exc)) from exc
 
-        ingest_protocol = raw_obj["ingest_protocol"]
-        if not isinstance(ingest_protocol, str) or not ingest_protocol.strip():
-            raise RawContractError(
-                "invalid_ingest_protocol",
-                "ingest_protocol must be non-empty",
-            )
-
         serial_number = raw_obj["serial_number"]
-        if not isinstance(serial_number, str) or not serial_number.strip():
-            raise RawContractError(
-                "invalid_serial_number",
-                "serial_number must be non-empty",
-            )
-
         payload = raw_obj["payload"]
-        if not isinstance(payload, dict):
-            raise RawContractError("invalid_payload", "payload must be a JSON object")
 
         payload_serial = payload.get("serial_number")
         if payload_serial and payload_serial != serial_number:
@@ -402,13 +379,7 @@ class Command(BaseCommand):
                 "payload.serial_number must match top-level serial_number",
             )
 
-        received_at_raw = raw_obj["received_at"]
-        if not isinstance(received_at_raw, str):
-            raise RawContractError(
-                "invalid_received_at",
-                "received_at must be string",
-            )
-        received_at_dt = parse_datetime(received_at_raw)
+        received_at_dt = parse_datetime(raw_obj["received_at"])
         if received_at_dt is None:
             raise RawContractError(
                 "invalid_received_at",
@@ -416,25 +387,13 @@ class Command(BaseCommand):
             )
         received_at_dt = self._to_utc(received_at_dt)
 
-        ingest_index = raw_obj["ingest_index"]
-        if isinstance(ingest_index, bool) or not isinstance(ingest_index, int):
-            raise RawContractError(
-                "invalid_ingest_index",
-                "ingest_index must be int",
-            )
-        if ingest_index < 0:
-            raise RawContractError(
-                "invalid_ingest_index",
-                "ingest_index must be >= 0",
-            )
-
         return {
             "request_id": request_id,
-            "ingest_protocol": ingest_protocol,
+            "ingest_protocol": raw_obj["ingest_protocol"],
             "serial_number": serial_number,
             "payload": payload,
             "received_at": received_at_dt.isoformat(),
-            "ingest_index": ingest_index,
+            "ingest_index": raw_obj["ingest_index"],
         }
 
     def _normalize_payload(self, contract: dict[str, Any]) -> dict[str, Any]:
