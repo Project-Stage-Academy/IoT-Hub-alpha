@@ -190,8 +190,17 @@ class TelemetryIngestView(View):
         count = len(data) if is_batch else 1
         items_to_publish = data if is_batch else [data]
 
+        validated_items, errors = TelemetryValidator.validate_batch(items_to_publish)
+
+        if errors:
+            error_response = TelemetryResponseFormatter.format_validation_error(
+                errors, count, is_batch=is_batch
+            )
+            return JsonResponse(error_response, status=400)
+
         received_at = timezone.now().isoformat()
         kafka_messages = []
+
         for index, item in enumerate(items_to_publish):
             msg = {
                 "request_id": request_id,
