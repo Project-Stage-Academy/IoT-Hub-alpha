@@ -1,7 +1,54 @@
 from django.db import models
 from django.contrib.postgres.indexes import GinIndex
+from django.core.exceptions import ValidationError
+from jsonschema import Draft7Validator, exceptions as jsonschema_exceptions
 
 from apps.devices.models import Device
+
+
+def validate_json_schema(value):
+    """Validator to ensure the provided JSON is a valid JSON Schema."""
+    if not isinstance(value, dict):
+        raise ValidationError("JSON Schema must be a dictionary.")
+
+    try:
+        Draft7Validator.check_schema(value)
+    except jsonschema_exceptions.SchemaError as e:
+        raise ValidationError(f"Invalid JSON Schema: {e.message}")
+
+
+def validate_transformation_rules(value):
+    """Validator to ensure transformation rules have the correct structure."""
+    if not isinstance(value, dict):
+        raise ValidationError("Transformation rules must be a dictionary.")
+
+    allowed_keys = {"rename", "multiply", "round"}
+
+    for rule_key, rules in value.items():
+        if rule_key not in allowed_keys:
+            raise ValidationError(
+                f"Invalid transformation rule key: '{rule_key}'. "
+                f"Allowed keys are: {', '.join(allowed_keys)}."
+            )
+
+        if not isinstance(rules, dict):
+            raise ValidationError(
+                f"The value for '{rule_key}' must be a dictionary of field mappings."
+            )
+
+        for field, param in rules.items():
+            if rule_key == "rename" and not isinstance(param, str):
+                raise ValidationError(
+                    f"Rename rule for '{field}' must be a string, got "
+                    f"{type(param).__name__}."
+                )
+            elif rule_key in ("multiply", "round") and not isinstance(
+                param, (int, float)
+            ):
+                raise ValidationError(
+                    f"Rule '{rule_key}' for '{field}' must be a number, got "
+                    f"{type(param).__name__}."
+                )
 
 
 class TelemetrySchema(models.Model):
@@ -16,14 +63,18 @@ class TelemetrySchema(models.Model):
 
     validation_schema = models.JSONField(
         default=dict,
+        validators=[validate_json_schema],
         help_text="Official JSON Schema for validating incoming telemetry data.",
     )
 
     transformation_rules = models.JSONField(
         default=dict,
         blank=True,
-        help_text="Rules for normalizing telemetry data."
-        'Example: {"rename": {"val": "temperature"}}',
+        validators=[validate_transformation_rules],
+        help_text=(
+            "Rules for normalizing telemetry data. "
+            'Example: {"rename": {"val": "temperature"}}'
+        ),
     )
 
     is_active = models.BooleanField(default=True)

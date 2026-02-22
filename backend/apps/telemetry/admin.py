@@ -47,7 +47,30 @@ class TelemetryAdmin(admin.ModelAdmin):
 
 @admin.register(TelemetrySchema)
 class TelemetrySchemaAdmin(admin.ModelAdmin):
-    list_display = ["version", "validation_schema", "transformation_rules", "is_active"]
+    list_display = ["version", "schema_summary", "rules_summary", "is_active"]
     list_filter = ["is_active"]
     search_fields = ["version"]
     list_per_page = 50
+
+    @admin.display(description="Validation Schema")
+    def schema_summary(self, obj):
+        """Returns a summary for the Validation Schema column."""
+        schema = obj.validation_schema
+        if not schema or not isinstance(schema, dict):
+            return "Empty"
+
+        keys_count = len(schema.keys())
+        return f"Configured ({keys_count} keys)"
+
+    @admin.display(description="Transformation Rules")
+    def rules_summary(self, obj):
+        """
+        Returns a summary of active transformation rules
+        for the Transformation Rules column.
+        """
+        rules = obj.transformation_rules
+        if not rules or not isinstance(rules, dict):
+            return "No rules"
+
+        active_rules = list(rules.keys())
+        return f"Active: {', '.join(active_rules)}"
