@@ -8,6 +8,7 @@ from typing import Any
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from jsonschema import validate
+from jsonschema.exceptions import ValidationError as JsonSchemaValidationError
 
 from .serializer import TelemetrySerializer
 from .models import Telemetry
@@ -55,11 +56,11 @@ def process_telemetry_payload(raw_payload: dict):
     try:
         schema_obj = TelemetrySchema.objects.get(version=schema_version, is_active=True)
     except TelemetrySchema.DoesNotExist:
-        return None, f"Active version schema'{schema_version}' not found in database"
+        return None, f"Active version schema '{schema_version}' not found in database"
 
     try:
         validate(instance=raw_payload, schema=schema_obj.validation_schema)
-    except ValidationError as e:
+    except JsonSchemaValidationError as e:
         error_msg = f"Validation error: field {e.json_path} -> {e.message}"
         return None, error_msg
 

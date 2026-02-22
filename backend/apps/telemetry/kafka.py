@@ -31,7 +31,7 @@ class TelemetryKafkaProducer:
     _lock = threading.Lock()
 
     def __init__(self):
-        self._producer = self._get_or_create_producer()
+        self._get_or_create_producer()
 
     @classmethod
     def _get_or_create_producer(cls) -> Producer:
