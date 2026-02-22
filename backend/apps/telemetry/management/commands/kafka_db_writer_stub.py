@@ -105,22 +105,37 @@ class Command(BaseCommand):
                         routed["envelope"], ensure_ascii=False
                     ).encode("utf-8")
 
-                    try:
-                        producer.produce(
-                            topic=routed["target_topic"],
-                            key=routed["key"],
-                            value=payload_bytes,
-                            on_delivery=_batch_delivery_callback,
-                        )
-                        producer.poll(0)
-                    except BufferError:
-                        producer.poll(0.5)
-                        producer.produce(
-                            routed["target_topic"],
-                            key=routed["key"],
-                            value=payload_bytes,
-                            on_delivery=_batch_delivery_callback,
-                        )
+                    max_retries = 3
+                    for attempt in range(max_retries + 1):
+                        try:
+                            producer.produce(
+                                topic=routed["target_topic"],
+                                key=routed["key"],
+                                value=payload_bytes,
+                                on_delivery=_batch_delivery_callback,
+                            )
+                            producer.poll(0)
+                            break
+                        except BufferError:
+                            if attempt == max_retries:
+                                logger.critical(
+                                    "Kafka producer buffer full. Max retries exceeded.",
+                                    extra={"event_id": routed.get("event_id")},
+                                )
+                                raise CommandError(
+                                    "Failed to publish message due to persistent "
+                                    "BufferError. Stopping stub to preserve "
+                                    "at-least-once behavior."
+                                )
+
+                            logger.warning(
+                                "BufferError caught. Waiting for buffer to clear...",
+                                extra={
+                                    "attempt": attempt + 1,
+                                    "max_retries": max_retries,
+                                },
+                            )
+                            producer.poll(0.5)
 
                     processed_total += 1
 
@@ -129,7 +144,7 @@ class Command(BaseCommand):
                 if batch_errors:
                     logger.critical(
                         f"Batch publish failed with {len(batch_errors)} errors."
-                        f"First error: {batch_errors[0]}"
+                        f" First error: {batch_errors[0]}"
                     )
                     raise CommandError(
                         "Failed to route batch. Stopping stub to preserve "
