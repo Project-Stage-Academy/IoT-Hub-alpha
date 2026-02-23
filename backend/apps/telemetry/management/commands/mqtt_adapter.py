@@ -312,23 +312,6 @@ class Command(BaseCommand):
             help=f"MQTT QoS level (default: {settings.MQTT_QOS})",
         )
 
-    @staticmethod
-    def _handle_device_status(topic: str, payload: bytes) -> None:
-        parts = topic.strip("/").split("/")
-        if len(parts) < 3:
-            return
-
-        serial_number = parts[-2]
-        status_text = payload.decode("utf-8", errors="replace").strip()
-        logger.info(
-            "Device status change",
-            extra={
-                "topic": topic,
-                "serial_number": serial_number,
-                "status": status_text,
-            },
-        )
-
     def handle(self, *args, **options):
         host = options["host"]
         port = options["port"]
@@ -344,10 +327,9 @@ class Command(BaseCommand):
             if reason_code == 0:
                 self.stdout.write(self.style.SUCCESS("Connected to MQTT broker"))
                 client.subscribe(topic, qos=qos)
-                client.subscribe("devices/+/status", qos=qos)
                 self.stdout.write(f"Subscribed to: {topic}")
                 # Subscribe to device status topics for connect/disconnect events
-                client.subscribe(DEVICE_STATUS_TOPIC, qos=1)
+                client.subscribe(DEVICE_STATUS_TOPIC, qos=qos)
                 self.stdout.write(f"Subscribed to: {DEVICE_STATUS_TOPIC}")
             else:
                 self.stderr.write(self.style.ERROR(f"Connection failed: {reason_code}"))

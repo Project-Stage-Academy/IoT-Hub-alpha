@@ -1,4 +1,5 @@
 import json
+import uuid
 import logging
 import hashlib
 
@@ -100,9 +101,15 @@ class TelemetryIngestView(View):
         if settings.TELEMETRY_ASYNC_INGESTION:
             return self._handle_async(data, is_batch, idempotency_key)
         else:
-            return self._handle_sync(data, is_batch, idempotency_key)
+            return self._handle_sync(data, is_batch, idempotency_key, serial_number)
 
-    def _handle_sync(self, data, is_batch: bool, idempotency_key: str | None):
+    def _handle_sync(
+        self,
+        data,
+        is_batch: bool,
+        idempotency_key: str | None,
+        serial_number: str,
+    ):
         if is_batch:
             for item in data:
                 item["serial_number"] = serial_number
