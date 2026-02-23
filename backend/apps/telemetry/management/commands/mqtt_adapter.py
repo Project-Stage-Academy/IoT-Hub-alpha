@@ -107,8 +107,6 @@ def handle_mqtt_message(topic: str, payload_bytes: bytes) -> dict:
 
     Returns a dict with status information for logging/testing.
     """
-    connection.ensure_connection()
-
     try:
         data = json.loads(payload_bytes)
     except (json.JSONDecodeError, UnicodeDecodeError) as exc:
@@ -267,6 +265,23 @@ class Command(BaseCommand):
             help=f"MQTT QoS level (default: {settings.MQTT_QOS})",
         )
 
+    @staticmethod
+    def _handle_device_status(topic: str, payload: bytes) -> None:
+        parts = topic.strip("/").split("/")
+        if len(parts) < 3:
+            return
+
+        serial_number = parts[-2]
+        status_text = payload.decode("utf-8", errors="replace").strip()
+        logger.info(
+            "Device status change",
+            extra={
+                "topic": topic,
+                "serial_number": serial_number,
+                "status": status_text,
+            },
+        )
+
     def handle(self, *args, **options):
         host = options["host"]
         port = options["port"]
@@ -288,6 +303,7 @@ class Command(BaseCommand):
             if reason_code == 0:
                 self.stdout.write(self.style.SUCCESS("Connected to MQTT broker"))
                 client.subscribe(topic, qos=qos)
+                client.subscribe("devices/+/status", qos=qos)
                 self.stdout.write(f"Subscribed to: {topic}")
             else:
                 self.stderr.write(self.style.ERROR(f"Connection failed: {reason_code}"))
@@ -297,6 +313,9 @@ class Command(BaseCommand):
                 "MQTT message received",
                 extra={"topic": msg.topic, "payload_size": len(msg.payload)},
             )
+            if msg.topic.startswith("devices/") and msg.topic.endswith("/status"):
+                self._handle_device_status(msg.topic, msg.payload)
+                return
             handle_mqtt_message(msg.topic, msg.payload)
 
         def on_disconnect(client, userdata, flags, reason_code, properties=None):
