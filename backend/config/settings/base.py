@@ -18,6 +18,7 @@ ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 
 
 INSTALLED_APPS = [
+    "daphne",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -30,12 +31,14 @@ INSTALLED_APPS = [
     "apps.rules",
     "apps.events",
     "apps.notifications",
+    "channels",
     "django_celery_beat",
 ]
 
 MIDDLEWARE = [
     "request_id.middleware.RequestIdMiddleware",
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "config.middleware.RateLimitingMiddleware",
     "config.middleware.RequestContextMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -65,6 +68,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "config.wsgi.application"
+ASGI_APPLICATION = "config.asgi.application"
 
 DATABASES = {
     "default": {
@@ -116,7 +120,7 @@ CELERY_BEAT_SCHEDULE = {
     "run-rule-processor-every-5m": {
         "task": "apps.rules.tasks.process_telemetry",
         "schedule": CELERY_TIMER,
-    },
+    }
 }
 
 LANGUAGE_CODE = "en-us"
