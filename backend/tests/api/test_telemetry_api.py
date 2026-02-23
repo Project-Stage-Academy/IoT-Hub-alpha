@@ -64,7 +64,8 @@ def test_ingest_telemetry_single_invalid_payload(api_client, device):
         **headers,
     )
 
-    assert response.status_code == 400
+    # Ingestion is publish-only; schema validation happens downstream in the consumer.
+    assert response.status_code == 202
 
 
 @pytest.mark.django_db
@@ -80,7 +81,8 @@ def test_ingest_telemetry_invalid_device_serial(api_client):
         **headers,
     )
 
-    assert response.status_code == 400
+    # Ingestion is publish-only; device lookup happens downstream in the consumer.
+    assert response.status_code == 202
 
 
 @pytest.mark.django_db
