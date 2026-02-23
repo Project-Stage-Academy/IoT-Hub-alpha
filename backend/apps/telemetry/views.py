@@ -21,7 +21,6 @@ from .producers import get_producer, build_raw_event
 logger = logging.getLogger(__name__)
 
 
-
 @method_decorator(csrf_exempt, name="dispatch")
 class TelemetryIngestView(View):
     """
@@ -98,7 +97,9 @@ class TelemetryIngestView(View):
             response["idempotency_key"] = idempotency_key
         return JsonResponse(response, status=202)
 
-    def _handle_kafka(self, data, is_batch: bool, idempotency_key: str | None, serial_number: str):
+    def _handle_kafka(
+        self, data, is_batch: bool, idempotency_key: str | None, serial_number: str
+    ):
         request_id = str(uuid.uuid4())
         count = len(data) if is_batch else 1
         items_to_publish = data if is_batch else [data]
@@ -153,8 +154,3 @@ class TelemetryIngestView(View):
         response["topic"] = target_topic
         response["pipeline_mode"] = settings.TELEMETRY_PIPELINE_MODE
         return JsonResponse(response, status=202)
-
-
-
-
-
