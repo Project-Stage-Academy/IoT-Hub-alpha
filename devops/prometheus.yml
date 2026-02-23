@@ -16,6 +16,22 @@ scrape_configs:
         labels:
           instance: 'django-app'
 
+  # Rules consumer metrics
+  - job_name: 'rules-consumer'
+    scrape_interval: 10s
+    static_configs:
+      - targets: ['rules_consumer:9101']
+        labels:
+          instance: 'rules-consumer'
+
+  # Events consumer metrics
+  - job_name: 'events-consumer'
+    scrape_interval: 10s
+    static_configs:
+      - targets: ['events_consumer:9102']
+        labels:
+          instance: 'events-consumer'
+
   # Prometheus itself
   - job_name: 'prometheus'
     scrape_interval: 15s
