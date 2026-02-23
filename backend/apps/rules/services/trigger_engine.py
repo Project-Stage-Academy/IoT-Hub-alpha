@@ -1,56 +1,68 @@
 import logging
 from uuid import UUID
-from pydantic import ValidationError
-from .data_structure import ActionConfig
 from .data_structure import EvalResults
-from .actions import action_dispatch
 from apps.rules.models import Rule
 
 logger = logging.getLogger("apps.rules")
 
 
-def trigger_engine(trigger_aggregation: dict[UUID, EvalResults]) -> None:
+def trigger_engine_realtime(
+    rule_id: UUID, device_id: UUID, eval_result: EvalResults, producer
+) -> None:
     """
-    Dispatch action config per rules
+    Real-time version: send event to Kafka (no DB writes).
 
-    :param trigger_aggregation: Description
-    :type trigger_aggregation: dict[UUID4, AggregateStructure]
+    Event creation and action dispatch will be handled asynchronously
+    by EventConsumer reading from the events topic.
+
+    Args:
+        rule_id: ID of triggered rule
+        device_id: ID of device that triggered rule
+        eval_result: Evaluation results (trigger, values, timestamps)
+        producer: Kafka producer to send events
     """
-    if not trigger_aggregation:
-        logger.info(
-            "No offending telemetry", extra={"event": {"message": "No rules broken"}}
+    try:
+        rule = Rule.objects.get(id=rule_id)
+    except Rule.DoesNotExist:
+        logger.error(
+            "Rule not found",
+            extra={"rule_id": str(rule_id), "device_id": str(device_id)},
         )
         return
 
-    rules = Rule.objects.in_bulk(trigger_aggregation.keys())
+    event_timestamp = None
+    if eval_result.start:
+        event_timestamp = eval_result.start.isoformat()
+    elif eval_result.end:
+        event_timestamp = eval_result.end.isoformat()
 
-    if not rules:
-        logger.warning(
-            "Rules not found for devices",
+    event_message = {
+        "rule_id": str(rule_id),
+        "device_id": str(device_id),
+        "timestamp": event_timestamp,
+        "severity": "warning",  # Default severity, can be overridden by EventConsumer
+        "message": f"Rule '{rule.name}' triggered",
+        "execution_results": [],
+        "telemetry_snapshot": eval_result.to_dict(),
+    }
+
+    try:
+        producer.send("events", event_message)
+        logger.info(
+            "Event published to Kafka",
             extra={
-                "event": {
-                    "error": "Rule ids did not match any known rules:"
-                    ", ".join(map(str, trigger_aggregation.keys()))
-                }
+                "rule_id": str(rule_id),
+                "device_id": str(device_id),
+                "message": event_message.get("message"),
             },
         )
-        return
-
-    for rule_id, aggregate in trigger_aggregation.items():
-        rule = rules[rule_id]
-
-        for action_config in rule.action_config:
-            try:
-                action_config = ActionConfig.model_validate(action_config)
-            except ValidationError as e:
-                logger.warning(
-                    "Malformed config!",
-                    extra={
-                        "event": {
-                            "error": "Malformed config detected"
-                            f" at: {rule.id} error: {e}"
-                        }
-                    },
-                )
-                continue
-            action_dispatch(action_config, rule, aggregate)
+    except Exception as e:
+        logger.error(
+            "Failed to publish event to Kafka",
+            extra={
+                "rule_id": str(rule_id),
+                "device_id": str(device_id),
+                "error": str(e),
+            },
+            exc_info=True,
+        )
