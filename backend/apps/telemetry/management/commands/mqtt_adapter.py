@@ -1,6 +1,8 @@
 """
-MQTT Adapter - subscribes to a broker topic and forwards validated
-messages into the same ingestion path used by the HTTP endpoint.
+MQTT Adapter — subscribes to a Mosquitto broker and publishes raw
+telemetry payloads via the producer abstraction to a resolved Kafka
+topic. Also handles device connection/disconnect events on
+``devices/+/status``.
 
 Usage:
     python manage.py mqtt_adapter
@@ -13,15 +15,20 @@ import logging
 import signal
 import socket
 import sys
+import uuid
+import hashlib
+from typing import Any
 
 from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.db import connection
+from django.utils import timezone
 
 import paho.mqtt.client as mqtt
 from paho.mqtt.enums import CallbackAPIVersion
 
-from apps.telemetry.services import TelemetryValidator, TelemetryBatchProcessor
+from apps.telemetry.producers import get_producer, build_raw_event
+from apps.telemetry.services import TelemetryBatchProcessor, TelemetryValidator
 
 logger = logging.getLogger(__name__)
 
@@ -39,12 +46,64 @@ def _extract_serial_number(topic: str) -> str | None:
     return None
 
 
+def _normalize_idempotency_value(value: Any) -> str | None:
+    if value is None:
+        return None
+    if isinstance(value, str):
+        value = value.strip()
+        return value if value else None
+    if isinstance(value, (int, float, bool)):
+        return str(value)
+    return None
+
+
+def _build_mqtt_idempotency_key(
+    *,
+    topic: str,
+    serial_number: str,
+    data: dict[str, Any],
+    payload_bytes: bytes,
+) -> str:
+    explicit = _normalize_idempotency_value(data.get("idempotency_key"))
+    if explicit:
+        return explicit
+
+    stable_fields: dict[str, str] = {}
+    for field in ("message_id", "msg_id", "seq", "sequence", "timestamp", "ts"):
+        normalized = _normalize_idempotency_value(data.get(field))
+        if normalized:
+            stable_fields[field] = normalized
+
+    if stable_fields:
+        base = json.dumps(
+            {
+                "serial_number": serial_number,
+                "topic": topic,
+                "fields": stable_fields,
+            },
+            sort_keys=True,
+            ensure_ascii=False,
+            separators=(",", ":"),
+        )
+        digest = hashlib.sha256(base.encode("utf-8")).hexdigest()
+        return f"mqtt:{digest}"
+
+    hasher = hashlib.sha256()
+    hasher.update(serial_number.encode("utf-8"))
+    hasher.update(b"|")
+    hasher.update(topic.encode("utf-8"))
+    hasher.update(b"|")
+    hasher.update(payload_bytes)
+    return f"mqtt:{hasher.hexdigest()}"
+
+
 def handle_mqtt_message(topic: str, payload_bytes: bytes) -> dict:
     """
-    Core ingestion function: parse, validate, persist.
+    Core MQTT ingestion function.
 
-    This is the same logical path as the HTTP POST view:
-      TelemetryValidator.validate_single  ->  TelemetryBatchProcessor.process_single
+    Pipeline behavior is mode-dependent:
+    * ``TELEMETRY_PIPELINE_MODE=kafka``: publish canonical raw event.
+    * ``TELEMETRY_PIPELINE_MODE=direct``: validate and persist immediately.
 
     Returns a dict with status information for logging/testing.
     """
@@ -76,35 +135,104 @@ def handle_mqtt_message(topic: str, payload_bytes: bytes) -> dict:
 
     data["serial_number"] = serial_number
 
+    if settings.TELEMETRY_PIPELINE_MODE == "kafka":
+        try:
+            request_id = str(uuid.uuid4())
+            received_at = timezone.now().isoformat()
+            idempotency_key = _build_mqtt_idempotency_key(
+                topic=topic,
+                serial_number=serial_number,
+                data=data,
+                payload_bytes=payload_bytes,
+            )
+            producer = get_producer()
+            published_topic = producer.publish_raw(
+                data=build_raw_event(
+                    data,
+                    source="mqtt",
+                    serial_number=serial_number,
+                    request_id=request_id,
+                    idempotency_key=idempotency_key,
+                    ingest_index=0,
+                    received_at=received_at,
+                ),
+                source="mqtt",
+                serial_number=serial_number,
+            )
+        except Exception as exc:
+            logger.error(
+                "MQTT failed to publish raw event",
+                extra={"topic": topic, "error": str(exc)},
+            )
+            return {
+                "status": "error",
+                "serial_number": serial_number,
+                "reason": "publish_failed",
+                "detail": str(exc),
+            }
+
+        logger.info(
+            "MQTT telemetry published to Kafka",
+            extra={
+                "source_topic": topic,
+                "published_topic": published_topic,
+                "serial_number": serial_number,
+                "idempotency_key": idempotency_key,
+            },
+        )
+        return {
+            "status": "accepted",
+            "serial_number": serial_number,
+            "topic": published_topic,
+            "idempotency_key": idempotency_key,
+            "reason": None,
+            "detail": None,
+        }
+
+    connection.ensure_connection()
     validated, error = TelemetryValidator.validate_single(data)
     if error:
         logger.warning(
             "MQTT message validation failed",
             extra={"topic": topic, "error": error},
         )
-        return {"status": "error", "reason": "validation_failed", "detail": error}
+        return {
+            "status": "error",
+            "serial_number": serial_number,
+            "reason": "validation_failed",
+            "detail": error,
+        }
 
     try:
         telemetry = TelemetryBatchProcessor.process_single(validated)
-        logger.info(
-            "MQTT telemetry ingested",
-            extra={
-                "topic": topic,
-                "telemetry_id": telemetry.id,
-                "device_id": str(telemetry.device_id),
-            },
-        )
-        return {
-            "status": "created",
-            "telemetry_id": telemetry.id,
-            "device_id": str(telemetry.device_id),
-        }
     except Exception as exc:
         logger.exception(
             "MQTT telemetry persistence failed",
             extra={"topic": topic, "error": str(exc)},
         )
-        return {"status": "error", "reason": "persistence_failed", "detail": str(exc)}
+        return {
+            "status": "error",
+            "serial_number": serial_number,
+            "reason": "persistence_failed",
+            "detail": str(exc),
+        }
+
+    logger.info(
+        "MQTT telemetry ingested",
+        extra={
+            "topic": topic,
+            "telemetry_id": telemetry.id,
+            "device_id": str(telemetry.device_id),
+        },
+    )
+    return {
+        "status": "created",
+        "serial_number": serial_number,
+        "telemetry_id": telemetry.id,
+        "device_id": str(telemetry.device_id),
+        "reason": None,
+        "detail": None,
+    }
 
 
 class Command(BaseCommand):

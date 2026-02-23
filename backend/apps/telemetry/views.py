@@ -1,6 +1,7 @@
 import json
 import uuid
 import logging
+
 from django.http import JsonResponse
 from django.views import View
 from django.utils.decorators import method_decorator
@@ -10,7 +11,7 @@ from django.db import DatabaseError, IntegrityError
 from django.conf import settings
 
 from .tasks import ingest_telemetry_batch_async
-from .kafka import TelemetryKafkaProducer, KafkaProducerError
+from .producers import build_raw_event, get_producer
 from .services import (
     TelemetryValidator,
     TelemetryBatchProcessor,
@@ -37,7 +38,12 @@ class TelemetryIngestView(View):
                 {"error": "X-Device-Serial-Number header is required"}, status=400
             )
 
-        idempotency_key = request.headers.get("Idempotency-Key")
+        idempotency_header = request.headers.get("Idempotency-Key")
+        idempotency_key = (
+            idempotency_header.strip()
+            if isinstance(idempotency_header, str) and idempotency_header.strip()
+            else None
+        )
         is_batch = isinstance(data, list)
 
         # Inject serial_number into data for serializer
@@ -184,45 +190,60 @@ class TelemetryIngestView(View):
         )
         return JsonResponse(response, status=202)
 
-    def _handle_kafka(self, data, is_batch: bool, idempotency_key: str | None, serial_number: str):
+    def _handle_kafka(
+        self,
+        data,
+        is_batch: bool,
+        idempotency_key: str | None,
+        serial_number: str,
+    ):
         request_id = str(uuid.uuid4())
         count = len(data) if is_batch else 1
         items_to_publish = data if is_batch else [data]
 
         received_at = timezone.now().isoformat()
-        kafka_messages = []
-        for index, item in enumerate(items_to_publish):
-            msg = {
-                "request_id": request_id,
-                "ingest_protocol": "http",
-                "serial_number": item["serial_number"],
-                "payload": item,
-                "received_at": received_at,
-                "ingest_index": index,
-            }
-            kafka_messages.append(msg)
-
-        producer = TelemetryKafkaProducer()
-        target_topic = producer.resolve_topic(
-            application="telemetry",
-            serial_number=serial_number,
-        )
+        producer = get_producer()
+        target_topic: str | None = None
 
         try:
-            headers = [
-                ("ingest_protocol", b"http"),
-            ]
-            producer.publish_batch(
-                kafka_messages,
-                topic=target_topic,
-                headers=headers,
-            )
-        except KafkaProducerError as exc:
+            if is_batch:
+                events = [
+                    build_raw_event(
+                        item,
+                        source="http",
+                        serial_number=serial_number,
+                        request_id=request_id,
+                        idempotency_key=idempotency_key,
+                        ingest_index=index,
+                        received_at=received_at,
+                    )
+                    for index, item in enumerate(items_to_publish)
+                ]
+                target_topic = producer.publish_raw_batch(
+                    data=events,
+                    source="http",
+                    serial_number=serial_number,
+                )
+            else:
+                target_topic = producer.publish_raw(
+                    data=build_raw_event(
+                        items_to_publish[0],
+                        source="http",
+                        serial_number=serial_number,
+                        request_id=request_id,
+                        idempotency_key=idempotency_key,
+                        ingest_index=0,
+                        received_at=received_at,
+                    ),
+                    source="http",
+                    serial_number=serial_number,
+                )
+        except Exception as exc:
             logger.exception(
                 "Kafka publish failed",
                 extra={
                     "request_id": request_id,
-                    "topic": target_topic,
+                    "topic": target_topic or settings.KAFKA_TOPIC_TELEMETRY_RAW,
                     "count": count,
                 },
             )
@@ -236,7 +257,7 @@ class TelemetryIngestView(View):
             count=count,
             idempotency_key=idempotency_key,
         )
-        response["topic"] = target_topic
+        response["topic"] = target_topic or settings.KAFKA_TOPIC_TELEMETRY_RAW
         response["pipeline_mode"] = settings.TELEMETRY_PIPELINE_MODE
         return JsonResponse(response, status=202)
 
