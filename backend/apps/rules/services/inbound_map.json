@@ -1,0 +1,17 @@
+[{
+    "id": 1234,
+    "map": {
+    "serial_number": { "from": "device" },
+    "value": { "from": "temp", "default": 100, "cast": "str" },
+    "default": { "default": 100 },
+    "payload": { "from": "payload_raw", "inner_dict": { 
+        "value": { "from": "load" },
+        "serial_number": { "from": "ssn", "default": 15}
+     } },
+     "tz": { "from": "timezone", "cast": "timezone" },
+    "list": { "from": "list_raw", "list": {
+        "lst_elem1": { "from": "lstelem1", "cast": "float" },
+        "lst_elem2": { "from": "lstelem2" }
+    }}
+  }
+}]
