@@ -39,6 +39,7 @@ class TestTelemetryIngestViewKafka:
         assert body["count"] == 1
         assert body["topic"] == "telemetry.raw"
         assert body["pipeline_mode"] == "kafka"
+        assert body["idempotency_key"].startswith("http:")
         mock_producer.publish_raw.assert_called_once()
         mock_producer.publish_raw_batch.assert_not_called()
 
@@ -47,6 +48,7 @@ class TestTelemetryIngestViewKafka:
         assert call_kwargs["source"] == "http"
         assert call_kwargs["data"]["serial_number"] == self.serial_number
         assert call_kwargs["data"]["ingest_protocol"] == "http"
+        assert call_kwargs["data"]["idempotency_key"] == body["idempotency_key"]
 
     def test_batch_payload_uses_publish_raw_batch(self, client, mock_producer):
         payload = [

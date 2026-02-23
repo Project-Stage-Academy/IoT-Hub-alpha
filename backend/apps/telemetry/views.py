@@ -1,6 +1,7 @@
 import json
 import uuid
 import logging
+import hashlib
 
 from django.http import JsonResponse
 from django.views import View
@@ -19,6 +20,20 @@ from .services import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _build_http_idempotency_key(*, serial_number: str, payload: object) -> str:
+    canonical_payload = json.dumps(
+        payload,
+        sort_keys=True,
+        ensure_ascii=False,
+        separators=(",", ":"),
+    )
+    hasher = hashlib.sha256()
+    hasher.update(serial_number.encode("utf-8"))
+    hasher.update(b"|")
+    hasher.update(canonical_payload.encode("utf-8"))
+    return f"http:{hasher.hexdigest()}"
 
 
 
@@ -52,6 +67,11 @@ class TelemetryIngestView(View):
                 item["serial_number"] = serial_number
         else:
             data["serial_number"] = serial_number
+        if idempotency_key is None:
+            idempotency_key = _build_http_idempotency_key(
+                serial_number=serial_number,
+                payload=data,
+            )
 
         if is_batch and len(data) > settings.TELEMETRY_MAX_BATCH_SIZE:
             return JsonResponse(
