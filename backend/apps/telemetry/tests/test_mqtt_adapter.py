@@ -159,12 +159,9 @@ class TestHandleMqttMessageDirectMode:
         settings.TELEMETRY_PIPELINE_MODE = "direct"
 
     @patch(
-        "apps.telemetry.management.commands.mqtt_adapter.connection.ensure_connection"
-    )
-    @patch(
         "apps.telemetry.management.commands.mqtt_adapter.TelemetryValidator.validate_single"
     )
-    def test_validation_error(self, mock_validate_single, _mock_ensure_conn):
+    def test_validation_error(self, mock_validate_single):
         mock_validate_single.return_value = (None, {"error": "Validation failed"})
         payload = json.dumps({"serial_number": "SN1", "value": "bad"}).encode()
 
@@ -173,9 +170,6 @@ class TestHandleMqttMessageDirectMode:
         assert result["status"] == "error"
         assert result["reason"] == "validation_failed"
 
-    @patch(
-        "apps.telemetry.management.commands.mqtt_adapter.connection.ensure_connection"
-    )
     @patch(
         "apps.telemetry.management.commands.mqtt_adapter.TelemetryBatchProcessor.process_single"
     )
@@ -186,7 +180,6 @@ class TestHandleMqttMessageDirectMode:
         self,
         mock_validate_single,
         mock_process_single,
-        _mock_ensure_conn,
     ):
         mock_validate_single.return_value = (
             {"device": SimpleNamespace(id="dev-1"), "payload": {"value": 12}},
@@ -203,9 +196,6 @@ class TestHandleMqttMessageDirectMode:
         assert result["device_id"] == "dev-1"
 
     @patch(
-        "apps.telemetry.management.commands.mqtt_adapter.connection.ensure_connection"
-    )
-    @patch(
         "apps.telemetry.management.commands.mqtt_adapter.TelemetryBatchProcessor.process_single"
     )
     @patch(
@@ -215,7 +205,6 @@ class TestHandleMqttMessageDirectMode:
         self,
         mock_validate_single,
         mock_process_single,
-        _mock_ensure_conn,
     ):
         mock_validate_single.return_value = (
             {"device": SimpleNamespace(id="dev-1"), "payload": {"value": 12}},
@@ -225,10 +214,9 @@ class TestHandleMqttMessageDirectMode:
         payload = json.dumps({"serial_number": "SN1", "value": 12}).encode()
 
         result = handle_mqtt_message("telemetry/SN1", payload)
-
-    def test_short_topic_ignored(self):
-        # Should not raise
-        Command._handle_device_status("devices", b"online")
+        assert result["status"] == "error"
+        assert result["reason"] == "persistence_failed"
+        assert "db down" in result["detail"]
 
 
 class TestHandleDeviceStatus:

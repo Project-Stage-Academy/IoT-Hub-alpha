@@ -11,6 +11,7 @@ from django.utils import timezone
 from django.db import DatabaseError, IntegrityError
 from django.conf import settings
 
+from .kafka import KafkaDeliveryError, KafkaProducerError, KafkaPublishError
 from .tasks import ingest_telemetry_batch_async
 from .producers import build_raw_event, get_producer
 from .services import (
@@ -34,6 +35,16 @@ def _build_http_idempotency_key(*, serial_number: str, payload: object) -> str:
     hasher.update(b"|")
     hasher.update(canonical_payload.encode("utf-8"))
     return f"http:{hasher.hexdigest()}"
+
+
+def _build_http_batch_item_idempotency_key(
+    *,
+    batch_idempotency_key: str | None,
+    ingest_index: int,
+) -> str | None:
+    if batch_idempotency_key is None:
+        return None
+    return f"{batch_idempotency_key}:{ingest_index}"
 
 
 @method_decorator(csrf_exempt, name="dispatch")
@@ -100,32 +111,53 @@ class TelemetryIngestView(View):
         else:
             return self._handle_single_sync(data, idempotency_key)
 
+    @staticmethod
+    def _is_idempotency_conflict(error: IntegrityError) -> bool:
+        lowered = str(error).lower()
+        idempotency_markers = ("idempotency", "idempotency_key", "idempotency-key")
+        duplicate_markers = (
+            "duplicate key",
+            "already exists",
+            "unique constraint",
+            "unique failed",
+        )
+        return any(marker in lowered for marker in idempotency_markers) and any(
+            marker in lowered for marker in duplicate_markers
+        )
+
     def _handle_db_errors(self, error: Exception, context: str) -> JsonResponse:
         """Handle database errors with appropriate status codes and logging."""
         if isinstance(error, IntegrityError):
+            is_idempotency_conflict = self._is_idempotency_conflict(error)
             logger.exception(
                 "Database integrity error",
-                extra={"context": context, "error_type": error.__class__.__name__},
+                extra={
+                    "context": context,
+                    "error_type": error.__class__.__name__,
+                    "is_idempotency_conflict": is_idempotency_conflict,
+                },
             )
-            return JsonResponse({"error": "Processing failed"}, status=409)
-        elif isinstance(error, DatabaseError):
+            return JsonResponse(
+                {"error": "Processing failed"},
+                status=409 if is_idempotency_conflict else 500,
+            )
+        if isinstance(error, DatabaseError):
             logger.exception(
                 "Database error",
                 extra={"context": context, "error_type": error.__class__.__name__},
             )
-            return JsonResponse({"error": "Processing failed"}, status=503)
-        elif isinstance(error, (ValueError, TypeError)):
+            return JsonResponse({"error": "Processing failed"}, status=500)
+        if isinstance(error, (ValueError, TypeError)):
             logger.exception(
                 "Invalid data type",
                 extra={"context": context, "error_type": error.__class__.__name__},
             )
             return JsonResponse({"error": "Invalid data"}, status=400)
-        else:
-            logger.exception(
-                "Unexpected error",
-                extra={"context": context, "error_type": error.__class__.__name__},
-            )
-            return JsonResponse({"error": "Processing failed"}, status=500)
+        logger.exception(
+            "Unexpected error",
+            extra={"context": context, "error_type": error.__class__.__name__},
+        )
+        return JsonResponse({"error": "Processing failed"}, status=500)
 
     def _handle_single_sync(self, data: dict, idempotency_key: str | None):
         validated, error = TelemetryValidator.validate_single(data)
@@ -232,7 +264,10 @@ class TelemetryIngestView(View):
                         source="http",
                         serial_number=serial_number,
                         request_id=request_id,
-                        idempotency_key=idempotency_key,
+                        idempotency_key=_build_http_batch_item_idempotency_key(
+                            batch_idempotency_key=idempotency_key,
+                            ingest_index=index,
+                        ),
                         ingest_index=index,
                         received_at=received_at,
                     )
@@ -257,18 +292,23 @@ class TelemetryIngestView(View):
                     source="http",
                     serial_number=serial_number,
                 )
-        except Exception as exc:
+        except (
+            KafkaProducerError,
+            KafkaPublishError,
+            KafkaDeliveryError,
+            ValueError,
+            TypeError,
+        ) as exc:
             logger.exception(
                 "Kafka publish failed",
                 extra={
                     "request_id": request_id,
                     "topic": target_topic or settings.KAFKA_TOPIC_TELEMETRY_RAW,
                     "count": count,
+                    "error_type": exc.__class__.__name__,
                 },
             )
-            return JsonResponse(
-                {"error": "Kafka publish failed", "details": str(exc)}, status=503
-            )
+            return JsonResponse({"error": "Kafka publish failed"}, status=503)
 
         response = TelemetryResponseFormatter.format_async_accepted(
             request_id=request_id,

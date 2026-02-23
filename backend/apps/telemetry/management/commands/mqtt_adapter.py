@@ -204,7 +204,6 @@ def handle_mqtt_message(topic: str, payload_bytes: bytes) -> dict:
             "detail": None,
         }
 
-    connection.ensure_connection()
     validated, error = TelemetryValidator.validate_single(data)
     if error:
         logger.warning(
@@ -317,6 +316,18 @@ class Command(BaseCommand):
         port = options["port"]
         topic = options["topic"]
         qos = options["qos"]
+
+        if settings.TELEMETRY_PIPELINE_MODE == "direct":
+            try:
+                connection.ensure_connection()
+            except Exception as exc:
+                self.stderr.write(
+                    self.style.ERROR(
+                        "Cannot connect to database in direct pipeline mode: "
+                        f"{exc}"
+                    )
+                )
+                sys.exit(1)
 
         self.stdout.write(f"Connecting to MQTT broker at {host}:{port}")
         self.stdout.write(f"Subscribing to topic: {topic} (QoS {qos})")

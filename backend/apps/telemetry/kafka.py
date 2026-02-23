@@ -35,6 +35,7 @@ class TelemetryKafkaProducer:
     _shared_producer: ClassVar[Producer | None] = None
     _lock: ClassVar[threading.Lock] = threading.Lock()
     _publish_lock: ClassVar[threading.Lock] = threading.Lock()
+    _flush_timeout_buffer_seconds: ClassVar[float] = 0.5
 
     def __init__(self) -> None:
         self._producer: Producer = self._get_or_create_producer()
@@ -230,7 +231,8 @@ class TelemetryKafkaProducer:
             )
 
     def _flush_timeout_seconds(self) -> float:
-        return max(settings.KAFKA_REQUEST_TIMEOUT_MS / 1000.0, 1.0)
+        request_timeout_seconds = settings.KAFKA_REQUEST_TIMEOUT_MS / 1000.0
+        return max(request_timeout_seconds + self._flush_timeout_buffer_seconds, 1.0)
 
     def close(self, timeout_seconds: float | None = None) -> None:
         timeout = (

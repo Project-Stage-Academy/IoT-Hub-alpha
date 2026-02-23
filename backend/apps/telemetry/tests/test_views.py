@@ -2,6 +2,10 @@ import json
 from unittest.mock import MagicMock, patch
 
 import pytest
+from django.db import DatabaseError, IntegrityError
+
+from apps.telemetry.kafka import KafkaPublishError
+from apps.telemetry.views import TelemetryIngestView
 
 
 @pytest.fixture(autouse=True)
@@ -77,6 +81,10 @@ class TestTelemetryIngestViewKafka:
         for event in call_kwargs["data"]:
             assert event["serial_number"] == self.serial_number
             assert event["ingest_protocol"] == "http"
+            assert event["idempotency_key"].startswith(f"{body['idempotency_key']}:")
+
+        idempotency_keys = [event["idempotency_key"] for event in call_kwargs["data"]]
+        assert len(set(idempotency_keys)) == 2
 
     def test_idempotency_key_is_trimmed_and_passed(self, client, mock_producer):
         payload = {"schema_version": "1.0", "value": 1}
@@ -145,7 +153,7 @@ class TestTelemetryIngestViewKafka:
         assert "exceeds maximum limit" in body["error"]
 
     def test_publish_failure_returns_503(self, client, mock_producer):
-        mock_producer.publish_raw.side_effect = RuntimeError("broker down")
+        mock_producer.publish_raw.side_effect = KafkaPublishError("broker down")
 
         response = client.post(
             "/api/v1/telemetry/",
@@ -157,3 +165,43 @@ class TestTelemetryIngestViewKafka:
         assert response.status_code == 503
         body = response.json()
         assert body["error"] == "Kafka publish failed"
+        assert "details" not in body
+
+
+class TestTelemetryIngestViewDbErrorMapping:
+    def test_idempotency_integrity_error_returns_409(self):
+        view = TelemetryIngestView()
+        response = view._handle_db_errors(
+            IntegrityError(
+                (
+                    "duplicate key value violates unique constraint "
+                    '"telemetry_idempotency_key_key"'
+                )
+            ),
+            "single sync ingestion",
+        )
+
+        assert response.status_code == 409
+
+    def test_non_idempotency_integrity_error_returns_500(self):
+        view = TelemetryIngestView()
+        response = view._handle_db_errors(
+            IntegrityError(
+                (
+                    "duplicate key value violates unique constraint "
+                    '"telemetry_device_id_timestamp_key"'
+                )
+            ),
+            "batch sync ingestion",
+        )
+
+        assert response.status_code == 500
+
+    def test_database_error_returns_500(self):
+        view = TelemetryIngestView()
+        response = view._handle_db_errors(
+            DatabaseError("connection lost"),
+            "single sync ingestion",
+        )
+
+        assert response.status_code == 500

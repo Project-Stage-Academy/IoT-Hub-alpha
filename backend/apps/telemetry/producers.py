@@ -19,7 +19,26 @@ from .kafka import KafkaProducerError, TelemetryKafkaProducer
 
 logger = logging.getLogger(__name__)
 
-TELEMETRY_RAW_TOPIC = "telemetry.raw"
+
+def _assert_event_serial_matches(event: dict[str, Any], serial_number: str) -> None:
+    event_serial = event.get("serial_number")
+    if not isinstance(event_serial, str) or not event_serial.strip():
+        raise ValueError("Raw event must contain non-empty serial_number")
+    if event_serial != serial_number:
+        raise ValueError(
+            "Raw event serial_number mismatch: "
+            f"event='{event_serial}', producer='{serial_number}'"
+        )
+
+
+def _assert_batch_serial_matches(
+    events: list[dict[str, Any]],
+    serial_number: str,
+) -> None:
+    if not events:
+        raise ValueError("Raw event batch must not be empty")
+    for event in events:
+        _assert_event_serial_matches(event, serial_number)
 
 
 @runtime_checkable
@@ -80,7 +99,7 @@ class LogProducer:
         source: str,
         serial_number: str,
     ) -> str:
-        self._assert_event_serial_matches(data, serial_number)
+        _assert_event_serial_matches(data, serial_number)
         topic = TelemetryKafkaProducer.resolve_topic(
             application="telemetry",
             serial_number=serial_number,
@@ -104,7 +123,7 @@ class LogProducer:
         source: str,
         serial_number: str,
     ) -> str:
-        self._assert_batch_serial_matches(data, serial_number)
+        _assert_batch_serial_matches(data, serial_number)
         topic = TelemetryKafkaProducer.resolve_topic(
             application="telemetry",
             serial_number=serial_number,
@@ -112,28 +131,6 @@ class LogProducer:
         for item in data:
             self.publish_raw(item, source=source, serial_number=serial_number)
         return topic
-
-    @staticmethod
-    def _assert_event_serial_matches(event: dict[str, Any], serial_number: str) -> None:
-        event_serial = event.get("serial_number")
-        if not isinstance(event_serial, str) or not event_serial.strip():
-            raise ValueError("Raw event must contain non-empty serial_number")
-        if event_serial != serial_number:
-            raise ValueError(
-                "Raw event serial_number mismatch: "
-                f"event='{event_serial}', producer='{serial_number}'"
-            )
-
-    @classmethod
-    def _assert_batch_serial_matches(
-        cls,
-        events: list[dict[str, Any]],
-        serial_number: str,
-    ) -> None:
-        if not events:
-            raise ValueError("Raw event batch must not be empty")
-        for event in events:
-            cls._assert_event_serial_matches(event, serial_number)
 
     def close(self) -> None:
         pass
@@ -157,7 +154,7 @@ class KafkaProducer:
         source: str,
         serial_number: str,
     ) -> str:
-        self._assert_event_serial_matches(data, serial_number)
+        _assert_event_serial_matches(data, serial_number)
         return self.publish_raw_batch(
             [data], source=source, serial_number=serial_number
         )
@@ -168,7 +165,7 @@ class KafkaProducer:
         source: str,
         serial_number: str,
     ) -> str:
-        self._assert_batch_serial_matches(data, serial_number)
+        _assert_batch_serial_matches(data, serial_number)
         topic = self.resolve_raw_topic(serial_number=serial_number)
         headers: list[tuple[str, bytes]] = [("ingest_protocol", source.encode("utf-8"))]
         idempotency_key = self._extract_batch_idempotency_key(data)
@@ -201,28 +198,6 @@ class KafkaProducer:
                 extra={"keys_count": len(keys)},
             )
         return None
-
-    @staticmethod
-    def _assert_event_serial_matches(event: dict[str, Any], serial_number: str) -> None:
-        event_serial = event.get("serial_number")
-        if not isinstance(event_serial, str) or not event_serial.strip():
-            raise ValueError("Raw event must contain non-empty serial_number")
-        if event_serial != serial_number:
-            raise ValueError(
-                "Raw event serial_number mismatch: "
-                f"event='{event_serial}', producer='{serial_number}'"
-            )
-
-    @classmethod
-    def _assert_batch_serial_matches(
-        cls,
-        events: list[dict[str, Any]],
-        serial_number: str,
-    ) -> None:
-        if not events:
-            raise ValueError("Raw event batch must not be empty")
-        for event in events:
-            cls._assert_event_serial_matches(event, serial_number)
 
     def close(self) -> None:
         self._kafka_producer.close()

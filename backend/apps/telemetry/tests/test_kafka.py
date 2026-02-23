@@ -221,7 +221,8 @@ class TestPublishBatchOnce:
         assert fake.produce_calls[0]["key"] == b"dev-1"
         assert fake.produce_calls[1]["key"] == b"SN-2"
         assert fake.flush_calls[-1] == max(
-            settings.KAFKA_REQUEST_TIMEOUT_MS / 1000.0,
+            (settings.KAFKA_REQUEST_TIMEOUT_MS / 1000.0)
+            + TelemetryKafkaProducer._flush_timeout_buffer_seconds,
             1.0,
         )
 
@@ -283,6 +284,13 @@ class TestUtilityMethods:
         producer = self._producer()
 
         assert producer._flush_timeout_seconds() == 1.0
+
+    def test_flush_timeout_adds_request_timeout_buffer(self, settings):
+        settings.KAFKA_REQUEST_TIMEOUT_MS = 30_000
+        producer = self._producer()
+        expected = 30.0 + TelemetryKafkaProducer._flush_timeout_buffer_seconds
+
+        assert producer._flush_timeout_seconds() == pytest.approx(expected)
 
     def test_close_respects_explicit_timeout_and_warns_undelivered(self, caplog):
         fake = _FakeProducer()
