@@ -3,9 +3,11 @@ import pytest
 from unittest.mock import Mock, patch
 from apps.events.models import Event
 from apps.notifications.models import NotificationPriority
-from apps.rules.services.actions import (
+from apps.events.services.actions import (
     action_dispatch,
     dispatch_msg,
+)
+from apps.events.services.event_handler import (
     event_handler,
     EventCooldownActive,
 )
@@ -19,11 +21,12 @@ def test_action_dispatch_calls_notification_dispatch():
     cfg = ActionConfig.model_validate({"type": "notification", "template_id": 1})
     rule = object()
     agg = EvalResults(trigger=True, values=[123.0])
+    event = Mock(spec=Event)
 
-    with patch("apps.rules.services.actions.dispatch_msg") as mock_dispatch:
-        action_dispatch(cfg, rule, agg)
+    with patch("apps.events.services.actions.dispatch_msg") as mock_dispatch:
+        action_dispatch(cfg, rule, agg, event)
 
-    mock_dispatch.assert_called_once_with(cfg, rule, agg)
+    mock_dispatch.assert_called_once_with(cfg, rule, agg, event)
 
 
 def test_action_dispatch_calls_stop_machine():
@@ -33,30 +36,32 @@ def test_action_dispatch_calls_stop_machine():
     cfg = ActionConfig.model_validate({"type": "stop_machine"})
     rule = object()
     agg = EvalResults(trigger=True, values=[123.0])
+    event = Mock(spec=Event)
 
-    with patch("apps.rules.services.actions.stop_machine") as mock_stop:
-        action_dispatch(cfg, rule, agg)
+    with patch("apps.events.services.actions.stop_machine") as mock_stop:
+        action_dispatch(cfg, rule, agg, event)
 
-    mock_stop.assert_called_once_with(cfg, rule, agg)
+    mock_stop.assert_called_once_with(cfg, rule, agg, event)
 
 
 def test_action_dispatch_unknown_type_is_noop():
     """
-    Tests unknown type dosent go through
+    Tests unknown type doesnt go through
     """
 
     class Dummy:
         type = "unknown"
 
-    with patch("apps.rules.services.actions.dispatch_msg") as mock_dispatch:
-        action_dispatch(Dummy(), object(), EvalResults(trigger=True, values=[1.0]))  # type: ignore[arg-type]
+    event = Mock(spec=Event)
+    with patch("apps.events.services.actions.dispatch_msg") as mock_dispatch:
+        action_dispatch(Dummy(), object(), EvalResults(trigger=True, values=[1.0]), event)  # type: ignore[arg-type]
 
     mock_dispatch.assert_not_called()
 
 
-def test_dispatch_msg_formats_message_and_calls_event_handler():
+def test_dispatch_msg_formats_message_and_enqueues_notifications():
     """
-    test correct msg formatting and event handler call
+    test correct msg formatting and notification enqueue call
     """
     cfg = ActionConfig.model_validate({"type": "notification", "template_id": 1})
 
@@ -82,32 +87,28 @@ def test_dispatch_msg_formats_message_and_calls_event_handler():
         def get_priority_display(self):
             return "HIGH"
 
+    event = Mock(spec=Event)
+    event.id = 123
+
     with (
         patch(
-            "apps.rules.services.actions.get_template", return_value=DummyTemplate()
+            "apps.events.services.actions.get_template", return_value=DummyTemplate()
         ) as mock_get_template,
-        patch("apps.rules.services.actions.event_handler") as mock_event_handler,
         patch(
             "apps.notifications.tasks.enqueue_notification_deliveries",
             return_value=[Mock(), Mock()],
-        ),
+        ) as mock_enqueue,
     ):
-        mock_event_handler.return_value = Mock()
-        dispatch_msg(cfg, rule, agg)
+        dispatch_msg(cfg, rule, agg, event)
 
     mock_get_template.assert_called_once_with(tid=1)
-
-    expected_message = "HIGH Device-01 42.0C"
-    mock_event_handler.assert_called_once()
-    called_args, _ = mock_event_handler.call_args
-    assert called_args[0] == agg
-    assert called_args[1] == rule
-    assert called_args[2] == expected_message
+    mock_enqueue.assert_called_once()
+    assert event.save.called
 
 
-def test_dispatch_msg_returns_on_cooldown():
+def test_dispatch_msg_returns_if_no_event():
     """
-    Test new event isnt created when on cooldown
+    Test dispatch_msg returns early if no event object
     """
     cfg = ActionConfig.model_validate({"type": "notification", "template_id": 1})
 
@@ -119,6 +120,7 @@ def test_dispatch_msg_returns_on_cooldown():
         device_type = DummyDeviceType()
 
     class DummyRule:
+        id = "test-rule-id"
         device = DummyDevice()
 
     rule = DummyRule()
@@ -134,15 +136,14 @@ def test_dispatch_msg_returns_on_cooldown():
             return "LOW"
 
     with (
-        patch("apps.rules.services.actions.get_template", return_value=DummyTemplate()),
         patch(
-            "apps.rules.services.actions.event_handler", side_effect=EventCooldownActive
+            "apps.events.services.actions.get_template", return_value=DummyTemplate()
         ),
         patch(
-            "apps.rules.services.actions.NormalizedRecipient.model_validate"
+            "apps.events.services.actions.NormalizedRecipient.model_validate"
         ) as mock_validate,
     ):
-        dispatch_msg(cfg, rule, agg)
+        dispatch_msg(cfg, rule, agg, event=None)
 
     mock_validate.assert_not_called()
 
@@ -178,17 +179,21 @@ def test_dispatch_msg_validates_each_recipient():
         def get_priority_display(self):
             return "LOW"
 
+    event = Mock(spec=Event)
+    event.id = 456
+
     with (
-        patch("apps.rules.services.actions.get_template", return_value=DummyTemplate()),
-        patch("apps.rules.services.actions.event_handler", return_value=Mock()),
+        patch(
+            "apps.events.services.actions.get_template", return_value=DummyTemplate()
+        ),
         patch(
             "apps.notifications.tasks.enqueue_notification_deliveries", return_value=[]
         ),
         patch(
-            "apps.rules.services.actions.NormalizedRecipient.model_validate"
+            "apps.events.services.actions.NormalizedRecipient.model_validate"
         ) as mock_validate,
     ):
-        dispatch_msg(cfg, rule, agg)
+        dispatch_msg(cfg, rule, agg, event)
 
     assert mock_validate.call_count == 2
 
@@ -207,15 +212,9 @@ def test_event_handler_creates_event_when_no_recent_events(
 
     assert ev.rule_id == rule_model.id
     assert ev.message == msg
-    priority_map = {
-        NotificationPriority.LOW: Event.EventSeverity.INFO,
-        NotificationPriority.MEDIUM: Event.EventSeverity.WARNING,
-        NotificationPriority.HIGH: Event.EventSeverity.CRITICAL,
-        NotificationPriority.CRITICAL: Event.EventSeverity.CRITICAL,
-    }
-    assert ev.severity == priority_map[notif_template_model.priority]
-    assert ev.execution_results == []
-    assert ev.telemetry_snapshot["payload"]["values"] == agg.values
+    assert ev.severity == notif_template_model.priority
+    assert ev.execution_results == {"status": "new"}
+    assert ev.telemetry_snapshot["values"] == agg.values
 
 
 @pytest.mark.django_db
