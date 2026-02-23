@@ -13,7 +13,7 @@ from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
-from apps.telemetry.sevice_layer.write_buffer import WriteBuffer
+from apps.telemetry.service_layer.write_buffer import WriteBuffer
 from apps.telemetry.services import TelemetryValidator
 
 logger = logging.getLogger(__name__)
@@ -94,15 +94,17 @@ class Command(BaseCommand):
         max_messages = options["max_messages"]
 
         raw_consumer = Consumer(self._build_consumer_config(group_id))
-        clean_consumer = Consumer(self._build_consumer_config(group_id="db-writer-clean"))
+        clean_consumer = Consumer(
+            self._build_consumer_config(group_id="db-writer-clean")
+        )
         producer = Producer(settings.KAFKA_PRODUCER_CONFIG)
 
         self._install_signal_handlers()
         raw_consumer.subscribe([raw_topic])
         clean_consumer.subscribe([clean_topic])
-        
+
         write_buffer = WriteBuffer(clean_consumer, poll_timeout)
-        
+
         self.stdout.write(
             self.style.SUCCESS(
                 f"kafka_db_writer_stub started: raw={raw_topic}, clean={clean_topic}, "

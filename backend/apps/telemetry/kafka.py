@@ -141,7 +141,8 @@ class TelemetryKafkaProducer:
                 except BufferError as exc:
                     if retries_left == 0:
                         raise KafkaPublishError(
-                            f"Kafka local queue is full for topic '{target_topic}': {exc}"
+                            f"Kafka local queue is full for topic "
+                            f"'{target_topic}': {exc}"
                         ) from exc
 
                     retries_left -= 1

@@ -1,4 +1,5 @@
 import pytest
+import types
 from django.test import Client
 from apps.devices.models import Device, DeviceType
 

@@ -1,6 +1,8 @@
 import logging
 from uuid import UUID
 from celery import shared_task
+from typing import Any
+from dataclasses import dataclass, asdict
 from django.db import OperationalError, InterfaceError
 from django.db.utils import DatabaseError
 from django.conf import settings
@@ -10,35 +12,89 @@ from apps.telemetry.models import Telemetry
 from apps.telemetry.models import Device
 from .services import TelemetryBatchProcessor
 from celery.exceptions import MaxRetriesExceededError
-from apps.telemetry.sevice_layer.publish_to_dlq import publish_flush_to_dlq
-from apps.telemetry.sevice_layer.kafka_producer import get_producer
+from apps.telemetry.service_layer.publish_to_dlq import publish_flush_to_dlq
+from apps.telemetry.service_layer.helpers import get_producer
 
 
+import time
+
+
+@dataclass
+class WriterResult:
+    success: bool = True
+    written_to_db: int = 0
+    written_to_dlq: int = 0
+
+    def to_dict(self):
+        return {
+            "success": self.success,
+            "written_to_db": self.written_to_db,
+            "written_to_dlq": self.written_to_dlq,
+        }
 
 
 logger = logging.getLogger(__name__)
 
+
 @shared_task(bind=True, max_retries=3, default_retry_delay=60)
-def bulk_telemetry_write(self, flush):
+def bulk_telemetry_write(self, flush) -> dict[str, Any]:
     producer = get_producer()
-    serials = {p.get('device_serial') for p in flush}
-    device_by_serial = Device.objects.in_bulk(serials, field_name="serial_number")
-        
+    serials = {p.get("device_serial") for p in flush}
+    result = WriterResult()
     telem_data = []
-    for p in flush:
-        d = device_by_serial.get(p.get('device_serial'))
-        if not d:
-            raise KeyError(f"Device not in DB: {d}")
-        telem_data.append(Telemetry(payload=p.get('payload'), device_id=d.id))
-        
+    bad_data = []
+
     try:
+        device_by_serial = Device.objects.in_bulk(serials, field_name="serial_number")
+
+        for p in flush:
+            d = device_by_serial.get(p.get("device_serial"))
+            if not d:
+                logger.warning(
+                    "Device not in DB", extra={"device": p.get("device_serial")}
+                )
+                bad_data.append(p)
+                continue
+
+            telem_data.append(Telemetry(payload=p.get("payload"), device_id=d.id))
+
+        if bad_data:
+            logger.warning("No device id detected", extra={"bad_data": bad_data})
+
+            result.written_to_dlq += len(bad_data)
+
+            publish_flush_to_dlq(producer, bad_data, reason="Wrong device serial")
+
+        if not telem_data:
+            logger.info("Nothing to write, Bad batch")
+            return result.to_dict()
+
+        logger.info(
+            f"Attempting flush of {len(flush)} size, attempt {self.request.retries}",
+            extra={"retry_num": self.request.retries, "buffeR_size": len(flush)},
+        )
+
         with transaction.atomic():
-            Telemetry.objects.bulk_create(telem_data, batch_size=settings.DB_WRITER_BATCH_SIZE)
-    except Exception as e:
+            Telemetry.objects.bulk_create(
+                telem_data, batch_size=settings.DB_WRITER_BATCH_SIZE
+            )
+            result.written_to_db += len(telem_data)
+            logger.info("Successfully written to DB")
+
+    except (OperationalError, InterfaceError, DatabaseError) as e:
         try:
-            raise self.retry(exc=e, countdown=60 * (2**self.request.retries))
+            logger.warning(
+                f"DB Write failed due to: {e}, attempt {self.request.retries}"
+            )
+            self.retry(exc=e, countdown=1 * (2**self.request.retries))
         except MaxRetriesExceededError:
-            publish_flush_to_dlq(producer, flush, reason="Failed DB Write")
+            logger.warning("DB Write attemps execceded max, dumping batch to telem.dlq")
+            if publish_flush_to_dlq(producer, flush, reason="Failed DB Write"):
+                result.written_to_dlq += len(flush)
+            else:
+                result.success = False
+
+    return result.to_dict()
 
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=60)
