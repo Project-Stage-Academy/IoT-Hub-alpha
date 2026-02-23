@@ -133,7 +133,7 @@ class TestTelemetryIngestViewKafka:
         settings.TELEMETRY_MAX_BATCH_SIZE = 2
         payload = [{"schema_version": "1.0"}] * 3
 
-        client.post(
+        response = client.post(
             "/api/v1/telemetry/",
             data=json.dumps(payload),
             content_type="application/json",
