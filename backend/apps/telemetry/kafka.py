@@ -1,8 +1,3 @@
-<<<<<<< Updated upstream
-import json
-import logging
-import threading
-=======
 from __future__ import annotations
 
 import json
@@ -11,7 +6,6 @@ import random
 import threading
 import time
 from typing import ClassVar
->>>>>>> Stashed changes
 
 from django.conf import settings
 
@@ -38,20 +32,12 @@ class KafkaDeliveryError(KafkaProducerError):
 class TelemetryKafkaProducer:
     """Central Kafka producer wrapper for telemetry ingestion."""
 
-<<<<<<< Updated upstream
-    _producer: Producer | None = None
-    _lock = threading.Lock()
-
-    def __init__(self):
-        self._producer = self._get_or_create_producer()
-=======
     _shared_producer: ClassVar[Producer | None] = None
     _lock: ClassVar[threading.Lock] = threading.Lock()
     _publish_lock: ClassVar[threading.Lock] = threading.Lock()
 
     def __init__(self) -> None:
         self._producer: Producer = self._get_or_create_producer()
->>>>>>> Stashed changes
 
     @classmethod
     def _get_or_create_producer(cls) -> Producer:
@@ -61,21 +47,12 @@ class TelemetryKafkaProducer:
                 "Install requirements to use Kafka pipeline mode."
             )
 
-<<<<<<< Updated upstream
-        if cls._producer is not None:
-            return cls._producer
-
-        with cls._lock:
-            if cls._producer is None:
-                cls._producer = Producer(settings.KAFKA_PRODUCER_CONFIG)
-=======
         if cls._shared_producer is not None:
             return cls._shared_producer
 
         with cls._lock:
             if cls._shared_producer is None:
                 cls._shared_producer = Producer(settings.KAFKA_PRODUCER_CONFIG)
->>>>>>> Stashed changes
                 logger.info(
                     "Kafka producer initialized",
                     extra={
@@ -84,21 +61,13 @@ class TelemetryKafkaProducer:
                     },
                 )
 
-<<<<<<< Updated upstream
-        return cls._producer
-=======
         # Guard for static type checkers.
         assert cls._shared_producer is not None
         return cls._shared_producer
->>>>>>> Stashed changes
 
     @classmethod
     def reset_for_tests(cls) -> None:
         """Testing helper to reset singleton producer."""
-<<<<<<< Updated upstream
-        with cls._lock:
-            cls._producer = None
-=======
         producer_to_close: Producer | None = None
         with cls._lock:
             producer_to_close = cls._shared_producer
@@ -116,7 +85,6 @@ class TelemetryKafkaProducer:
                 "Kafka producer reset flush failed",
                 extra={"error": str(exc)},
             )
->>>>>>> Stashed changes
 
     @staticmethod
     def resolve_topic(
@@ -159,15 +127,6 @@ class TelemetryKafkaProducer:
         headers: list[tuple[str, bytes]] | None = None,
     ) -> None:
         target_topic = topic or settings.KAFKA_TOPIC_TELEMETRY_RAW
-<<<<<<< Updated upstream
-        delivery_errors: list[str] = []
-
-        def _on_delivery(err, msg) -> None:
-            if err is None:
-                return
-
-            topic_name = target_topic
-=======
         max_retries = settings.KAFKA_PUBLISH_MAX_RETRIES
         attempt = 0
 
@@ -214,61 +173,14 @@ class TelemetryKafkaProducer:
                 return
 
             topic_name = topic
->>>>>>> Stashed changes
             if msg is not None:
                 topic_name = msg.topic()
 
             error_text = str(err)
-<<<<<<< Updated upstream
-            delivery_errors.append(f"{topic_name}: {error_text}")
-=======
->>>>>>> Stashed changes
             logger.error(
                 "kafka.delivery_failed",
                 extra={"error": error_text, "topic": topic_name},
             )
-<<<<<<< Updated upstream
-
-        for message in messages:
-            payload = json.dumps(message, ensure_ascii=False).encode("utf-8")
-            key_raw = message.get("device_id") or message.get("serial_number")
-            key = str(key_raw).encode("utf-8") if key_raw else None
-            retries_left = 3
-
-            while True:
-                try:
-                    self._producer.produce(
-                        target_topic,
-                        key=key,
-                        value=payload,
-                        headers=headers,
-                        on_delivery=_on_delivery,
-                    )
-                    self._producer.poll(0)
-                    break
-                except BufferError as exc:
-                    if retries_left == 0:
-                        raise KafkaPublishError(
-                            f"Kafka local queue is full for topic '{target_topic}': {exc}"
-                        ) from exc
-
-                    retries_left -= 1
-                    self._producer.poll(0.1)
-                except Exception as exc:
-                    raise KafkaPublishError(
-                        f"Failed to enqueue Kafka message to '{target_topic}': {exc}"
-                    ) from exc
-
-        timeout_seconds = max(settings.KAFKA_REQUEST_TIMEOUT_MS / 1000.0, 1.0)
-        undelivered = self._producer.flush(timeout_seconds)
-        if undelivered or delivery_errors:
-            first_error = delivery_errors[0] if delivery_errors else "n/a"
-            raise KafkaDeliveryError(
-                f"Kafka delivery issues for topic '{target_topic}': "
-                f"undelivered={undelivered}, callback_errors={len(delivery_errors)}, "
-                f"first_error={first_error}"
-            )
-=======
             with error_lock:
                 error_count += 1
                 if first_error is None:
@@ -321,7 +233,11 @@ class TelemetryKafkaProducer:
         return max(settings.KAFKA_REQUEST_TIMEOUT_MS / 1000.0, 1.0)
 
     def close(self, timeout_seconds: float | None = None) -> None:
-        timeout = self._flush_timeout_seconds() if timeout_seconds is None else max(timeout_seconds, 0.0)
+        timeout = (
+            self._flush_timeout_seconds()
+            if timeout_seconds is None
+            else max(timeout_seconds, 0.0)
+        )
         with self.__class__._publish_lock:
             self._producer.poll(0)
             undelivered = self._producer.flush(timeout)
@@ -358,4 +274,3 @@ class TelemetryKafkaProducer:
             delay_ms += random.uniform(-jitter_delta, jitter_delta)
 
         return max(delay_ms / 1000.0, 0.0)
->>>>>>> Stashed changes
