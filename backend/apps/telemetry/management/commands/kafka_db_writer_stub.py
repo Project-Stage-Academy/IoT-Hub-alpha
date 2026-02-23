@@ -355,7 +355,10 @@ class Command(BaseCommand):
         try:
             return json.loads(payload_text)
         except json.JSONDecodeError:
-            return payload_text
+            return {
+                "encoding": "utf-8",
+                "data": payload_text,
+            }
 
     def _to_utc(self, value):
         if timezone.is_naive(value):

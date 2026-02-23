@@ -30,9 +30,14 @@ def apply_transformations(data: dict, rules: dict) -> dict:
     """
     result = data.copy()
 
-    for old_key, new_key in rules.get("rename", {}).items():
-        if old_key in result:
-            result[new_key] = result.pop(old_key)
+    rename_rules = rules.get("rename", {})
+    if rename_rules:
+        intermediate_map = {}
+        for old_key, new_key in rename_rules.items():
+            if old_key in result:
+                intermediate_map[new_key] = result.pop(old_key)
+
+        result.update(intermediate_map)
 
     for key, factor in rules.get("multiply", {}).items():
         if key in result and isinstance(result[key], (int, float)):
