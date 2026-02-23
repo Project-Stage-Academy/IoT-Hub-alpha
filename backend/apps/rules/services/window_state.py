@@ -91,7 +91,8 @@ class WindowState:
         Filter window points by comparison operator and threshold.
 
         Applies comparison operator to each point's value and returns matching points.
-        Used by rule evaluation to count occurrences or aggregate matching telemetry.
+        Used by rule evaluation to count occurrences or aggregate matching telemetry
+        data.
 
         Example:
             window.add_point(ts1, 25.0)

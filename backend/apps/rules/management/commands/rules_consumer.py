@@ -319,8 +319,9 @@ All metrics exported to Prometheus via HTTP on specified port (default: 9101).
         Check if message contains Kafka error and log if fatal.
 
         Kafka messages can contain error codes instead of actual message data.
-        This method distinguishes between expected errors (partition EOF - not an error)
-        and fatal errors (broker errors, authentication failures, etc.) that should be logged.
+        This method distinguishes between expected errors (partition EOF - not
+        an error) and fatal errors (broker errors, authentication failures,
+        etc.) that should be logged.
 
         Args:
             msg: confluent_kafka.Message object with potential error state.

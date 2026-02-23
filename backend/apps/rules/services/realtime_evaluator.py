@@ -157,8 +157,8 @@ class RealTimeRuleEvaluator:
         Should be called periodically (e.g., hourly) to prevent unbounded memory growth.
 
         Args:
-            older_than_seconds: Age threshold in seconds - points older than this are removed
-                               (default: 3600 = 1 hour)
+            older_than_seconds: Age threshold in seconds - points older than
+                               this are removed (default: 3600 = 1 hour)
 
         Side Effects:
         - Removes expired TelemetryPoint objects from each window state
@@ -239,7 +239,8 @@ class RealTimeRuleEvaluator:
             Dict with keys:
             - cached_rules: Total number of rules cached across all devices
             - active_windows: Number of window states (one per active rule)
-            - total_points_in_windows: Total accumulated telemetry points across all windows
+            - total_points_in_windows: Total accumulated telemetry points
+                                       across all windows
 
         Example Output:
             {

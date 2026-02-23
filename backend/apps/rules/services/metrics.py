@@ -99,7 +99,8 @@ def track_event_creation(rule_id: UUID, device_id: Optional[UUID] = None):
 
     Args:
         rule_id: Rule that triggered event creation
-        device_id: Device that triggered rule (optional, defaults to "unknown" for label)
+        device_id: Device that triggered rule (optional, defaults to "unknown"
+                   for label)
 
     Metrics Updated:
         - event_creation_duration_ms: histogram of creation times
@@ -174,9 +175,9 @@ def track_action_dispatch(action_type: str):
     """
     Track action dispatch latency and status (success/error).
 
-    Context manager for measuring time to dispatch action (notification, stop_machine, etc.).
-    Records status as 'success' if no exception, 'error' if exception raised.
-    Always records timing regardless of success/failure.
+    Context manager for measuring time to dispatch action (notification,
+    stop_machine, etc.). Records status as 'success' if no exception, 'error'
+    if exception raised. Always records timing regardless of success/failure.
 
     Usage:
         with track_action_dispatch("notification"):
@@ -184,8 +185,9 @@ def track_action_dispatch(action_type: str):
         # Timing and status recorded here
 
     Args:
-        action_type: Type of action being dispatched (e.g., "notification", "stop_machine")
-                     Used for metric labels to distinguish different action types
+        action_type: Type of action being dispatched (e.g., "notification",
+                     "stop_machine"). Used for metric labels to distinguish
+                     different action types
 
     Metrics Updated:
         - action_dispatch_duration_ms: histogram of dispatch times by action_type

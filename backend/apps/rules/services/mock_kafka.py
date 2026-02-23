@@ -62,7 +62,8 @@ class MockProducer:
     - Safe for concurrent producer/consumer threads
 
     Message Storage:
-    - Messages stored in format: {"value": bytes, "offset": int, "timestamp": datetime, "key": str}
+    - Messages stored in format: {"value": bytes, "offset": int,
+      "timestamp": datetime, "key": str}
     - Each topic gets its own list in _topics defaultdict
     - Offset auto-incremented per message per topic
 
@@ -91,7 +92,8 @@ class MockProducer:
         Args:
             topic: Topic name to produce to
             value: Dict to serialize as JSON (usually event/telemetry data)
-            key: Optional routing key (ignored in this mock, but accepted for API compatibility)
+            key: Optional routing key (ignored in this mock, but accepted
+                 for API compatibility)
 
         Side Effects:
         - Adds message to _topics[topic] list
@@ -179,7 +181,8 @@ class MockConsumer:
         offset already tracked (for re-subscription scenarios).
 
         Args:
-            topics: List of topic names to consume from (e.g., ["telemetry.clean", "events"])
+            topics: List of topic names to consume from
+                    (e.g., ["telemetry.clean", "events"])
         """
         self.subscribed_topics = topics
         logger.info(f"Subscribed to topics: {topics}")
@@ -194,11 +197,13 @@ class MockConsumer:
         is ignored in mock implementation - no actual blocking).
 
         Args:
-            timeout_ms: Poll timeout in milliseconds (ignored in mock, for API compatibility)
+            timeout_ms: Poll timeout in milliseconds (ignored in mock,
+                        for API compatibility)
 
         Returns:
             MockMessage if available, None if no messages in any subscribed topic.
-            Message comes from first subscribed topic with available data at current offset.
+            Message comes from first subscribed topic with available data at
+            current offset.
 
         Side Effects:
         - Advances offset for topic if message returned
