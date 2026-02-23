@@ -36,7 +36,6 @@ def _build_http_idempotency_key(*, serial_number: str, payload: object) -> str:
     return f"http:{hasher.hexdigest()}"
 
 
-
 @method_decorator(csrf_exempt, name="dispatch")
 class TelemetryIngestView(View):
     """POST /api/v1/telemetry/ - ingest single or batched telemetry data"""
@@ -280,8 +279,3 @@ class TelemetryIngestView(View):
         response["topic"] = target_topic or settings.KAFKA_TOPIC_TELEMETRY_RAW
         response["pipeline_mode"] = settings.TELEMETRY_PIPELINE_MODE
         return JsonResponse(response, status=202)
-
-
-
-
-

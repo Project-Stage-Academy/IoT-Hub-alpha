@@ -158,7 +158,9 @@ class KafkaProducer:
         serial_number: str,
     ) -> str:
         self._assert_event_serial_matches(data, serial_number)
-        return self.publish_raw_batch([data], source=source, serial_number=serial_number)
+        return self.publish_raw_batch(
+            [data], source=source, serial_number=serial_number
+        )
 
     def publish_raw_batch(
         self,
@@ -240,9 +242,11 @@ def get_producer() -> TelemetryProducer:
     if _producer_instance is None:
         with _producer_lock:
             if _producer_instance is None:
-                backend = str(
-                    getattr(settings, "TELEMETRY_PRODUCER_BACKEND", "log")
-                ).strip().lower()
+                backend = (
+                    str(getattr(settings, "TELEMETRY_PRODUCER_BACKEND", "log"))
+                    .strip()
+                    .lower()
+                )
                 if backend == "kafka":
                     try:
                         _producer_instance = KafkaProducer()

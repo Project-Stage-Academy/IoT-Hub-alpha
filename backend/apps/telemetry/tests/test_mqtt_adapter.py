@@ -31,7 +31,9 @@ class TestExtractSerialNumber:
 
 @pytest.fixture
 def mock_producer():
-    with patch("apps.telemetry.management.commands.mqtt_adapter.get_producer") as mock_get:
+    with patch(
+        "apps.telemetry.management.commands.mqtt_adapter.get_producer"
+    ) as mock_get:
         producer = MagicMock()
         producer.publish_raw.return_value = "telemetry.raw"
         mock_get.return_value = producer
@@ -156,8 +158,12 @@ class TestHandleMqttMessageDirectMode:
     def _direct_mode(self, settings):
         settings.TELEMETRY_PIPELINE_MODE = "direct"
 
-    @patch("apps.telemetry.management.commands.mqtt_adapter.connection.ensure_connection")
-    @patch("apps.telemetry.management.commands.mqtt_adapter.TelemetryValidator.validate_single")
+    @patch(
+        "apps.telemetry.management.commands.mqtt_adapter.connection.ensure_connection"
+    )
+    @patch(
+        "apps.telemetry.management.commands.mqtt_adapter.TelemetryValidator.validate_single"
+    )
     def test_validation_error(self, mock_validate_single, _mock_ensure_conn):
         mock_validate_single.return_value = (None, {"error": "Validation failed"})
         payload = json.dumps({"serial_number": "SN1", "value": "bad"}).encode()
@@ -167,9 +173,15 @@ class TestHandleMqttMessageDirectMode:
         assert result["status"] == "error"
         assert result["reason"] == "validation_failed"
 
-    @patch("apps.telemetry.management.commands.mqtt_adapter.connection.ensure_connection")
-    @patch("apps.telemetry.management.commands.mqtt_adapter.TelemetryBatchProcessor.process_single")
-    @patch("apps.telemetry.management.commands.mqtt_adapter.TelemetryValidator.validate_single")
+    @patch(
+        "apps.telemetry.management.commands.mqtt_adapter.connection.ensure_connection"
+    )
+    @patch(
+        "apps.telemetry.management.commands.mqtt_adapter.TelemetryBatchProcessor.process_single"
+    )
+    @patch(
+        "apps.telemetry.management.commands.mqtt_adapter.TelemetryValidator.validate_single"
+    )
     def test_persists_and_returns_created(
         self,
         mock_validate_single,
@@ -190,9 +202,15 @@ class TestHandleMqttMessageDirectMode:
         assert result["telemetry_id"] == 10
         assert result["device_id"] == "dev-1"
 
-    @patch("apps.telemetry.management.commands.mqtt_adapter.connection.ensure_connection")
-    @patch("apps.telemetry.management.commands.mqtt_adapter.TelemetryBatchProcessor.process_single")
-    @patch("apps.telemetry.management.commands.mqtt_adapter.TelemetryValidator.validate_single")
+    @patch(
+        "apps.telemetry.management.commands.mqtt_adapter.connection.ensure_connection"
+    )
+    @patch(
+        "apps.telemetry.management.commands.mqtt_adapter.TelemetryBatchProcessor.process_single"
+    )
+    @patch(
+        "apps.telemetry.management.commands.mqtt_adapter.TelemetryValidator.validate_single"
+    )
     def test_persistence_error_is_caught(
         self,
         mock_validate_single,
