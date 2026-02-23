@@ -347,8 +347,7 @@ if TELEMETRY_PRODUCER_BACKEND not in {"log", "kafka"}:
     )
 if TELEMETRY_PIPELINE_MODE == "kafka" and TELEMETRY_PRODUCER_BACKEND != "kafka":
     raise ValueError(
-        "TELEMETRY_PIPELINE_MODE='kafka' requires "
-        "TELEMETRY_PRODUCER_BACKEND='kafka'"
+        "TELEMETRY_PIPELINE_MODE='kafka' requires " "TELEMETRY_PRODUCER_BACKEND='kafka'"
     )
 
 RATE_LIMIT_ENABLED = os.getenv("RATE_LIMIT_ENABLED", "False").lower() in (

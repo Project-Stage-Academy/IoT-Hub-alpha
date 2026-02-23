@@ -323,8 +323,7 @@ class Command(BaseCommand):
             except Exception as exc:
                 self.stderr.write(
                     self.style.ERROR(
-                        "Cannot connect to database in direct pipeline mode: "
-                        f"{exc}"
+                        "Cannot connect to database in direct pipeline mode: " f"{exc}"
                     )
                 )
                 sys.exit(1)
