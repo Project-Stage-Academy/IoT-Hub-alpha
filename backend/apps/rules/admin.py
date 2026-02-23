@@ -4,8 +4,10 @@ from django.contrib import messages
 from django.http import HttpRequest, HttpResponse
 from django.urls import path
 from django.shortcuts import redirect
-from .models import Rule
+from .models import Rule, validate_condition, validate_action_config
 from .tasks import process_telemetry
+from .admin_widget import HelpWidget
+from django.core.exceptions import PermissionDenied
 
 
 @admin.action(description="Enable selected rules")
@@ -28,8 +30,31 @@ def disable_rules(modeladmin, request, queryset):
     )
 
 
+class RuleAdminForm(forms.ModelForm):
+    class Meta:
+        model = Rule
+        fields = "__all__"
+
+    def clean_condition(self):
+        value = self.cleaned_data.get("condition")
+        validate_condition(value)
+        return value
+
+    def clean_action_config(self):
+        value = self.cleaned_data.get("action_config")
+        validate_action_config(value)
+        return value
+
+
 @admin.register(Rule)
 class RuleAdmin(admin.ModelAdmin):
+
+    class Media:
+        js = ("admin/condition_ui.js",)
+        css = {"all": ("admin/condition_ui.css",)}
+
+    form = RuleAdminForm
+
     list_display = [
         "name",
         "device",
@@ -43,7 +68,23 @@ class RuleAdmin(admin.ModelAdmin):
     readonly_fields = ["id", "created_at", "updated_at", "last_triggered_at"]
     date_hierarchy = "created_at"
     actions = [enable_rules, disable_rules]
-    change_list_template = "admin/rules/rule/change_list.html"  # <- important
+    change_list_template = "admin/rules/rule/change_list.html"
+
+    def formfield_for_dbfield(self, db_field, request, **kwargs):
+        formfield = super().formfield_for_dbfield(db_field, request, **kwargs)
+
+        if db_field.name == "condition":
+            formfield.widget = HelpWidget(
+                attrs={"rows": 8, "style": "width:100%;"}, target="condition"
+            )
+
+        if db_field.name == "action_config":
+            formfield.widget = HelpWidget(
+                target="action",
+                attrs={"rows": 8, "style": "width:100%;"},
+            )
+
+        return formfield
 
     def get_urls(self):
         urls = super().get_urls()
@@ -56,8 +97,20 @@ class RuleAdmin(admin.ModelAdmin):
         ]
         return custom + urls
 
+    def save_model(self, request, obj, form, change):
+        if change:
+            if not request.user.has_perm("rules.change_rule"):
+                raise PermissionDenied("You can't update rules.")
+        else:
+            if not request.user.has_perm("rules.add_rule"):
+                raise PermissionDenied("You can't create rules.")
+
+        if not change and hasattr(obj, "created_by_id") and not obj.created_by_id:
+            obj.created_by = request.user
+
+        super().save_model(request, obj, form, change)
+
     def run_processor_view(self, request: HttpRequest) -> HttpResponse:
-        # Optional: permission gate (usually staff already, but be explicit)
         if not self.has_change_permission(request):
             self.message_user(request, "Permission denied.", level=messages.ERROR)
             return redirect("..")

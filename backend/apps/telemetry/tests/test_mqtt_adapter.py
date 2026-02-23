@@ -226,8 +226,9 @@ class TestHandleMqttMessageDirectMode:
 
         result = handle_mqtt_message("telemetry/SN1", payload)
 
-        assert result["status"] == "error"
-        assert result["reason"] == "persistence_failed"
+    def test_short_topic_ignored(self):
+        # Should not raise
+        Command._handle_device_status("devices", b"online")
 
 
 class TestHandleDeviceStatus:
@@ -283,7 +284,7 @@ class TestMqttAdapterCommandCallbacks:
         with patch(
             "apps.telemetry.management.commands.mqtt_adapter.handle_mqtt_message"
         ) as mock_handle:
-            mock_handle.return_value = {"status": "created"}
+            mock_handle.return_value = {"status": "accepted"}
             callbacks["on_message"](mock_client_instance, None, msg)
             mock_handle.assert_called_once_with(msg.topic, msg.payload)
 

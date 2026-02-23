@@ -32,6 +32,8 @@ from apps.telemetry.services import TelemetryBatchProcessor, TelemetryValidator
 
 logger = logging.getLogger(__name__)
 
+DEVICE_STATUS_TOPIC = "devices/+/status"
+
 
 def _extract_serial_number(topic: str) -> str | None:
     """
@@ -114,14 +116,24 @@ def handle_mqtt_message(topic: str, payload_bytes: bytes) -> dict:
             "MQTT malformed JSON payload",
             extra={"topic": topic, "error": str(exc)},
         )
-        return {"status": "error", "reason": "malformed_json", "detail": str(exc)}
+        return {
+            "status": "error",
+            "serial_number": None,
+            "reason": "malformed_json",
+            "detail": str(exc),
+        }
 
     if not isinstance(data, dict):
         logger.warning(
             "MQTT payload is not a JSON object",
             extra={"topic": topic},
         )
-        return {"status": "error", "reason": "invalid_payload_type"}
+        return {
+            "status": "error",
+            "serial_number": None,
+            "reason": "invalid_payload_type",
+            "detail": None,
+        }
 
     serial_number = data.get("serial_number") or _extract_serial_number(topic)
     if not serial_number:
@@ -129,7 +141,12 @@ def handle_mqtt_message(topic: str, payload_bytes: bytes) -> dict:
             "MQTT message missing serial_number",
             extra={"topic": topic},
         )
-        return {"status": "error", "reason": "missing_serial_number"}
+        return {
+            "status": "error",
+            "serial_number": None,
+            "reason": "missing_serial_number",
+            "detail": None,
+        }
 
     data["serial_number"] = serial_number
 
@@ -204,8 +221,8 @@ def handle_mqtt_message(topic: str, payload_bytes: bytes) -> dict:
     try:
         telemetry = TelemetryBatchProcessor.process_single(validated)
     except Exception as exc:
-        logger.exception(
-            "MQTT telemetry persistence failed",
+        logger.error(
+            "MQTT failed to publish raw event",
             extra={"topic": topic, "error": str(exc)},
         )
         return {
@@ -238,6 +255,36 @@ class Command(BaseCommand):
         "Run a lightweight MQTT adapter that subscribes to a dev topic "
         "and routes messages into the telemetry ingestion pipeline."
     )
+
+    # Device connection event handling
+
+    @staticmethod
+    def _handle_device_status(topic: str, payload_bytes: bytes) -> None:
+        """
+        Handle messages on ``devices/<serial>/status``.
+
+        Devices are expected to:
+        * publish ``online`` to their status topic on connect
+        * set LWT (Last Will and Testament) to ``offline`` on the same topic
+        """
+        parts = topic.strip("/").split("/")
+        if len(parts) < 2:
+            return
+
+        serial_number = parts[-2] if parts[-1] == "status" else parts[-1]
+        try:
+            status = payload_bytes.decode("utf-8", errors="replace").strip().lower()
+        except Exception:
+            status = "unknown"
+
+        logger.info(
+            "Device status change",
+            extra={
+                "serial_number": serial_number,
+                "status": status,
+                "topic": topic,
+            },
+        )
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -293,18 +340,15 @@ class Command(BaseCommand):
 
         client = mqtt.Client(CallbackAPIVersion.VERSION2)
 
-        if settings.MQTT_USERNAME:
-            client.username_pw_set(settings.MQTT_USERNAME, settings.MQTT_PASSWORD)
-
-        if settings.MQTT_USE_TLS:
-            client.tls_set()
-
         def on_connect(client, userdata, flags, reason_code, properties=None):
             if reason_code == 0:
                 self.stdout.write(self.style.SUCCESS("Connected to MQTT broker"))
                 client.subscribe(topic, qos=qos)
                 client.subscribe("devices/+/status", qos=qos)
                 self.stdout.write(f"Subscribed to: {topic}")
+                # Subscribe to device status topics for connect/disconnect events
+                client.subscribe(DEVICE_STATUS_TOPIC, qos=1)
+                self.stdout.write(f"Subscribed to: {DEVICE_STATUS_TOPIC}")
             else:
                 self.stderr.write(self.style.ERROR(f"Connection failed: {reason_code}"))
 
