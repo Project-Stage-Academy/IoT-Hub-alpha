@@ -18,6 +18,7 @@ ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 
 
 INSTALLED_APPS = [
+    "daphne",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -30,12 +31,14 @@ INSTALLED_APPS = [
     "apps.rules",
     "apps.events",
     "apps.notifications",
+    "channels",
     "django_celery_beat",
 ]
 
 MIDDLEWARE = [
     "request_id.middleware.RequestIdMiddleware",
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "config.middleware.RateLimitingMiddleware",
     "config.middleware.RequestContextMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -65,6 +68,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "config.wsgi.application"
+ASGI_APPLICATION = "config.asgi.application"
 
 DATABASES = {
     "default": {
@@ -299,11 +303,11 @@ elif setup_celery_logging_context is not None:
 MQTT_BROKER_HOST = os.getenv("MQTT_BROKER_HOST", "mosquitto")
 MQTT_BROKER_PORT = int(os.getenv("MQTT_BROKER_PORT", "1883"))
 MQTT_TOPIC = os.getenv("MQTT_TOPIC", "telemetry/#")
-MQTT_USERNAME = os.getenv("MQTT_USERNAME", "")
-MQTT_PASSWORD = os.getenv("MQTT_PASSWORD", "")
 MQTT_QOS = int(os.getenv("MQTT_QOS", "1"))
-MQTT_USE_TLS = os.getenv("MQTT_USE_TLS", "false").lower() in ("true", "1", "yes")
 MQTT_CONNECT_TIMEOUT = int(os.getenv("MQTT_CONNECT_TIMEOUT", "10"))
+
+# Telemetry producer backend: "log" (stub) or "kafka" (when available)
+TELEMETRY_PRODUCER_BACKEND = os.getenv("TELEMETRY_PRODUCER_BACKEND", "log")
 
 RATE_LIMIT_ENABLED = os.getenv("RATE_LIMIT_ENABLED", "False").lower() in (
     "true",

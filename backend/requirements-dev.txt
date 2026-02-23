@@ -19,6 +19,7 @@ black==24.8.0
 flake8==7.1.1
 
 #---- Simulator dependencies ----
+dotenv==0.9.9
 paho-mqtt==2.1.0
 pydantic==2.12.5
 pydantic_core==2.41.5
