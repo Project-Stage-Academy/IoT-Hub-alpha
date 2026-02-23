@@ -38,16 +38,7 @@ def _build_http_idempotency_key(*, serial_number: str, payload: object) -> str:
 
 @method_decorator(csrf_exempt, name="dispatch")
 class TelemetryIngestView(View):
-    """
-    POST /api/v1/telemetry/ — publish raw telemetry to the producer.
-
-    Accepts single or batched payloads, wraps each item in a
-    ``telemetry.raw`` envelope and hands it to the configured
-    :class:`~apps.telemetry.producers.TelemetryProducer`.
-
-    Validation and persistence are handled downstream by the
-    Kafka consumer (separate story).
-    """
+    """POST /api/v1/telemetry/ - ingest single or batched telemetry data"""
 
     def post(self, request):
         try:
@@ -101,35 +92,121 @@ class TelemetryIngestView(View):
         if settings.TELEMETRY_ASYNC_INGESTION:
             return self._handle_async(data, is_batch, idempotency_key)
         else:
-            return self._handle_sync(data, is_batch, idempotency_key, serial_number)
+            return self._handle_sync(data, is_batch, idempotency_key)
 
-    def _handle_sync(
-        self,
-        data,
-        is_batch: bool,
-        idempotency_key: str | None,
-        serial_number: str,
-    ):
+    def _handle_sync(self, data, is_batch: bool, idempotency_key: str | None):
         if is_batch:
-            for item in data:
-                item["serial_number"] = serial_number
+            return self._handle_batch_sync(data, idempotency_key)
         else:
-            data["serial_number"] = serial_number
+            return self._handle_single_sync(data, idempotency_key)
 
-        # Publish raw payload(s) to telemetry.raw topic
-        producer = get_producer()
-        items_to_publish = data if is_batch else [data]
-        for item in items_to_publish:
-            producer.publish_raw(
-                data=build_raw_event(item, source="http", serial_number=serial_number),
-                source="http",
-                serial_number=serial_number,
+    def _handle_db_errors(self, error: Exception, context: str) -> JsonResponse:
+        """Handle database errors with appropriate status codes and logging."""
+        if isinstance(error, IntegrityError):
+            logger.exception(
+                "Database integrity error",
+                extra={"context": context, "error_type": error.__class__.__name__},
+            )
+            return JsonResponse({"error": "Processing failed"}, status=409)
+        elif isinstance(error, DatabaseError):
+            logger.exception(
+                "Database error",
+                extra={"context": context, "error_type": error.__class__.__name__},
+            )
+            return JsonResponse({"error": "Processing failed"}, status=503)
+        elif isinstance(error, (ValueError, TypeError)):
+            logger.exception(
+                "Invalid data type",
+                extra={"context": context, "error_type": error.__class__.__name__},
+            )
+            return JsonResponse({"error": "Invalid data"}, status=400)
+        else:
+            logger.exception(
+                "Unexpected error",
+                extra={"context": context, "error_type": error.__class__.__name__},
+            )
+            return JsonResponse({"error": "Processing failed"}, status=500)
+
+    def _handle_single_sync(self, data: dict, idempotency_key: str | None):
+        validated, error = TelemetryValidator.validate_single(data)
+        if error:
+            return JsonResponse(error, status=400)
+
+        try:
+            telemetry = TelemetryBatchProcessor.process_single(validated)
+            response = TelemetryResponseFormatter.format_single_created(
+                telemetry, idempotency_key
+            )
+            return JsonResponse(response, status=201)
+        except (IntegrityError, DatabaseError, ValueError, TypeError) as e:
+            return self._handle_db_errors(e, "single sync ingestion")
+
+    def _handle_batch_sync(self, data: list, idempotency_key: str | None):
+        validated_items, errors = TelemetryValidator.validate_batch(data)
+
+        if errors:
+            error_response = TelemetryResponseFormatter.format_validation_error(
+                errors, len(data), is_batch=True
+            )
+            return JsonResponse(error_response, status=400)
+
+        try:
+            created = TelemetryBatchProcessor.process_batch(validated_items)
+            response = TelemetryResponseFormatter.format_batch_created(
+                created, len(data), idempotency_key
+            )
+            return JsonResponse(response, status=201)
+        except (IntegrityError, DatabaseError, ValueError, TypeError) as e:
+            return self._handle_db_errors(e, "batch sync ingestion")
+
+    def _handle_async(self, data, is_batch: bool, idempotency_key: str | None):
+        request_id = str(uuid.uuid4())
+        count = len(data) if is_batch else 1
+        items_to_validate = data if is_batch else [data]
+
+        validated_items, errors = TelemetryValidator.validate_batch(items_to_validate)
+
+        if errors:
+            error_response = TelemetryResponseFormatter.format_validation_error(
+                errors, count, is_batch=False
+            )
+            return JsonResponse(error_response, status=400)
+
+        serialized_items = []
+        for item in validated_items:
+            serialized = {
+                "device_id": str(item["device"].id),
+                "payload": item["payload"],
+            }
+            if "timestamp" in item:
+                serialized["timestamp"] = item["timestamp"].isoformat()
+            serialized_items.append(serialized)
+
+        try:
+            task = ingest_telemetry_batch_async.delay(serialized_items, request_id)
+            task_id = task.id
+        except (ConnectionError, TimeoutError) as e:
+            logger.error(
+                "Failed to connect to task queue",
+                extra={"request_id": request_id, "error": str(e)},
+            )
+            return JsonResponse(
+                {"error": "Task queue unavailable", "details": str(e)},
+                status=503,
+            )
+        except (ValueError, TypeError) as e:
+            logger.error(
+                "Invalid task parameters",
+                extra={"request_id": request_id, "error": str(e)},
+            )
+            return JsonResponse(
+                {"error": "Failed to queue task", "details": str(e)},
+                status=500,
             )
 
-        count = len(items_to_publish)
-        response = {"status": "accepted", "count": count}
-        if idempotency_key:
-            response["idempotency_key"] = idempotency_key
+        response = TelemetryResponseFormatter.format_async_accepted(
+            request_id, task_id, count, idempotency_key
+        )
         return JsonResponse(response, status=202)
 
     def _handle_kafka(
