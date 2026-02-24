@@ -3,7 +3,7 @@ from datetime import datetime
 from dataclasses import dataclass, field
 from pydantic import BaseModel, ConfigDict, model_validator, Field
 from typing import Literal, Any
-
+from django.utils import timezone as tz
 
 @dataclass()
 class EvalResults:
@@ -79,3 +79,17 @@ class Condition(BaseModel):
             raise ValueError("occurrences and window_seconds must be set together")
 
         return self
+
+
+class ExternalEventMessage(BaseModel):
+    type: str = "external"
+    rule_id: str
+    device_id: str
+    timestamp: str = str(tz.now().isoformat())
+    severy: str = "warning"
+    message: str = "External rule triggered"
+    execution_results: list = []
+    telemetry_snapshot: dict = {}
+    action_config: list = []
+    
+    model_config = ConfigDict(extra="ignore")

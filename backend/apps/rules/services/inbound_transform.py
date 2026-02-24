@@ -4,6 +4,7 @@ from pathlib import Path
 from dateutil import parser
 from datetime import timezone
 from django.utils import timezone as tz
+from .data_structure import ExternalEventMessage
 
 class TransformationError(Exception):
     pass
@@ -16,41 +17,63 @@ class TransformEngine:
         self.mappings = self._get_map_or_die(id)
         self.body = body
         
-        data = self._init_transfrom(self.mappings, self.result, self.body)
+        result = self._init_transfrom(self.mappings, self.result, self.body)
+        validate_final = ExternalEventMessage(**result)
         
-        return self.result
+        return validate_final.model_dump()
     
-    def _init_transfrom(self, mapping, result, body):
+    def _init_transfrom(self, mapping: dict, result: dict, body: dict):
         if not isinstance(mapping, dict):
             raise TransformationError("rules.mappings must be an object")
-        
         try:
-            
             for target_key, spec in mapping.items():
+                if not isinstance(spec, dict):
+                    raise TransformationError(f"{target_key} spec must be an object")
+
+                if "list" in spec:
+                    data_list = self.body[spec.get('from')]
+                    new_list = []
+                    if not spec.get('list'):
+                        raise TransformationError(f"From does not exist on {spec}")
+                    for elem in data_list:
+                        transformed = self._init_transfrom(spec.get('list'), {}, elem)
+                        new_list.append(transformed)
+                    result[target_key] = new_list
+                    continue
                 
+                if "inner_dict" in spec:
+                    inner_source = body
+                    if "from" in spec:
+                        inner_source = body.get(spec["from"])
+                        if inner_source is None:
+                            inner_source = spec.get("default", {})
+                        if not isinstance(inner_source, dict):
+                            raise TransformationError(f"{target_key}: inner source must be a dict")
+
+                    child = {}
+                    result[target_key] = child
+                    self._init_transfrom(spec["inner_dict"], child, inner_source)
+                    continue
+
                 if "from" in spec:
-                    value = self.body.get(spec.get("from"))
+                    value = body.get(spec["from"])
                     if value is None and "default" in spec:
-                        value = spec.get('default')
+                        value = spec["default"]
                     if "cast" in spec:
-                        value = self._cast_value(value, spec['cast'])
-                        
+                        value = self._cast_value(value, spec["cast"])
                     result[target_key] = value
-                    
-                elif "from" not in spec and "default" in spec:
-                    default = spec.get('default')
-                    result[target_key] = default
-                    
-                elif "inner_dict" in spec:
-                    result[target_key] = {}
-                    self._init_transfrom(spec['inner'], result[target_key], self.body)
-                
-                    
-                
-                    
+                    continue
+
+                if "default" in spec:
+                    value = spec["default"]
+                    if "cast" in spec:
+                        value = self._cast_value(value, spec["cast"])
+                    result[target_key] = value
+                    continue                             
+                        
         except(KeyError, ValueError) as e:
             raise TransformationError(e)
-        
+            
         return result   
         
     
@@ -61,7 +84,7 @@ class TransformEngine:
             case "int":
                 return int(value)
             case "float":
-                return bool(value)
+                return float(value)
             case "bool":
                 if isinstance(value, str):
                     if value.lower() in ['yes', 'true', '1', 'ok']:
@@ -80,7 +103,6 @@ class TransformEngine:
             return tz.now().isoformat()
 
         if dt.tzinfo is None:
-            # assume UTC if naive
             dt = dt.replace(tzinfo=timezone.utc)
 
         return dt.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
