@@ -16,6 +16,7 @@ from apps.devices.models import Device
 from apps.telemetry.services import process_telemetry_payload
 from apps.telemetry.exceptions import RawContractError
 from apps.telemetry.validators import validate_raw_contract
+from apps.telemetry.service_layer.write_buffer import WriteBuffer
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +48,7 @@ class Command(BaseCommand):
         parser.add_argument(
             "--batch-size",
             type=int,
-            default=100,
+            default=200,
             help="Number of messages to process in one batch",
         )
 
@@ -84,7 +85,7 @@ class Command(BaseCommand):
 
         try:
             while self._running:
-                messages = consumer.consume(
+                messages = raw_consumer.consume(
                     num_messages=batch_size, timeout=poll_timeout
                 )
 
@@ -147,6 +148,8 @@ class Command(BaseCommand):
 
                 producer.flush(publish_timeout)
 
+                write_buffer.handle()
+
                 if batch_errors:
                     logger.critical(
                         f"Batch publish failed with {len(batch_errors)} errors."
@@ -156,11 +159,11 @@ class Command(BaseCommand):
                         "Failed to route batch. Stopping stub to preserve "
                         "at-least-once behavior."
                     )
-                consumer.commit(asynchronous=False)
+                raw_consumer.commit(asynchronous=False)
 
                 logger.info(
                     "Successfully processed and committed batch "
-                    f"of {len(messages)} messages."
+                    f"of {len(messages)} messages. {routed["target_topic"]}"
                 )
 
                 if max_messages > 0 and processed_total >= max_messages:
@@ -225,8 +228,10 @@ class Command(BaseCommand):
 
         except RawContractError as exc:
             error_code, error_detail = exc.code, exc.detail
+            print(error_code, error_detail)
         except Exception as exc:
             error_code, error_detail = "unexpected_error", str(exc)
+            print(error_code, error_detail)
 
         event_id = self._build_event_id(
             raw_obj, source_topic, source_partition, source_offset
