@@ -5,6 +5,7 @@ from dateutil import parser
 from datetime import timezone
 from django.utils import timezone as tz
 from .data_structure import ExternalEventMessage
+from pydantic import ValidationError
 
 class TransformationError(Exception):
     pass
@@ -17,62 +18,69 @@ class TransformEngine:
         self.mappings = self._get_map_or_die(id)
         self.body = body
         
-        result = self._init_transfrom(self.mappings, self.result, self.body)
-        validate_final = ExternalEventMessage(**result)
+        try:
+            result = self._init_transfrom(self.mappings, self.result, self.body)   
+            validate_final = ExternalEventMessage.model_validate(result)
+        except ValidationError as e:
+            raise TransformationError(f"Validation error: {e}")
+        except (KeyError, ValueError, AttributeError) as e:
+            raise TransformationError(f"Parsing error: {e}")
+        except RecursionError as e:
+            raise TransformationError(f"Recursion error: {e}")
         
         return validate_final.model_dump()
     
     def _init_transfrom(self, mapping: dict, result: dict, body: dict):
         if not isinstance(mapping, dict):
             raise TransformationError("rules.mappings must be an object")
-        try:
-            for target_key, spec in mapping.items():
-                if not isinstance(spec, dict):
-                    raise TransformationError(f"{target_key} spec must be an object")
+        for target_key, spec in mapping.items():
+            if not isinstance(spec, dict):
+                raise TransformationError(f"{target_key} spec must be an object")
 
-                if "list" in spec:
-                    data_list = self.body[spec.get('from')]
-                    new_list = []
-                    if not spec.get('list'):
-                        raise TransformationError(f"From does not exist on {spec}")
-                    for elem in data_list:
-                        transformed = self._init_transfrom(spec.get('list'), {}, elem)
-                        new_list.append(transformed)
-                    result[target_key] = new_list
-                    continue
+            if "list" in spec:
+                data_list = self.body[spec.get('from')]
+                new_list = []
+                if not isinstance(spec.get('list'), dict):
+                    raise TransformationError("spec.list must be an object")
+                if not isinstance(data_list, list):
+                    raise TransformationError(f"{target_key}: expected list at '{spec['from']}'")
+                for elem in data_list:
+                    transformed = self._init_transfrom(spec.get('list'), {}, elem)
+                    new_list.append(transformed)
+                result[target_key] = new_list
+                continue
                 
-                if "inner_dict" in spec:
-                    inner_source = body
-                    if "from" in spec:
-                        inner_source = body.get(spec["from"])
-                        if inner_source is None:
-                            inner_source = spec.get("default", {})
-                        if not isinstance(inner_source, dict):
-                            raise TransformationError(f"{target_key}: inner source must be a dict")
-
-                    child = {}
-                    result[target_key] = child
-                    self._init_transfrom(spec["inner_dict"], child, inner_source)
-                    continue
-
+            if "inner_dict" in spec:
+                inner_source = body
                 if "from" in spec:
-                    value = body.get(spec["from"])
-                    if value is None and "default" in spec:
-                        value = spec["default"]
-                    if "cast" in spec:
-                        value = self._cast_value(value, spec["cast"])
-                    result[target_key] = value
-                    continue
+                    inner_source = body.get(spec["from"])
+                    if inner_source is None:
+                        inner_source = spec.get("default", {})
+                    if not isinstance(inner_source, dict):
+                        raise TransformationError(f"{target_key}: inner source must be a dict")
 
-                if "default" in spec:
+                child = {}
+                result[target_key] = child
+                self._init_transfrom(spec["inner_dict"], child, inner_source)
+                continue
+
+            if "from" in spec:
+                value = body.get(spec["from"])
+                if value is None and "default" in spec:
                     value = spec["default"]
-                    if "cast" in spec:
-                        value = self._cast_value(value, spec["cast"])
-                    result[target_key] = value
-                    continue                             
-                        
-        except(KeyError, ValueError) as e:
-            raise TransformationError(e)
+                if value is None and "default" not in spec:
+                    continue
+                if "cast" in spec:
+                    value = self._cast_value(value, spec["cast"])
+                result[target_key] = value
+                continue
+
+            if "default" in spec:
+                value = spec["default"]
+                if "cast" in spec:
+                    value = self._cast_value(value, spec["cast"])
+                result[target_key] = value
+                continue
             
         return result   
         

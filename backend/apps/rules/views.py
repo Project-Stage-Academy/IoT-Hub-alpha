@@ -1,14 +1,9 @@
 from __future__ import annotations
-
-from typing import Any
-from uuid import UUID
-
-from django.core.paginator import Paginator
 from django.http import HttpRequest, JsonResponse
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
-from apps.rules.services.view_helpers import get_json_body
+from apps.rules.services.view_helpers import get_json_body, check_external_cooldown
 from apps.rules.services.inbound_transform import TransformEngine, TransformationError
 
 @method_decorator(csrf_exempt, name="dispatch")
@@ -26,6 +21,4 @@ class ExternalRule(View):
         except TransformationError as e:
             return JsonResponse({"error": f"Failed: {e}"}, status=400)
         
-        #send to producer
-        
-        return JsonResponse(transformed, status=200)
+        return JsonResponse(transformed, status=202)

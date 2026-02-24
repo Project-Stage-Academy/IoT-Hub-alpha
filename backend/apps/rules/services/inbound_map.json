@@ -1,6 +1,7 @@
 [{
     "id": 1234,
     "map": {
+    "cooldown_min": { "from": "cooldown" },
     "rule_id": { "from": "trigger", "cast": "str"},
     "device_id": { "from": "aparatus", "cast": "str" },
     "message": { "from": "message", "cast": "str" },
@@ -9,6 +10,7 @@
         "ts": { "default": "", "cast": "timezone" }
     } },
     "action_config": { "from": "actions", "list": {
+        "type": { "default": "email" },
         "to": { "from": "address" },
         "name": { "from": "person" }
     }}

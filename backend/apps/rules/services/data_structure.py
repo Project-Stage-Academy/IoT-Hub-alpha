@@ -91,5 +91,6 @@ class ExternalEventMessage(BaseModel):
     execution_results: list = []
     telemetry_snapshot: dict = {}
     action_config: list = []
+    cooldown_min: int = 60
     
     model_config = ConfigDict(extra="ignore")

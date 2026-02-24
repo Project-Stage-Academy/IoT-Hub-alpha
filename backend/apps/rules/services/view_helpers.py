@@ -1,6 +1,5 @@
 import json
-from django.views import View
-from django.http import JsonResponse
+from apps.events.models import Event
 
 
 def get_json_body(body) -> dict:
@@ -9,3 +8,6 @@ def get_json_body(body) -> dict:
     except json.JSONDecodeError:
         data = {}
     return data
+
+def check_external_cooldown(external_id, cooldown):
+    pass
