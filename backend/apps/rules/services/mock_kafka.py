@@ -232,9 +232,7 @@ class MockConsumer:
                     if offset < len(messages):
                         msg_data = messages[offset]
                         self.offsets[topic] += 1
-                        logger.debug(
-                            f"Polled message from {topic} offset {offset}"
-                        )
+                        logger.debug(f"Polled message from {topic} offset {offset}")
                         return MockMessage(
                             topic=topic,
                             value=msg_data["value"],
@@ -247,7 +245,7 @@ class MockConsumer:
         # Timeout elapsed with no messages available
         elapsed = time.time() - start_time
         logger.debug(
-            f"Poll timeout after {elapsed:.2f}s (requested: {timeout_s}s)"
+            f"Poll timeout after {elapsed:.2f}s (requested: {timeout_s}s)",
         )
         return None
 
