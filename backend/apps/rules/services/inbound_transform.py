@@ -140,7 +140,7 @@ class TransformEngine:
                     return bool(value)
             case "timezone":
                 return self._convert_time(value)
-            
+
             case _:
                 raise TransformationError(f"{value} case value {cast} not found")
 
