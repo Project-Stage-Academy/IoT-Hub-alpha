@@ -141,6 +141,87 @@ services:
     networks:
       - iot_hub_net
 
+  kafka:
+    image: confluentinc/cp-kafka:7.7.1
+    container_name: iot_hub_kafka
+    restart: unless-stopped
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093,EXTERNAL://0.0.0.0:9094
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,EXTERNAL://localhost:9094
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+    ports:
+      - "9094:9094"
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-topics --bootstrap-server localhost:9092 --list > /dev/null 2>&1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+    logging: *default-logging
+    networks:
+      - iot_hub_net
+
+  kafka-init:
+    image: confluentinc/cp-kafka:7.7.1
+    container_name: iot_hub_kafka_init
+    restart: "no"
+    depends_on:
+      kafka:
+        condition: service_healthy
+    environment:
+      KAFKA_TOPICS: ${KAFKA_TOPICS:-telemetry.raw,telemetry.clean,telemetry.dlq,event.topic}
+    command: >
+      /bin/sh -c '
+      attempt=1;
+      until kafka-topics --bootstrap-server kafka:9092 --list >/dev/null 2>&1; do
+        if [ "$$attempt" -ge 30 ]; then
+          echo "Kafka broker was not ready after 30 attempts";
+          exit 1;
+        fi;
+        echo "Waiting for Kafka broker... attempt $$attempt/30";
+        attempt=$$((attempt + 1));
+        sleep 2;
+      done;
+      for topic in $$(echo "$$KAFKA_TOPICS" | tr "," " "); do
+        kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic "$$topic" --partitions 3 --replication-factor 1;
+      done;
+      echo "Kafka topics ready:";
+      kafka-topics --bootstrap-server kafka:9092 --list;
+      '
+    logging: *default-logging
+    networks:
+      - iot_hub_net
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:v0.7.2
+    container_name: iot_hub_kafka_ui
+    restart: unless-stopped
+    profiles: ["kafka-ui"]
+    depends_on:
+      kafka:
+        condition: service_healthy
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+    ports:
+      - "8080:8080"
+    logging: *default-logging
+    networks:
+      - iot_hub_net
+
   prometheus:
     image: prom/prometheus:v2.54.1
     container_name: iot_hub_prometheus
@@ -232,6 +313,7 @@ networks:
 volumes:
   postgres_data:
   redis_data:
+  kafka_data:
   prometheus_data:
   grafana_data:
   mosquitto_data:

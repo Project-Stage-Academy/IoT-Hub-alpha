@@ -1,0 +1,37 @@
+[
+  {
+    "name": "clean_valid_temp",
+    "data": {
+      "schema_version": "1.0",
+      "ssn": "TEMP-SN-002",
+      "value": 2443
+    },
+    "expected": 202
+  },
+  {
+    "name": "dlq_invalid_schema",
+    "data": {
+      "schema_version": "9.9",
+      "ssn": "TEMP-SN-002",
+      "value": 2443
+    },
+    "expected": 202
+  },
+  {
+    "name": "dlq_missing_schema",
+    "data": {
+      "ssn": "TEMP-SN-002",
+      "value": 2443
+    },
+    "expected": 202
+  },
+  {
+    "name": "dlq_unknown_device",
+    "data": {
+      "schema_version": "1.0",
+      "ssn": "SN-NOT-EXISTS-999",
+      "value": 2443
+    },
+    "expected": 202
+  }
+]

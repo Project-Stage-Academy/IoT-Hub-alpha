@@ -1,98 +1,152 @@
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import patch
 
 from apps.telemetry.producers import (
+    KafkaProducer,
     LogProducer,
     TelemetryProducer,
     build_raw_event,
     get_producer,
     reset_producer,
-    TELEMETRY_RAW_TOPIC,
 )
 
 
-class TestLogProducer:
-    """Unit tests for the LogProducer stub."""
+class TestBuildRawEvent:
+    def test_builds_task70_contract(self):
+        payload = {"schema_version": "1.0", "value": 42}
 
+        event = build_raw_event(
+            payload,
+            source="http",
+            serial_number="TEMP-SN-002",
+            request_id="req-1",
+            ingest_index=3,
+            received_at="2026-01-01T00:00:00+00:00",
+        )
+
+        assert event == {
+            "request_id": "req-1",
+            "ingest_protocol": "http",
+            "serial_number": "TEMP-SN-002",
+            "payload": payload,
+            "received_at": "2026-01-01T00:00:00+00:00",
+            "ingest_index": 3,
+        }
+
+    def test_includes_non_empty_idempotency_key(self):
+        event = build_raw_event(
+            {"value": 1},
+            source="mqtt",
+            serial_number="SN1",
+            idempotency_key="  idem-1  ",
+        )
+
+        assert event["idempotency_key"] == "idem-1"
+
+    @pytest.mark.parametrize("ingest_index", [-1, True, 1.2, "1"])
+    def test_rejects_invalid_ingest_index(self, ingest_index):
+        with pytest.raises(ValueError, match="ingest_index"):
+            build_raw_event(
+                {"value": 1},
+                source="http",
+                serial_number="SN1",
+                ingest_index=ingest_index,
+            )
+
+    def test_rejects_invalid_idempotency_type(self):
+        with pytest.raises(ValueError, match="idempotency_key"):
+            build_raw_event(
+                {"value": 1},
+                source="http",
+                serial_number="SN1",
+                idempotency_key=123,  # type: ignore[arg-type]
+            )
+
+
+class TestLogProducer:
     def test_implements_protocol(self):
         assert isinstance(LogProducer(), TelemetryProducer)
 
-    def test_publish_raw_logs_event(self, caplog):
+    @patch("apps.telemetry.producers.TelemetryKafkaProducer.resolve_topic")
+    def test_publish_returns_resolved_topic(self, mock_resolve_topic):
+        mock_resolve_topic.return_value = "telemetry.raw.resolved"
         producer = LogProducer()
 
-        with caplog.at_level("INFO"):
-            producer.publish_raw(
-                data={"raw_payload": {"value": 42}},
+        topic = producer.publish_raw(
+            data=build_raw_event(
+                {"value": 42},
                 source="http",
                 serial_number="TEMP-SN-002",
-            )
+            ),
+            source="http",
+            serial_number="TEMP-SN-002",
+        )
 
-        assert "telemetry.raw event" in caplog.text
+        assert topic == "telemetry.raw.resolved"
 
-    def test_close_is_noop(self):
+    def test_publish_batch_rejects_mixed_serials(self):
         producer = LogProducer()
-        producer.close()  # should not raise
+        events = [
+            build_raw_event({"value": 1}, source="http", serial_number="SN-A"),
+            build_raw_event({"value": 2}, source="http", serial_number="SN-B"),
+        ]
+
+        with pytest.raises(ValueError, match="serial_number mismatch"):
+            producer.publish_raw_batch(events, source="http", serial_number="SN-A")
 
 
-class TestBuildRawEvent:
-    """Unit tests for the raw event envelope builder."""
+class TestKafkaProducer:
+    @patch("apps.telemetry.producers.TelemetryKafkaProducer")
+    def test_publish_batch_passes_headers_and_returns_topic(self, mock_impl_cls):
+        mock_impl = mock_impl_cls.return_value
+        mock_impl.resolve_topic.return_value = "telemetry.raw"
 
-    def test_envelope_structure(self):
-        raw = {"schema_version": "1.0", "value": 2550, "serial_number": "TEMP-SN-002"}
+        producer = KafkaProducer()
+        topic = producer.publish_raw_batch(
+            data=[
+                build_raw_event(
+                    {"value": 1},
+                    source="http",
+                    serial_number="SN1",
+                    idempotency_key="idem-1",
+                ),
+            ],
+            source="http",
+            serial_number="SN1",
+        )
 
-        event = build_raw_event(raw, source="http", serial_number="TEMP-SN-002")
-
-        assert event["source"] == "http"
-        assert event["serial_number"] == "TEMP-SN-002"
-        assert "received_at" in event
-        assert event["raw_payload"] == raw
-
-    def test_shares_payload_reference(self):
-        """raw_payload is the same object."""
-        raw = {"nested": {"key": "original"}}
-
-        event = build_raw_event(raw, source="mqtt", serial_number="SN1")
-
-        assert event["raw_payload"] is raw
-
-    def test_source_values(self):
-        raw = {"value": 1}
-
-        http_event = build_raw_event(raw, source="http", serial_number="SN1")
-        mqtt_event = build_raw_event(raw, source="mqtt", serial_number="SN1")
-
-        assert http_event["source"] == "http"
-        assert mqtt_event["source"] == "mqtt"
+        assert topic == "telemetry.raw"
+        mock_impl.publish_batch.assert_called_once()
+        _, kwargs = mock_impl.publish_batch.call_args
+        assert kwargs["topic"] == "telemetry.raw"
+        assert ("ingest_protocol", b"http") in kwargs["headers"]
+        assert ("idempotency_key", b"idem-1") in kwargs["headers"]
 
 
 class TestGetProducer:
-    """Unit tests for the singleton producer factory."""
-
     def setup_method(self):
         reset_producer()
 
     def teardown_method(self):
         reset_producer()
 
-    def test_returns_log_producer_by_default(self, settings):
+    def test_default_returns_log(self, settings):
         settings.TELEMETRY_PRODUCER_BACKEND = "log"
-        producer = get_producer()
-        assert isinstance(producer, LogProducer)
+        assert isinstance(get_producer(), LogProducer)
 
-    def test_singleton_returns_same_instance(self, settings):
-        settings.TELEMETRY_PRODUCER_BACKEND = "log"
-        p1 = get_producer()
-        p2 = get_producer()
-        assert p1 is p2
-
-    def test_kafka_backend_raises_not_implemented(self, settings):
+    @patch("apps.telemetry.producers.KafkaProducer")
+    def test_kafka_backend_uses_kafka_producer(self, mock_kafka_cls, settings):
         settings.TELEMETRY_PRODUCER_BACKEND = "kafka"
-        with pytest.raises(NotImplementedError, match="KafkaProducer"):
-            get_producer()
+        instance = MagicMock()
+        mock_kafka_cls.return_value = instance
 
-    def test_reset_allows_reconfiguration(self, settings):
-        settings.TELEMETRY_PRODUCER_BACKEND = "log"
-        p1 = get_producer()
-        reset_producer()
-        p2 = get_producer()
-        assert p1 is not p2
+        producer = get_producer()
+
+        assert producer is instance
+        mock_kafka_cls.assert_called_once()
+
+    def test_invalid_backend_raises(self, settings):
+        settings.TELEMETRY_PRODUCER_BACKEND = "invalid"
+        with pytest.raises(ValueError, match="Invalid TELEMETRY_PRODUCER_BACKEND"):
+            get_producer()
