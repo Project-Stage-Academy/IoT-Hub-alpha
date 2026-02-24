@@ -4,6 +4,7 @@ Separates business logic from view layer for better maintainability.
 """
 
 import logging
+from functools import lru_cache
 from typing import Any
 from django.core.exceptions import ValidationError
 from django.db import transaction
@@ -43,11 +44,29 @@ def apply_transformations(data: dict, rules: dict) -> dict:
         if key in result and isinstance(result[key], (int, float)):
             result[key] = result[key] * factor
 
+    for key, divisor in rules.get("divide", {}).items():
+        if key in result and isinstance(result[key], (int, float)):
+            if divisor != 0:
+                result[key] = result[key] / divisor
+
     for key, decimals in rules.get("round", {}).items():
         if key in result and isinstance(result[key], (int, float)):
             result[key] = round(result[key], decimals)
 
     return result
+
+
+@lru_cache(maxsize=128)
+def get_cached_telemetry_schema(version: str):
+    """
+    Retrieves the TelemetrySchema from the database.
+    Cached in memory to prevent DB bottleneck on
+    high-throughput ingestion.
+    """
+    try:
+        return TelemetrySchema.objects.get(version=version, is_active=True)
+    except TelemetrySchema.DoesNotExist:
+        return None
 
 
 def process_telemetry_payload(raw_payload: dict):
@@ -58,9 +77,9 @@ def process_telemetry_payload(raw_payload: dict):
     if not schema_version:
         return None, "Missing field 'schema_version' in payload"
 
-    try:
-        schema_obj = TelemetrySchema.objects.get(version=schema_version, is_active=True)
-    except TelemetrySchema.DoesNotExist:
+    schema_obj = get_cached_telemetry_schema(schema_version)
+
+    if not schema_obj:
         return None, f"Active version schema '{schema_version}' not found in database"
 
     try:
@@ -85,17 +104,30 @@ class TelemetryValidator:
     ) -> dict[str, Any]:
         """Format validation error into consistent structure."""
         if isinstance(error, ValidationError):
+            details = extract_validation_errors(error)
             error_dict = {
                 "error": "Validation failed",
-                "details": extract_validation_errors(error),
+                "details": details,
             }
+            logger.warning(
+                "Telemetry validation failed",
+                extra={
+                    "index": index,
+                    "validation_details": details,
+                },
+            )
         else:
-            error_dict = {"error": "Invalid data format", "details": str(error)}
-            if index is not None:
-                logger.error(
-                    "Invalid data format in batch item",
-                    extra={"index": index, "error": str(error)},
-                )
+            error_dict = {
+                "error": "Invalid data format",
+                "details": str(error),
+            }
+            logger.error(
+                "Invalid data format in batch item",
+                extra={
+                    "index": index,
+                    "error": str(error),
+                },
+            )
 
         if index is not None:
             error_dict["index"] = index

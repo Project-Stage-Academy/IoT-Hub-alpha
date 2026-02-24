@@ -279,6 +279,24 @@ class TestApplyTransformations:
         }
         assert apply_transformations(data, {}) == {"value": 10}
 
+    def test_apply_transformations_divide(self):
+        data = {"value": 9552, "temperature": 25, "status": 1}
+
+        rules = {
+            "divide": {
+                "value": 100,
+                "temperature": 0,
+                "missing_key": 10,
+            }
+        }
+
+        result = apply_transformations(data, rules)
+
+        assert result["value"] == 95.52
+        assert result["temperature"] == 25
+        assert result["status"] == 1
+        assert "missing_key" not in result
+
 
 class TestProcessTelemetryPayload:
     """Tests for the process_telemetry_payload function."""
