@@ -6,6 +6,7 @@ from datetime import timezone
 from django.utils import timezone as tz
 from .data_structure import ExternalEventMessage
 from pydantic import ValidationError
+from functools import lru_cache
 
 
 class TransformationError(Exception):
@@ -14,28 +15,29 @@ class TransformationError(Exception):
 
 class TransformEngine:
     def __init__(self):
-        self.result = {}
+        pass
 
-    def transform(self, id: int, body: dict[str, Any]) -> ExternalEventMessage:
+    def transform(self, inbound_id: int, body: dict[str, Any]) -> ExternalEventMessage:
         """
         Transform entry point
         """
-        self.mappings = self._get_map_or_die(id)
+        self.mappings = self._get_map_or_die(inbound_id)
         self.body = body
+        result = {}
 
         try:
-            result = self._init_transfrom(self.mappings, self.result, self.body)
+            result = self._init_transform(self.mappings, result, self.body)
             validate_final = ExternalEventMessage.model_validate(result)
         except ValidationError as e:
-            raise TransformationError(f"Validation error: {e}")
+            raise TransformationError(f"Validation error: {e}") from e
         except (KeyError, ValueError, AttributeError) as e:
-            raise TransformationError(f"Parsing error: {e}")
+            raise TransformationError(f"Parsing error: {e}") from e
         except RecursionError as e:
-            raise TransformationError(f"Recursion error: {e}")
+            raise TransformationError(f"Recursion error: {e}") from e
 
         return validate_final
 
-    def _init_transfrom(
+    def _init_transform(
         self, mapping: dict, result: dict, body: dict
     ) -> dict[str, Any]:
         """
@@ -54,7 +56,7 @@ class TransformEngine:
                 new_list = []
                 self._check_list(spec, data_list, target_key)
                 for elem in data_list:
-                    transformed = self._init_transfrom(spec["list"], {}, elem)
+                    transformed = self._init_transform(spec["list"], {}, elem)
                     new_list.append(transformed)
                 result[target_key] = new_list
                 continue
@@ -63,7 +65,7 @@ class TransformEngine:
                 inner_source = self._get_inner_dict(spec, body, target_key)
                 child = {}
                 result[target_key] = child
-                self._init_transfrom(spec["inner_dict"], child, inner_source)
+                self._init_transform(spec["inner_dict"], child, inner_source)
                 continue
 
             if "from" in spec:
@@ -89,7 +91,7 @@ class TransformEngine:
         return result
 
     def _check_list(self, spec, data_list, target_key):
-        if not isinstance(spec.get("list"), dict):
+        if not isinstance(spec["list"], dict):
             raise TransformationError("spec.list must be an object")
         if not isinstance(data_list, list):
             raise TransformationError(
@@ -99,7 +101,7 @@ class TransformEngine:
     def _get_inner_dict(self, spec, body, target_key):
         inner_source = body
         if "from" in spec:
-            inner_source = body.get(spec["from"])
+            inner_source = body[spec["from"]]
         if inner_source is None:
             inner_source = spec.get("default", {})
         if not isinstance(inner_source, dict):
@@ -109,8 +111,8 @@ class TransformEngine:
     def _handle_literal(self, spec, value, target_key):
         literal = [x.lower() if type(x) is str else x for x in spec["literal"]]
         value = value.lower() if type(value) is str else value
-        if not value:
-            value = spec.get("default")
+        if value is None:
+            value = spec["default"]
         if value not in literal:
             raise TransformationError(
                 f"{target_key} got ({value}) can only accept {literal}"
@@ -138,9 +140,13 @@ class TransformEngine:
                     return bool(value)
             case "timezone":
                 return self._convert_time(value)
+            
+            case _:
+                raise TransformationError(f"{value} case value {cast} not found")
 
     def _convert_time(self, value: str | None = None) -> str:
         try:
+            value = str(value)
             dt = parser.parse(value)
             if dt.tzinfo is None:
                 dt = dt.replace(tzinfo=timezone.utc)
@@ -156,6 +162,7 @@ class TransformEngine:
 
         return dt.astimezone(timezone.utc).isoformat()
 
+    @lru_cache(maxsize=1)
     def _get_map_or_die(self, id: int) -> dict[str, Any]:
         """
         Get transformation map from json or raise TransformationError
