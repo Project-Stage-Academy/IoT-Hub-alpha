@@ -219,9 +219,7 @@ class TestEventWorkflow:
         )
 
         # Create event
-        event = event_handler(
-            aggregate, self.rule, "High temperature detected"
-        )
+        event = event_handler(aggregate, self.rule, "High temperature detected")
         assert event is not None
 
         # Dispatch associated action
