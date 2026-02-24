@@ -5,6 +5,7 @@ Replaces confluent-kafka when not available.
 
 import json
 import logging
+import time
 from collections import defaultdict
 from threading import Lock
 from datetime import datetime
@@ -189,52 +190,65 @@ class MockConsumer:
 
     def poll(self, timeout_ms: float = 1000) -> Optional[MockMessage]:
         """
-        Poll for next message from subscribed topics.
+        Poll for next message from subscribed topics with timeout support.
 
         Iterates through subscribed_topics in order, checks if message is available
         at current offset. Returns first available message and advances offset.
-        If no messages available in any topic, returns None immediately (timeout
-        is ignored in mock implementation - no actual blocking).
+        If no messages available in any topic, waits up to timeout_ms before
+        returning None. Implements realistic timeout behavior for testing.
 
         Args:
-            timeout_ms: Poll timeout in milliseconds (ignored in mock,
-                        for API compatibility)
+            timeout_ms: Poll timeout in milliseconds. Will wait up to this long
+                       for a message to appear in any subscribed topic.
 
         Returns:
-            MockMessage if available, None if no messages in any subscribed topic.
+            MockMessage if available, None if timeout elapsed with no messages.
             Message comes from first subscribed topic with available data at
             current offset.
 
         Side Effects:
         - Advances offset for topic if message returned
         - Does not advance offset if None returned (can retry same offset)
+        - Blocks for up to timeout_ms if no messages available
 
         Example:
             consumer.subscribe(["my_topic"])
-            msg = consumer.poll(1000)
+            msg = consumer.poll(1000)  # Wait up to 1 second
             if msg:
                 data = json.loads(msg.value().decode("utf-8"))
                 process(data)
         """
         timeout_s = timeout_ms / 1000.0
+        start_time = time.time()
+        poll_interval = 0.01  # 10ms between checks for realistic behavior
 
-        for topic in self.subscribed_topics:
-            with _topics_lock:
-                messages = _topics.get(topic, [])
-                offset = self.offsets[topic]
+        # Poll with timeout - check periodically until timeout elapsed
+        while time.time() - start_time < timeout_s:
+            for topic in self.subscribed_topics:
+                with _topics_lock:
+                    messages = _topics.get(topic, [])
+                    offset = self.offsets[topic]
 
-                if offset < len(messages):
-                    msg_data = messages[offset]
-                    self.offsets[topic] += 1
-                    logger.debug(f"Polled message from {topic} offset {offset}")
-                    return MockMessage(
-                        topic=topic,
-                        value=msg_data["value"],
-                        offset=offset,
-                    )
+                    if offset < len(messages):
+                        msg_data = messages[offset]
+                        self.offsets[topic] += 1
+                        logger.debug(
+                            f"Polled message from {topic} offset {offset}"
+                        )
+                        return MockMessage(
+                            topic=topic,
+                            value=msg_data["value"],
+                            offset=offset,
+                        )
 
-        # No message available
-        logger.debug(f"No messages available (timeout: {timeout_s}s)")
+            # No message found, sleep briefly before next check
+            time.sleep(poll_interval)
+
+        # Timeout elapsed with no messages available
+        elapsed = time.time() - start_time
+        logger.debug(
+            f"Poll timeout after {elapsed:.2f}s (requested: {timeout_s}s)"
+        )
         return None
 
     def close(self) -> None:
