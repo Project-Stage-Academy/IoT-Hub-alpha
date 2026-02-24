@@ -104,20 +104,54 @@ EventConsumer → event_handler() + action_dispatch() → Event DB
 ### 2. Rule Evaluation Details (rules/services/rule_eval.py)
 
 **Condition Structure**:
+
+Leaf condition (single comparison):
 ```python
 condition = {
-    "operator": "and|or",  # Logical operator
-    "left": {...},         # Nested condition or leaf
-    "right": {...}         # Nested condition or leaf
-}
-
-# Or leaf condition:
-condition = {
-    "sensor_name": "temperature",
+    "type": "leaf",
     "operator": "gt",      # Comparison: lt, lte, gt, gte, eq, ne
     "threshold": 50.0,
     "window_seconds": 300,  # Optional: 5-min window
     "occurrences": 3        # Optional: must match 3+ times in window
+}
+```
+
+AND condition (all must match):
+```python
+condition = {
+    "type": "and",
+    "conditions": [         # Array of nested conditions
+        {"type": "leaf", "operator": "gt", "threshold": 50.0},
+        {"type": "leaf", "operator": "lt", "threshold": 100.0}
+    ]
+}
+```
+
+OR condition (any must match):
+```python
+condition = {
+    "type": "or",
+    "conditions": [         # Array of nested conditions
+        {"type": "leaf", "operator": "gt", "threshold": 80.0},
+        {"type": "leaf", "operator": "lt", "threshold": 10.0}
+    ]
+}
+```
+
+Nested conditions (AND/OR combinations):
+```python
+condition = {
+    "type": "and",
+    "conditions": [
+        {"type": "leaf", "operator": "gt", "threshold": 50.0},
+        {
+            "type": "or",
+            "conditions": [
+                {"type": "leaf", "operator": "lt", "threshold": 10.0},
+                {"type": "leaf", "operator": "eq", "threshold": 75.0}
+            ]
+        }
+    ]
 }
 ```
 
@@ -175,9 +209,9 @@ condition = {
 **Sliding Window Behavior**:
 
 ```python
-window = WindowState(window_seconds=300, max_points=10_000)
+window = WindowState(window_seconds=300, max_points=10_000, cleanup_interval=100)
 
-# Add point: automatically removes expired points
+# Add point: periodically removes expired points (every cleanup_interval points)
 window.add_point(ts=now, value=55.3)
 
 # Result:
@@ -196,9 +230,13 @@ window.cleanup_expired(now=datetime.now())
 ```
 
 **Cleanup Strategy**:
-1. **Automatic** (on add_point): Remove points older than window_seconds
-2. **Explicit** (manual): Via cleanup_expired() during low-traffic periods
-3. **Truncation**: Keep only last max_points (default: 10,000)
+1. **Periodic** (every cleanup_interval points, default: 100): Remove points older than window_seconds
+   - Reduces O(n) filtering overhead on high-frequency telemetry
+   - Example: 1000 msg/sec with cleanup_interval=100 runs cleanup 10x/sec instead of 1000x/sec
+2. **Truncation**: Keep only last max_points (default: 10,000)
+   - Prevents unbounded memory growth
+   - Keeps most recent points when window exceeds max_points
+3. **Explicit** (manual): Via cleanup_expired() during low-traffic periods or shutdown
 
 **Memory Management**:
 - Per-rule window: ~10-100 KB (1000 points × 100 bytes each)
