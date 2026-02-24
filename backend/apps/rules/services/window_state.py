@@ -37,9 +37,15 @@ class WindowState:
     over accumulated historical data (e.g., "average > 80 over last 5 minutes").
 
     Window Management:
-    - Points older than window_seconds are automatically removed on add_point()
+    - Points older than window_seconds are removed periodically (not on every add)
     - Memory is capped at max_points to prevent runaway memory usage
+    - Cleanup runs every cleanup_interval points to reduce O(n) filter overhead
     - Cleanup can also be triggered explicitly via cleanup_expired()
+
+    Performance Optimization:
+    - Cleanup every N points instead of every add_point() call
+    - Reduces O(n) filtering from O(points/sec) to O(points/sec / cleanup_interval)
+    - Example: 1000 msg/sec with cleanup_interval=100 reduces 1000x filtering to 10x
 
     Example Usage:
         window = WindowState(window_seconds=300)  # 5 minute window
@@ -50,37 +56,51 @@ class WindowState:
     Attributes:
         window_seconds: Time window size in seconds (default: 60)
         max_points: Maximum points to retain (default: 10,000)
+        cleanup_interval: Run cleanup every N point additions (default: 100)
         values: List of TelemetryPoint objects currently in window
+        points_since_cleanup: Counter for cleanup interval tracking (internal)
     """
 
     window_seconds: int = 60
     max_points: int = 10_000
+    cleanup_interval: int = 100
     values: List[TelemetryPoint] = field(default_factory=list)
+    points_since_cleanup: int = field(default=0, init=False, repr=False)
 
     def add_point(self, ts: datetime, value: float) -> None:
         """
-        Add telemetry point to window with automatic cleanup of expired points.
+        Add telemetry point to window with periodic cleanup of expired points.
 
-        Performs three operations atomically:
-        1. Remove all points older than (ts - window_seconds)
-        2. Add new TelemetryPoint to window
-        3. Truncate to max_points if exceeded (keeps most recent points)
+        Performs two operations:
+        1. Add new TelemetryPoint to window
+        2. If cleanup_interval points have been added, remove expired points
 
-        This ensures the window always contains only relevant recent data and
-        prevents unbounded memory growth even with continuous high-rate telemetry.
+        Periodic cleanup reduces O(n) filtering overhead:
+        - Cleanup every N points instead of every add_point() call
+        - High-frequency telemetry (1000 msg/sec) benefits significantly
+        - Expired points are still kept between cleanups (acceptable tradeoff)
+
+        Memory is also capped at max_points to prevent unbounded growth.
 
         Args:
             ts: Timestamp of telemetry reading (datetime)
             value: Numeric telemetry value (float)
 
         Side Effects:
-        - Modifies self.values list (adds point, removes old points, may truncate)
+        - Modifies self.values list (adds point)
+        - Periodically removes old points and may truncate (every cleanup_interval calls)
         """
-        cutoff = ts - timedelta(seconds=self.window_seconds)
-        self.values = [p for p in self.values if p.ts > cutoff]
-
+        # Always add the new point
         self.values.append(TelemetryPoint(ts=ts, value=value))
+        self.points_since_cleanup += 1
 
+        # Cleanup periodically (not on every add_point call)
+        if self.points_since_cleanup >= self.cleanup_interval:
+            cutoff = ts - timedelta(seconds=self.window_seconds)
+            self.values = [p for p in self.values if p.ts > cutoff]
+            self.points_since_cleanup = 0
+
+        # Cap at max_points (keep most recent)
         if len(self.values) > self.max_points:
             self.values = self.values[-self.max_points :]
 
@@ -102,7 +122,8 @@ class WindowState:
             # Returns: [TelemetryPoint(ts1, 25.0), TelemetryPoint(ts3, 35.0)]
 
         Args:
-            operator: Comparison operator as string: "gt", "gte", "lt", "lte", "eq", "ne"
+            operator: Comparison operator string ("gt", "gte", "lt", "lte",
+                     "eq", "ne")
             threshold: Numeric threshold to compare against
 
         Returns:
@@ -124,12 +145,15 @@ class WindowState:
         """
         Explicitly remove telemetry points older than window (manual cleanup).
 
-        Called periodically by evaluator.clear_old_states() to prevent window
-        states from accumulating stale points. Automatically called by add_point()
-        but this explicit cleanup is useful for:
+        Called periodically by evaluator.clear_old_states() or when device stops
+        sending telemetry. Unlike add_point() which does periodic cleanup, this
+        always cleans up immediately and resets the cleanup counter.
+
+        Useful for:
         - Reducing memory when device stops sending telemetry
         - Maintenance operations during low-traffic periods
-        - Ensuring periodic cleanup even if no new points arrive
+        - Ensuring cleanup even if cleanup_interval not reached
+        - Explicit control over cleanup timing
 
         Args:
             now: Current timestamp (reference point for age calculation)
@@ -137,9 +161,11 @@ class WindowState:
 
         Side Effects:
         - Modifies self.values list (removes expired points)
+        - Resets points_since_cleanup counter
         """
         cutoff = now - timedelta(seconds=self.window_seconds)
         self.values = [p for p in self.values if p.ts > cutoff]
+        self.points_since_cleanup = 0
 
     def to_dict(self) -> dict:
         """
