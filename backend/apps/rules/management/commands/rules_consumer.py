@@ -226,13 +226,13 @@ All metrics exported to Prometheus via HTTP on specified port (default: 9101).
                                 },
                             )
 
-                    consumer.commit(asynchronous=False)
-
                     if message_count % 100 == 0:
                         self.stdout.write(
                             f"Processed {message_count} messages "
                             f"({error_count} errors)"
                         )
+
+                    consumer.commit(asynchronous=False)
 
                 except (KeyError, ValueError, TypeError) as e:
                     logger.error(
