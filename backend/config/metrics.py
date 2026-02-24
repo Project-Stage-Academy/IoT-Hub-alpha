@@ -76,6 +76,12 @@ RULE_EVALUATION_ERRORS = Counter(
     ],  # error_type: invalid_condition, invalid_threshold, db_error
 )
 
+RULES_EVALUATION_ATTEMPTS_TOTAL = Counter(
+    "rules_evaluation_attempts_total",
+    "Total rule evaluation attempts (success + errors)",
+    ["rule_id", "device_id"],
+)
+
 # Event Metrics
 EVENTS_CREATED_TOTAL = Counter(
     "events_created_total",

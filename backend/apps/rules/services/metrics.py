@@ -9,6 +9,7 @@ from uuid import UUID
 from config.metrics import (
     RULE_EVALUATION_DURATION_MS,
     RULES_EVALUATED_TOTAL,
+    RULES_EVALUATION_ATTEMPTS_TOTAL,
     RULES_TRIGGERED_TOTAL,
     RULE_EVALUATION_ERRORS,
     EVENTS_CREATED_TOTAL,
@@ -39,6 +40,9 @@ def track_rule_evaluation(rule_id: UUID, device_id: UUID, operator: str):
     Result tracking (triggered/skipped) is done separately via
     record_rule_result() after checking the eval result.
 
+    IMPORTANT: Evaluation attempt is ALWAYS recorded, even on error.
+    This ensures complete metrics for all evaluation attempts.
+
     Usage:
         with track_rule_evaluation(rule_id, device_id, "gt"):
             result = eval_rule(...)
@@ -50,6 +54,13 @@ def track_rule_evaluation(rule_id: UUID, device_id: UUID, operator: str):
         yield
     except Exception as e:
         logger.error(f"Rule evaluation error: {e}")
+        # Record total evaluation attempts (including errors)
+        # MUST be recorded before re-raise to ensure completeness
+        RULES_EVALUATION_ATTEMPTS_TOTAL.labels(
+            rule_id=str(rule_id),
+            device_id=str(device_id),
+        ).inc()
+        # Record error result in evaluation counter
         RULES_EVALUATED_TOTAL.labels(
             rule_id=str(rule_id),
             device_id=str(device_id),
@@ -70,8 +81,19 @@ def track_rule_evaluation(rule_id: UUID, device_id: UUID, operator: str):
 
 
 def record_rule_result(rule_id: UUID, device_id: UUID, triggered: bool):
-    """Record whether a rule evaluation resulted in trigger or skip."""
+    """
+    Record whether a rule evaluation resulted in trigger or skip.
+
+    Records both the evaluation result (triggered/skipped) and counts
+    successful evaluation attempt.
+    """
     result = "triggered" if triggered else "skipped"
+    # Record successful evaluation attempt
+    RULES_EVALUATION_ATTEMPTS_TOTAL.labels(
+        rule_id=str(rule_id),
+        device_id=str(device_id),
+    ).inc()
+    # Record evaluation result
     RULES_EVALUATED_TOTAL.labels(
         rule_id=str(rule_id),
         device_id=str(device_id),
