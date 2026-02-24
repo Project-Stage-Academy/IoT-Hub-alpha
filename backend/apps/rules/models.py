@@ -80,6 +80,11 @@ class Rule(models.Model):
         ),
     )
     last_triggered_at = models.DateTimeField(null=True, blank=True)
+    event_cooldown_until = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Timestamp when cooldown for event creation expires",
+    )
     is_enabled = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

@@ -12,11 +12,11 @@ def action_dispatch(action_config: ActionConfig, rule, aggregate) -> None:
     Dispatch action based on action config type.
 
     Routes to appropriate handler (notification, stop_machine, etc) based on
-    action_config.action_type. Handles errors gracefully to prevent failure of
+    action_config.type. Handles errors gracefully to prevent failure of
     one action from blocking other actions.
 
     Args:
-        action_config: ActionConfig with action_type and action_params
+        action_config: ActionConfig with type and template_id
         rule: Rule object that was triggered
         aggregate: EvalResults with telemetry snapshot
 
@@ -24,25 +24,25 @@ def action_dispatch(action_config: ActionConfig, rule, aggregate) -> None:
         None - fires actions asynchronously
     """
     try:
-        if action_config.action_type == "notification":
+        if action_config.type == "notification":
             dispatch_msg(action_config, rule, aggregate)
-        elif action_config.action_type == "stop_machine":
+        elif action_config.type == "stop_machine":
             stop_machine(action_config, rule, aggregate)
         else:
             logger.warning(
-                f"Unknown action type: {action_config.action_type}",
+                f"Unknown action type: {action_config.type}",
                 extra={
                     "rule_id": str(rule.id),
-                    "action_type": action_config.action_type,
+                    "action_type": action_config.type,
                 },
             )
     except Exception as e:
         logger.error(
-            f"Error dispatching action {action_config.action_type}: {e}",
+            f"Error dispatching action {action_config.type}: {e}",
             exc_info=True,
             extra={
                 "rule_id": str(rule.id),
-                "action_type": action_config.action_type,
+                "action_type": action_config.type,
             },
         )
 
@@ -51,9 +51,8 @@ def dispatch_msg(action_config: ActionConfig, rule, aggregate) -> None:
     """
     Dispatch notification message (email, SMS, Slack, etc).
 
-    Enqueues notification for delivery via configured channels
-    (email, SMS, Slack). Uses NotificationTemplate to render message
-    with rule context.
+    Validates notification template exists and logs the dispatch action.
+    Placeholder for future integration with notification delivery system.
 
     Args:
         action_config: ActionConfig with notification template ID
@@ -61,26 +60,14 @@ def dispatch_msg(action_config: ActionConfig, rule, aggregate) -> None:
         aggregate: EvalResults with telemetry snapshot
 
     Side Effects:
-        - Creates NotificationDelivery records in database
-        - Enqueues async notification delivery task
+        - Validates NotificationTemplate exists
+        - Logs notification dispatch action
     """
     from apps.notifications.models import NotificationTemplate
-    from apps.notifications.services import queue_notification
 
     try:
-        template_id = action_config.action_params.get("template_id")
+        template_id = action_config.template_id
         template = NotificationTemplate.objects.get(id=template_id)
-
-        queue_notification(
-            template=template,
-            context={
-                "rule_name": rule.name,
-                "device_id": rule.device_id,
-                "values": aggregate.values,
-                "start": aggregate.start,
-                "end": aggregate.end,
-            },
-        )
 
         logger.info(
             "Notification queued",
@@ -108,19 +95,16 @@ def stop_machine(action_config: ActionConfig, rule, aggregate) -> None:
     the action but does not actually send control signal.
 
     Args:
-        action_config: ActionConfig with machine ID
+        action_config: ActionConfig with type=stop_machine
         rule: Rule object that was triggered
         aggregate: EvalResults with telemetry snapshot
 
     Side Effects:
         - Logs stop machine action (actual control stub)
     """
-    machine_id = action_config.action_params.get("machine_id")
-
     logger.info(
         "Stop machine action triggered (stub)",
         extra={
             "rule_id": str(rule.id),
-            "machine_id": machine_id,
         },
     )

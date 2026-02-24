@@ -185,7 +185,7 @@ Metrics Exported (Prometheus):
                                         exc_info=True,
                                         extra={
                                             "rule_id": str(rule_id),
-                                            "action_type": (action_config.action_type),
+                                            "action_type": (action_config.type),
                                         },
                                     )
 
