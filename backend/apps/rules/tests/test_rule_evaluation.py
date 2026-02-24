@@ -250,18 +250,18 @@ class TestWindowState:
 
     def test_window_state_cleanup_expired(self):
         """Test that old points are automatically cleaned."""
-        window = WindowState(window_seconds=10)
+        window = WindowState(window_seconds=10, cleanup_interval=1)
         now = timezone.now()
 
         # Add point outside window
         old_time = now - timedelta(seconds=15)
         window.add_point(old_time, 10.0)
 
-        # Add point inside window
+        # Add point inside window (triggers cleanup_interval=1)
         recent_time = now - timedelta(seconds=5)
         window.add_point(recent_time, 20.0)
 
-        # Only recent point should remain
+        # Only recent point should remain (old_time > cutoff check fails)
         assert len(window.values) == 1
         assert window.values[0].value == 20.0
 

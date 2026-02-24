@@ -263,17 +263,21 @@ class TestWindowStateErrorHandling:
 
     def test_window_state_creation_with_non_numeric_window(self):
         """WindowState with non-numeric window size fails on use."""
-        ws = WindowState(window_seconds="invalid")
+        ws = WindowState(window_seconds="invalid", cleanup_interval=1)
         assert ws.window_seconds == "invalid"
-        # Fails when add_point tries to use it in timedelta()
+        # Fails when add_point tries to use it in timedelta() during cleanup
         with pytest.raises(TypeError):
+            ws.add_point(ts=datetime.now(timezone.utc), value=10.0)
+            # Second call triggers cleanup which fails on "invalid" window_seconds
             ws.add_point(ts=datetime.now(timezone.utc), value=10.0)
 
     def test_window_state_add_point_with_invalid_timestamp(self):
-        """add_point with invalid timestamp should raise error."""
-        window = WindowState(window_seconds=60)
+        """add_point with invalid timestamp should raise error during cleanup."""
+        window = WindowState(window_seconds=60, cleanup_interval=1)
 
-        with pytest.raises((TypeError, ValueError)):
+        with pytest.raises(TypeError):
+            # cleanup_interval=1 triggers cleanup immediately on first add_point
+            # cleanup fails when trying: invalid_string - timedelta(...)
             window.add_point(ts="not-a-timestamp", value=10.0)
 
     def test_window_state_add_point_with_non_numeric_value(self):
