@@ -67,7 +67,7 @@ def dispatch_msg(action_config: ActionConfig, rule, aggregate) -> None:
 
     try:
         template_id = action_config.template_id
-        template = NotificationTemplate.objects.get(id=template_id)
+        NotificationTemplate.objects.get(id=template_id)
 
         logger.info(
             "Notification queued",
