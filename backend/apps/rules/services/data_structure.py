@@ -5,6 +5,7 @@ from pydantic import BaseModel, ConfigDict, model_validator, Field
 from typing import Literal, Any
 from django.utils import timezone as tz
 
+
 @dataclass()
 class EvalResults:
     trigger: bool = False
@@ -92,5 +93,5 @@ class ExternalEventMessage(BaseModel):
     telemetry_snapshot: dict = {}
     action_config: list = []
     cooldown_min: int = 60
-    
+
     model_config = ConfigDict(extra="ignore")

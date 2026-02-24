@@ -9,5 +9,6 @@ def get_json_body(body) -> dict:
         data = {}
     return data
 
+
 def check_external_cooldown(external_id, cooldown):
     pass
