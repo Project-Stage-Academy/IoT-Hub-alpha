@@ -17,10 +17,11 @@ from uuid import UUID
 
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
-from django.utils import timezone
 
-from apps.events.models import Event
-from apps.events.services.event_handler import event_handler, EventCooldownActive
+from apps.events.services.event_handler import (
+    event_handler,
+    EventCooldownActive,
+)
 from apps.events.services.actions import action_dispatch
 from apps.rules.models import Rule
 from apps.rules.services.data_structure import EvalResults, ActionConfig
@@ -129,9 +130,7 @@ Metrics Exported (Prometheus):
 
                         rule_id = UUID(payload["rule_id"])
                         device_id = UUID(payload["device_id"])
-                        message_text = payload.get(
-                            "message", "Rule triggered"
-                        )
+                        message_text = payload.get("message", "Rule triggered")
 
                         try:
                             rule = Rule.objects.get(id=rule_id)
@@ -163,9 +162,7 @@ Metrics Exported (Prometheus):
                         )
 
                         try:
-                            event = event_handler(
-                                aggregate, rule, message_text
-                            )
+                            event = event_handler(aggregate, rule, message_text)
 
                             logger.info(
                                 f"Event created: {event.id}",
@@ -177,30 +174,24 @@ Metrics Exported (Prometheus):
                             )
 
                             for action_config_dict in rule.action_config:
-                                action_config = (
-                                    ActionConfig.model_validate(
-                                        action_config_dict
-                                    )
+                                action_config = ActionConfig.model_validate(
+                                    action_config_dict
                                 )
                                 try:
-                                    action_dispatch(
-                                        action_config, rule, aggregate
-                                    )
+                                    action_dispatch(action_config, rule, aggregate)
                                 except Exception as e:
                                     logger.error(
                                         f"Error dispatching action: {e}",
                                         exc_info=True,
                                         extra={
                                             "rule_id": str(rule_id),
-                                            "action_type": (
-                                                action_config.action_type
-                                            ),
+                                            "action_type": (action_config.action_type),
                                         },
                                     )
 
                         except EventCooldownActive:
                             logger.info(
-                                f"Event in cooldown, skipping",
+                                "Event in cooldown, skipping",
                                 extra={
                                     "rule_id": str(rule_id),
                                     "device_id": str(device_id),

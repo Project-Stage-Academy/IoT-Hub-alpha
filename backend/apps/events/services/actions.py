@@ -1,9 +1,7 @@
-"""Action dispatch for triggered rules (notifications, machine control, etc)."""
+"""Action dispatch for triggered rules (notifications, machine control)."""
 
 import logging
-from uuid import UUID
 
-from apps.events.models import Event
 from apps.rules.services.data_structure import ActionConfig
 
 logger = logging.getLogger("apps.rules")
@@ -85,7 +83,7 @@ def dispatch_msg(action_config: ActionConfig, rule, aggregate) -> None:
         )
 
         logger.info(
-            f"Notification queued",
+            "Notification queued",
             extra={
                 "rule_id": str(rule.id),
                 "template_id": template_id,
@@ -120,7 +118,7 @@ def stop_machine(action_config: ActionConfig, rule, aggregate) -> None:
     machine_id = action_config.action_params.get("machine_id")
 
     logger.info(
-        f"Stop machine action triggered (stub)",
+        "Stop machine action triggered (stub)",
         extra={
             "rule_id": str(rule.id),
             "machine_id": machine_id,

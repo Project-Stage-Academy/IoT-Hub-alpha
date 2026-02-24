@@ -1,7 +1,5 @@
 """Tests for event services imports and basic functionality."""
 
-import pytest
-
 
 class TestEventHandlerImports:
     """Test event_handler module imports."""

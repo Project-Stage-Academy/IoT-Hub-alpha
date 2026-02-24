@@ -1,14 +1,14 @@
 """Event creation with cooldown protection."""
 
+import os
 from datetime import timedelta
-from uuid import UUID
 
 from django.utils import timezone
 
 from apps.events.models import Event
 from apps.notifications.models import NotificationTemplate
 
-COOLDOWN_TIMER_MINUTES = int(__import__("os").getenv("COOLDOWN_TIMER_MINUTES", "60"))
+COOLDOWN_TIMER_MINUTES = int(os.getenv("COOLDOWN_TIMER_MINUTES", "60"))
 
 
 class EventCooldownActive(Exception):
@@ -21,20 +21,21 @@ def event_handler(aggregate, rule, message: str, template=None):
     """
     Create Event with cooldown protection.
 
-    Checks if rule has active cooldown period. If cooldown is active, raises
-    EventCooldownActive. Otherwise, creates Event record and returns it.
+    Checks if rule has active cooldown period. If cooldown is active,
+    raises EventCooldownActive. Otherwise, creates Event record and
+    returns it.
 
     Args:
-        aggregate: EvalResults object with trigger, values, start, end timestamps
+        aggregate: EvalResults with trigger, values, start, end ts
         rule: Rule object that triggered
-        message: Event message string (e.g., "Rule 'High Temp' triggered")
+        message: Event message (e.g., "Rule 'High Temp' triggered")
         template: NotificationTemplate (optional, for future use)
 
     Returns:
         Event instance created or retrieved from database
 
     Raises:
-        EventCooldownActive: If rule has event cooldown still active
+        EventCooldownActive: If rule has event cooldown active
     """
     if rule.event_cooldown_until and rule.event_cooldown_until > timezone.now():
         raise EventCooldownActive(
