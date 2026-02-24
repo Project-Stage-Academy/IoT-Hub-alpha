@@ -35,7 +35,7 @@ services:
     entrypoint: ["/app/scripts/entrypoint.sh"]
     command: >
       sh -c "python manage.py collectstatic --noinput &&
-             python manage.py runserver 0.0.0.0:8000"
+             daphne -b 0.0.0.0 -p 8000 config.asgi:application"
     env_file:
       - .env
     volumes:
@@ -278,7 +278,8 @@ services:
     volumes:
       - mosquitto_data:/mosquitto/data
       - mosquitto_log:/mosquitto/log
-    command: mosquitto -c /mosquitto-no-auth.conf
+      - ./devops/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    command: mosquitto -c /mosquitto/config/mosquitto.conf
     healthcheck:
       test: ["CMD-SHELL", "mosquitto_sub -t '$$SYS/#' -C 1 -i healthcheck -W 3 || exit 1"]
       interval: 30s

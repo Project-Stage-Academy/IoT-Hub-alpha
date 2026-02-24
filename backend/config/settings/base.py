@@ -18,6 +18,7 @@ ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 
 
 INSTALLED_APPS = [
+    "daphne",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -30,12 +31,14 @@ INSTALLED_APPS = [
     "apps.rules",
     "apps.events",
     "apps.notifications",
+    "channels",
     "django_celery_beat",
 ]
 
 MIDDLEWARE = [
     "request_id.middleware.RequestIdMiddleware",
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "config.middleware.RateLimitingMiddleware",
     "config.middleware.RequestContextMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -65,6 +68,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "config.wsgi.application"
+ASGI_APPLICATION = "config.asgi.application"
 
 DATABASES = {
     "default": {
@@ -115,7 +119,7 @@ CELERY_TIMER = int(os.getenv("CELERY_RUN_PROCESS_TELEMETRY_TIMER_MINUTES", 5)) *
 CELERY_BEAT_SCHEDULE = {
     "run-rule-processor-every-5m": {
         "task": "apps.rules.tasks.process_telemetry",
-        "schedule": CELERY_TIMER
+        "schedule": CELERY_TIMER,
     }
 }
 
@@ -261,8 +265,26 @@ try:
     KAFKA_PRODUCER_LINGER_MS = int(os.getenv("KAFKA_PRODUCER_LINGER_MS", "20"))
     KAFKA_PRODUCER_BATCH_SIZE = int(os.getenv("KAFKA_PRODUCER_BATCH_SIZE", "65536"))
     KAFKA_REQUEST_TIMEOUT_MS = int(os.getenv("KAFKA_REQUEST_TIMEOUT_MS", "30000"))
+    KAFKA_PUBLISH_MAX_RETRIES = int(os.getenv("KAFKA_PUBLISH_MAX_RETRIES", "3"))
+    KAFKA_RETRY_BACKOFF_BASE_MS = int(os.getenv("KAFKA_RETRY_BACKOFF_BASE_MS", "100"))
+    KAFKA_RETRY_BACKOFF_MAX_MS = int(os.getenv("KAFKA_RETRY_BACKOFF_MAX_MS", "2000"))
+    KAFKA_RETRY_BACKOFF_JITTER = float(os.getenv("KAFKA_RETRY_BACKOFF_JITTER", "0.2"))
 except ValueError as exc:
-    raise ValueError("Kafka numeric settings must be valid integers") from exc
+    raise ValueError(
+        "Kafka numeric settings must be valid numbers "
+        "(integers except KAFKA_RETRY_BACKOFF_JITTER which may be float)"
+    ) from exc
+
+if KAFKA_PUBLISH_MAX_RETRIES < 0:
+    raise ValueError("KAFKA_PUBLISH_MAX_RETRIES must be >= 0")
+if KAFKA_RETRY_BACKOFF_BASE_MS < 0:
+    raise ValueError("KAFKA_RETRY_BACKOFF_BASE_MS must be >= 0")
+if KAFKA_RETRY_BACKOFF_MAX_MS < KAFKA_RETRY_BACKOFF_BASE_MS:
+    raise ValueError(
+        "KAFKA_RETRY_BACKOFF_MAX_MS must be >= KAFKA_RETRY_BACKOFF_BASE_MS"
+    )
+if not 0 <= KAFKA_RETRY_BACKOFF_JITTER <= 1:
+    raise ValueError("KAFKA_RETRY_BACKOFF_JITTER must be between 0 and 1")
 KAFKA_PRODUCER_COMPRESSION_TYPE = os.getenv(
     "KAFKA_PRODUCER_COMPRESSION_TYPE", "none"
 ).strip()
@@ -316,11 +338,25 @@ elif setup_celery_logging_context is not None:
 MQTT_BROKER_HOST = os.getenv("MQTT_BROKER_HOST", "mosquitto")
 MQTT_BROKER_PORT = int(os.getenv("MQTT_BROKER_PORT", "1883"))
 MQTT_TOPIC = os.getenv("MQTT_TOPIC", "telemetry/#")
-MQTT_USERNAME = os.getenv("MQTT_USERNAME", "")
-MQTT_PASSWORD = os.getenv("MQTT_PASSWORD", "")
 MQTT_QOS = int(os.getenv("MQTT_QOS", "1"))
-MQTT_USE_TLS = os.getenv("MQTT_USE_TLS", "false").lower() in ("true", "1", "yes")
 MQTT_CONNECT_TIMEOUT = int(os.getenv("MQTT_CONNECT_TIMEOUT", "10"))
+
+# Telemetry producer backend: "log" or "kafka".
+# If not explicitly provided, derive a sensible default from pipeline mode.
+TELEMETRY_PRODUCER_BACKEND = os.getenv("TELEMETRY_PRODUCER_BACKEND", "").strip().lower()
+if not TELEMETRY_PRODUCER_BACKEND:
+    TELEMETRY_PRODUCER_BACKEND = (
+        "kafka" if TELEMETRY_PIPELINE_MODE == "kafka" else "log"
+    )
+if TELEMETRY_PRODUCER_BACKEND not in {"log", "kafka"}:
+    raise ValueError(
+        "Invalid TELEMETRY_PRODUCER_BACKEND='"
+        f"{TELEMETRY_PRODUCER_BACKEND}'. Allowed values: log, kafka"
+    )
+if TELEMETRY_PIPELINE_MODE == "kafka" and TELEMETRY_PRODUCER_BACKEND != "kafka":
+    raise ValueError(
+        "TELEMETRY_PIPELINE_MODE='kafka' requires " "TELEMETRY_PRODUCER_BACKEND='kafka'"
+    )
 
 RATE_LIMIT_ENABLED = os.getenv("RATE_LIMIT_ENABLED", "False").lower() in (
     "true",
