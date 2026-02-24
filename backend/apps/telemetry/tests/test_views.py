@@ -1,11 +1,76 @@
 import json
-from unittest.mock import MagicMock, patch
-
 import pytest
+from unittest.mock import patch, MagicMock
+from apps.telemetry.models import Telemetry
+from apps.telemetry.views import TelemetryIngestView
+from apps.telemetry.kafka import KafkaProducerError, KafkaPublishError
 from django.db import DatabaseError, IntegrityError
 
-from apps.telemetry.kafka import KafkaPublishError
-from apps.telemetry.views import TelemetryIngestView
+
+@pytest.mark.django_db
+class TestTelemetryIngestionSyncMode:
+    @pytest.fixture(autouse=True)
+    def _setup_settings(self, settings):
+        settings.TELEMETRY_PIPELINE_MODE = "direct"
+        settings.TELEMETRY_ASYNC_INGESTION = False
+
+    def test_single_ingestion_sync(self, client, device):
+        """Checks successful saving of a single record directly to the database"""
+        payload = {
+            "schema_version": "1.0",
+            "value": 2550,
+        }
+
+        response = client.post(
+            "/api/v1/telemetry/",
+            data=json.dumps(payload),
+            content_type="application/json",
+            HTTP_X_DEVICE_SERIAL_NUMBER=device.serial_number,
+        )
+
+        assert response.status_code == 201
+        data = response.json()
+        assert data["status"] == "created"
+        assert "id" in data
+        assert Telemetry.objects.count() == 1
+
+    def test_batch_ingestion_sync(self, client, device):
+        """
+        Checks successful saving of a batch
+        of records directly to the database
+        """
+        payload = [
+            {"schema_version": "1.0", "value": 100},
+            {"schema_version": "1.0", "value": 200},
+        ]
+
+        response = client.post(
+            "/api/v1/telemetry/",
+            data=json.dumps(payload),
+            content_type="application/json",
+            HTTP_X_DEVICE_SERIAL_NUMBER=device.serial_number,
+        )
+
+        assert response.status_code == 201
+        data = response.json()
+        assert data["status"] == "created"
+        assert data["count"] == 2
+        assert len(data["ids"]) == 2
+        assert Telemetry.objects.count() == 2
+
+    def test_sync_validation_happens_before_saving(self, client, device):
+        """Checks that invalid data is not stored in the database"""
+        payload = {"value": 2550}
+
+        response = client.post(
+            "/api/v1/telemetry/",
+            data=json.dumps(payload),
+            content_type="application/json",
+            HTTP_X_DEVICE_SERIAL_NUMBER=device.serial_number,
+        )
+
+        assert response.status_code == 400
+        assert Telemetry.objects.count() == 0
 
 
 @pytest.fixture(autouse=True)
@@ -24,17 +89,17 @@ def mock_producer():
         yield producer
 
 
+@pytest.mark.django_db
 class TestTelemetryIngestViewKafka:
-    serial_number = "TEMP-SN-002"
 
-    def test_single_payload_published(self, client, mock_producer):
+    def test_single_payload_published(self, client, mock_producer, device):
         payload = {"schema_version": "1.0", "value": 2550}
 
         response = client.post(
             "/api/v1/telemetry/",
             data=json.dumps(payload),
             content_type="application/json",
-            HTTP_X_DEVICE_SERIAL_NUMBER=self.serial_number,
+            HTTP_X_DEVICE_SERIAL_NUMBER=device.serial_number,
         )
 
         assert response.status_code == 202
@@ -48,13 +113,13 @@ class TestTelemetryIngestViewKafka:
         mock_producer.publish_raw_batch.assert_not_called()
 
         call_kwargs = mock_producer.publish_raw.call_args.kwargs
-        assert call_kwargs["serial_number"] == self.serial_number
+        assert call_kwargs["serial_number"] == device.serial_number
         assert call_kwargs["source"] == "http"
-        assert call_kwargs["data"]["serial_number"] == self.serial_number
+        assert call_kwargs["data"]["serial_number"] == device.serial_number
         assert call_kwargs["data"]["ingest_protocol"] == "http"
         assert call_kwargs["data"]["idempotency_key"] == body["idempotency_key"]
 
-    def test_batch_payload_uses_publish_raw_batch(self, client, mock_producer):
+    def test_batch_payload_uses_publish_raw_batch(self, client, mock_producer, device):
         payload = [
             {"schema_version": "1.0", "value": 100},
             {"schema_version": "1.0", "value": 200},
@@ -64,7 +129,7 @@ class TestTelemetryIngestViewKafka:
             "/api/v1/telemetry/",
             data=json.dumps(payload),
             content_type="application/json",
-            HTTP_X_DEVICE_SERIAL_NUMBER=self.serial_number,
+            HTTP_X_DEVICE_SERIAL_NUMBER=device.serial_number,
         )
 
         assert response.status_code == 202
@@ -75,25 +140,25 @@ class TestTelemetryIngestViewKafka:
         mock_producer.publish_raw.assert_not_called()
 
         call_kwargs = mock_producer.publish_raw_batch.call_args.kwargs
-        assert call_kwargs["serial_number"] == self.serial_number
+        assert call_kwargs["serial_number"] == device.serial_number
         assert call_kwargs["source"] == "http"
         assert len(call_kwargs["data"]) == 2
         for event in call_kwargs["data"]:
-            assert event["serial_number"] == self.serial_number
+            assert event["serial_number"] == device.serial_number
             assert event["ingest_protocol"] == "http"
             assert event["idempotency_key"].startswith(f"{body['idempotency_key']}:")
 
         idempotency_keys = [event["idempotency_key"] for event in call_kwargs["data"]]
         assert len(set(idempotency_keys)) == 2
 
-    def test_idempotency_key_is_trimmed_and_passed(self, client, mock_producer):
+    def test_idempotency_key_is_trimmed_and_passed(self, client, mock_producer, device):
         payload = {"schema_version": "1.0", "value": 1}
 
         response = client.post(
             "/api/v1/telemetry/",
             data=json.dumps(payload),
             content_type="application/json",
-            HTTP_X_DEVICE_SERIAL_NUMBER=self.serial_number,
+            HTTP_X_DEVICE_SERIAL_NUMBER=device.serial_number,
             HTTP_IDEMPOTENCY_KEY="  test-key-123  ",
         )
 
@@ -125,19 +190,19 @@ class TestTelemetryIngestViewKafka:
         body = response.json()
         assert "Invalid JSON payload" in body["error"]
 
-    def test_empty_batch(self, client):
+    def test_empty_batch(self, client, device):
         response = client.post(
             "/api/v1/telemetry/",
             data=json.dumps([]),
             content_type="application/json",
-            HTTP_X_DEVICE_SERIAL_NUMBER=self.serial_number,
+            HTTP_X_DEVICE_SERIAL_NUMBER=device.serial_number,
         )
 
         assert response.status_code == 400
         body = response.json()
         assert "Empty batch" in body["error"]
 
-    def test_batch_exceeds_limit(self, client, settings):
+    def test_batch_exceeds_limit(self, client, settings, device):
         settings.TELEMETRY_MAX_BATCH_SIZE = 2
         payload = [{"schema_version": "1.0"}] * 3
 
@@ -145,21 +210,21 @@ class TestTelemetryIngestViewKafka:
             "/api/v1/telemetry/",
             data=json.dumps(payload),
             content_type="application/json",
-            HTTP_X_DEVICE_SERIAL_NUMBER=self.serial_number,
+            HTTP_X_DEVICE_SERIAL_NUMBER=device.serial_number,
         )
 
         assert response.status_code == 400
         body = response.json()
         assert "exceeds maximum limit" in body["error"]
 
-    def test_publish_failure_returns_503(self, client, mock_producer):
+    def test_publish_failure_returns_503(self, client, mock_producer, device):
         mock_producer.publish_raw.side_effect = KafkaPublishError("broker down")
 
         response = client.post(
             "/api/v1/telemetry/",
             data=json.dumps({"schema_version": "1.0"}),
             content_type="application/json",
-            HTTP_X_DEVICE_SERIAL_NUMBER=self.serial_number,
+            HTTP_X_DEVICE_SERIAL_NUMBER=device.serial_number,
         )
 
         assert response.status_code == 503
@@ -167,8 +232,6 @@ class TestTelemetryIngestViewKafka:
         assert body["error"] == "Kafka publish failed"
         assert "details" not in body
 
-
-class TestTelemetryIngestViewDbErrorMapping:
     def test_idempotency_integrity_error_returns_409(self):
         view = TelemetryIngestView()
         response = view._handle_db_errors(
@@ -282,118 +345,11 @@ class TestTelemetryIngestionAsyncMode:
         assert data["details"]["summary"]["failed"] == 1
         assert Telemetry.objects.count() == 0
 
-
-class TestTelemetryIngestViewKafka:
-    @pytest.fixture(autouse=True)
-    def setup_env(self, settings):
-        settings.TELEMETRY_PIPELINE_MODE = "kafka"
-
-        self.factory = RequestFactory()
-        self.view = TelemetryIngestView.as_view()
-        self.url = "/api/v1/telemetry/"
-
-        self.valid_data = {"schema_version": "1.0", "value": 42}
-        self.headers = {
-            "HTTP_X_DEVICE_SERIAL_NUMBER": "TEST-SN-001",
-            "HTTP_IDEMPOTENCY_KEY": "idem-key-999",
-        }
-
-    @patch("apps.telemetry.views.TelemetryKafkaProducer")
-    @patch("apps.telemetry.views.TelemetryValidator.validate_batch")
-    def test_handle_kafka_success(self, mock_validate, MockProducer):
-        """
-        Checks that valid data is processed correctly:
-        validation, envelope construction, and Kafka publishing.
-        """
-
-        mock_validate.return_value = ([self.valid_data], [])
-
-        mock_producer_instance = MagicMock()
-        mock_producer_instance.resolve_topic.return_value = (
-            "telemetry.device.TEST-SN-001"
+    def test_database_error_returns_500(self):
+        view = TelemetryIngestView()
+        response = view._handle_db_errors(
+            DatabaseError("connection lost"),
+            "single sync ingestion",
         )
-        MockProducer.return_value = mock_producer_instance
 
-        request = self.factory.post(
-            self.url,
-            data=json.dumps(self.valid_data),
-            content_type="application/json",
-            **self.headers,
-        )
-        response = self.view(request)
-
-        assert response.status_code == 202
-        response_data = json.loads(response.content)
-        assert response_data["status"] == "accepted"
-        assert response_data["topic"] == "telemetry.device.TEST-SN-001"
-        assert response_data["idempotency_key"] == "idem-key-999"
-        assert response_data["pipeline_mode"] == "kafka"
-        assert "request_id" in response_data
-
-        mock_producer_instance.publish_batch.assert_called_once()
-        args, kwargs = mock_producer_instance.publish_batch.call_args
-        kafka_messages = args[0]
-
-        assert len(kafka_messages) == 1
-        msg = kafka_messages[0]
-        assert msg["ingest_protocol"] == "http"
-        assert msg["serial_number"] == "TEST-SN-001"
-
-        expected_payload = self.valid_data.copy()
-        expected_payload["serial_number"] = "TEST-SN-001"
-        assert msg["payload"] == expected_payload
-
-        assert msg["ingest_index"] == 0
-        assert "received_at" in msg
-        assert "request_id" in msg
-
-    @patch("apps.telemetry.views.TelemetryKafkaProducer")
-    @patch("apps.telemetry.views.TelemetryValidator.validate_batch")
-    def test_handle_kafka_validation_error(self, mock_validate, MockProducer):
-        """
-        Checks that invalid data is rejected before
-        any Kafka publishing occurs.
-        """
-        mock_validate.return_value = ([], [{"error": "Missing schema", "index": 0}])
-
-        request = self.factory.post(
-            self.url,
-            data=json.dumps({"bad": "data"}),
-            content_type="application/json",
-            **self.headers,
-        )
-        response = self.view(request)
-
-        assert response.status_code == 400
-        response_data = json.loads(response.content)
-        assert "Validation failed" in response_data.get("error", "")
-
-        MockProducer.assert_not_called()
-
-    @patch("apps.telemetry.views.TelemetryKafkaProducer")
-    @patch("apps.telemetry.views.TelemetryValidator.validate_batch")
-    def test_handle_kafka_producer_error(self, mock_validate, MockProducer):
-        """
-        Checks that if the Kafka broker is unavailable,
-        the error is handled correctly.
-        """
-        mock_validate.return_value = ([self.valid_data], [])
-
-        mock_producer_instance = MagicMock()
-        mock_producer_instance.publish_batch.side_effect = KafkaProducerError(
-            "Connection timeout"
-        )
-        MockProducer.return_value = mock_producer_instance
-
-        request = self.factory.post(
-            self.url,
-            data=json.dumps(self.valid_data),
-            content_type="application/json",
-            **self.headers,
-        )
-        response = self.view(request)
-
-        assert response.status_code == 503
-        response_data = json.loads(response.content)
-        assert response_data["error"] == "Kafka publish failed"
-        assert "Connection timeout" in response_data["details"]
+        assert response.status_code == 500

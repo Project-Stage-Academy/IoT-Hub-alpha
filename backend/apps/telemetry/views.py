@@ -11,7 +11,12 @@ from django.utils import timezone
 from django.db import DatabaseError, IntegrityError
 from django.conf import settings
 
-from .kafka import KafkaDeliveryError, KafkaProducerError, KafkaPublishError
+from .kafka import (
+    KafkaDeliveryError,
+    KafkaProducerError,
+    KafkaPublishError,
+    TelemetryKafkaProducer,
+)
 from .tasks import ingest_telemetry_batch_async
 from .producers import build_raw_event, get_producer
 from .services import (
