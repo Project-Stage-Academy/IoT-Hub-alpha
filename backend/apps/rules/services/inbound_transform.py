@@ -101,7 +101,7 @@ class TransformEngine:
     def _get_inner_dict(self, spec, body, target_key):
         inner_source = body
         if "from" in spec:
-            inner_source = body[spec["from"]]
+            inner_source = body.get(spec["from"])
         if inner_source is None:
             inner_source = spec.get("default", {})
         if not isinstance(inner_source, dict):

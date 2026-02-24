@@ -94,7 +94,7 @@ def test_init_transform_simple_from_default_cast(engine):
         "cooldown_min": {"default": "60", "cast": "int"},
     }
     body = {"rid": "r1", "did": "d1"}
-    out = engine._init_transfrom(mapping, {}, body)
+    out = engine._init_transform(mapping, {}, body)
     assert out["rule_id"] == "r1"
     assert out["device_id"] == "d1"
     assert out["severy"] == "warning"
@@ -113,7 +113,7 @@ def test_init_transform_inner_dict(engine):
         "device_id": {"from": "did"},
     }
     body = {"rid": "r1", "did": "d1", "telemetry": {"t": "22.5"}}
-    out = engine._init_transfrom(mapping, {}, body)
+    out = engine._init_transform(mapping, {}, body)
     assert out["telemetry_snapshot"] == {"temp": 22.5}
 
 
@@ -136,7 +136,7 @@ def test_init_transform_list(engine):
     }
 
     engine.body = body
-    out = engine._init_transfrom(mapping, {}, body)
+    out = engine._init_transform(mapping, {}, body)
 
     assert out["execution_results"] == [
         {"ok": True, "value": 1.2},
