@@ -68,7 +68,6 @@ def _build_http_batch_item_idempotency_key(
         return None
     return f"{batch_idempotency_key}:{ingest_index}"
 
-
 @method_decorator(csrf_exempt, name="dispatch")
 class TelemetryIngestView(View):
     """POST /api/v1/telemetry/ - ingest single or batched telemetry data"""
@@ -273,6 +272,14 @@ class TelemetryIngestView(View):
         request_id = str(uuid.uuid4())
         count = len(data) if is_batch else 1
         items_to_publish = data if is_batch else [data]
+
+        validated_items, errors = TelemetryValidator.validate_batch(items_to_publish)
+
+        if errors:
+            error_response = TelemetryResponseFormatter.format_validation_error(
+                errors, count, is_batch=is_batch
+            )
+            return JsonResponse(error_response, status=400)
 
         received_at = timezone.now().isoformat()
         producer = get_producer()

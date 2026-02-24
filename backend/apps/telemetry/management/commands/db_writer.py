@@ -7,91 +7,61 @@ import socket
 import time
 from datetime import timezone as dt_timezone
 from typing import Any
-from uuid import UUID
 
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
-from django.utils.dateparse import parse_datetime
-from apps.telemetry.service_layer.write_buffer import WriteBuffer
-from apps.telemetry.services import TelemetryValidator
+
+from apps.devices.models import Device
+from apps.telemetry.services import process_telemetry_payload
+from apps.telemetry.exceptions import RawContractError
+from apps.telemetry.validators import validate_raw_contract
 
 logger = logging.getLogger(__name__)
 
 try:
     from confluent_kafka import Consumer, KafkaError, Producer
-except ImportError:  # pragma: no cover - depends on runtime environment
-    Consumer = None  # type: ignore[assignment]
-    Producer = None  # type: ignore[assignment]
-    KafkaError = None  # type: ignore[assignment]
-
-
-class RawContractError(Exception):
-    """Raised when telemetry.raw message contract is invalid."""
-
-    def __init__(self, code: str, detail: Any):
-        super().__init__(str(detail))
-        self.code = code
-        self.detail = detail
+except ImportError:
+    Consumer, Producer, KafkaError = None, None, None
 
 
 class Command(BaseCommand):
-    help = (
-        "Consume telemetry.raw, validate + normalize payload, route to telemetry.clean "
-        "or telemetry.dlq, and commit raw offset only after successful publish."
-    )
+    help = "Consume telemetry.raw in BATCHES, validate, route, and publish."
 
     def __init__(self):
         super().__init__()
         self._running = True
 
     def add_arguments(self, parser):
+        parser.add_argument("--raw-topic", default=settings.KAFKA_TOPIC_TELEMETRY_RAW)
         parser.add_argument(
-            "--raw-topic",
-            default=settings.KAFKA_TOPIC_TELEMETRY_RAW,
-            help=f"Source topic (default: {settings.KAFKA_TOPIC_TELEMETRY_RAW})",
+            "--clean-topic", default=settings.KAFKA_TOPIC_TELEMETRY_CLEAN
         )
+        parser.add_argument("--dlq-topic", default=settings.KAFKA_TOPIC_TELEMETRY_DLQ)
         parser.add_argument(
-            "--clean-topic",
-            default=settings.KAFKA_TOPIC_TELEMETRY_CLEAN,
-            help=f"Clean topic (default: {settings.KAFKA_TOPIC_TELEMETRY_CLEAN})",
+            "--group-id", default=f"{settings.KAFKA_CLIENT_ID}-db-writer-stub"
         )
+        parser.add_argument("--poll-timeout", type=float, default=1.0)
+        parser.add_argument("--max-messages", type=int, default=0)
+
         parser.add_argument(
-            "--dlq-topic",
-            default=settings.KAFKA_TOPIC_TELEMETRY_DLQ,
-            help=f"DLQ topic (default: {settings.KAFKA_TOPIC_TELEMETRY_DLQ})",
-        )
-        parser.add_argument(
-            "--group-id",
-            default=f"{settings.KAFKA_CLIENT_ID}-db-writer-stub",
-            help="Kafka consumer group id",
-        )
-        parser.add_argument(
-            "--poll-timeout",
-            type=float,
-            default=1.0,
-            help="Consumer poll timeout in seconds (default: 1.0)",
-        )
-        parser.add_argument(
-            "--max-messages",
+            "--batch-size",
             type=int,
-            default=0,
-            help="Stop after N routed messages (0 = run forever)",
+            default=100,
+            help="Number of messages to process in one batch",
         )
 
     def handle(self, *args, **options):
-        if Consumer is None or Producer is None:
-            raise CommandError(
-                "confluent-kafka dependency is not installed. "
-                "Install requirements to use kafka_db_writer_stub."
-            )
+        if Consumer is None:
+            raise CommandError("confluent-kafka not installed.")
 
-        raw_topic = options["raw_topic"]
-        clean_topic = options["clean_topic"]
-        dlq_topic = options["dlq_topic"]
-        group_id = options["group_id"]
-        poll_timeout = options["poll_timeout"]
-        max_messages = options["max_messages"]
+        raw_topic, clean_topic, dlq_topic = (
+            options["raw_topic"],
+            options["clean_topic"],
+            options["dlq_topic"],
+        )
+        group_id, poll_timeout = options["group_id"], options["poll_timeout"]
+        max_messages, batch_size = options["max_messages"], options["batch_size"]
 
         raw_consumer = Consumer(self._build_consumer_config(group_id))
         clean_consumer = Consumer(
@@ -106,145 +76,114 @@ class Command(BaseCommand):
         write_buffer = WriteBuffer(clean_consumer, poll_timeout)
 
         self.stdout.write(
-            self.style.SUCCESS(
-                f"kafka_db_writer_stub started: raw={raw_topic}, clean={clean_topic}, "
-                f"dlq={dlq_topic}, group={group_id}, auto_commit=false"
-            )
+            self.style.SUCCESS(f"Worker started (BATCH SIZE: {batch_size})")
         )
 
-        processed = 0
-        clean_count = 0
-        dlq_count = 0
-        publish_timeout = max(settings.KAFKA_REQUEST_TIMEOUT_MS / 1000.0, 1.0)
+        processed_total = 0
+        publish_timeout = max(settings.KAFKA_REQUEST_TIMEOUT_MS / 1000.0, 5.0)
 
         try:
             while self._running:
-                write_buffer.handle()
-                message = raw_consumer.poll(poll_timeout)
-                if message is None:
+                messages = consumer.consume(
+                    num_messages=batch_size, timeout=poll_timeout
+                )
+
+                if not messages:
                     continue
 
-                if message.error():
-                    if (
-                        KafkaError is not None
-                        and message.error().code() == KafkaError._PARTITION_EOF
-                    ):
+                batch_errors = []
+
+                def _batch_delivery_callback(err, msg):
+                    if err:
+                        batch_errors.append(err)
+
+                for message in messages:
+                    if message.error():
+                        if message.error().code() != KafkaError._PARTITION_EOF:
+                            logger.error(
+                                "kafka_consume_error",
+                                extra={"error": str(message.error())},
+                            )
                         continue
 
-                    logger.error(
-                        "kafka_db_writer_stub.consume_error",
-                        extra={"error": str(message.error())},
-                    )
-                    continue
+                    routed = self._build_routed_message(message, clean_topic, dlq_topic)
+                    payload_bytes = json.dumps(
+                        routed["envelope"], ensure_ascii=False
+                    ).encode("utf-8")
 
-                routed = self._build_routed_message(
-                    message=message,
-                    clean_topic=clean_topic,
-                    dlq_topic=dlq_topic,
-                )
+                    max_retries = 3
+                    for attempt in range(max_retries + 1):
+                        try:
+                            producer.produce(
+                                topic=routed["target_topic"],
+                                key=routed["key"],
+                                value=payload_bytes,
+                                on_delivery=_batch_delivery_callback,
+                            )
+                            producer.poll(0)
+                            break
+                        except BufferError:
+                            if attempt == max_retries:
+                                logger.critical(
+                                    "Kafka producer buffer full. Max retries exceeded.",
+                                    extra={"event_id": routed.get("event_id")},
+                                )
+                                raise CommandError(
+                                    "Failed to publish message due to persistent "
+                                    "BufferError. Stopping stub to preserve "
+                                    "at-least-once behavior."
+                                )
 
-                source_key_text = self._decode_key_for_logs(message.key())
-                try:
-                    self._publish_envelope(
-                        producer=producer,
-                        topic=routed["target_topic"],
-                        key=routed["key"],
-                        envelope=routed["envelope"],
-                        timeout_seconds=publish_timeout,
-                    )
-                    raw_consumer.commit(message=message, asynchronous=False)
-                except Exception as exc:
-                    logger.exception(
-                        "kafka_db_writer_stub.route_failed",
-                        extra={
-                            "topic": message.topic(),
-                            "partition": message.partition(),
-                            "offset": message.offset(),
-                            "key": source_key_text,
-                            "event_id": routed["event_id"],
-                            "target_topic": routed["target_topic"],
-                            "error": str(exc),
-                        },
+                            logger.warning(
+                                "BufferError caught. Waiting for buffer to clear...",
+                                extra={
+                                    "attempt": attempt + 1,
+                                    "max_retries": max_retries,
+                                },
+                            )
+                            producer.poll(0.5)
+
+                    processed_total += 1
+
+                producer.flush(publish_timeout)
+
+                if batch_errors:
+                    logger.critical(
+                        f"Batch publish failed with {len(batch_errors)} errors."
+                        f" First error: {batch_errors[0]}"
                     )
                     raise CommandError(
-                        "Failed to route message to clean/dlq and commit raw offset. "
-                        "Stopping stub to preserve at-least-once behavior."
-                    ) from exc
-
-                processed += 1
-                if routed["target_topic"] == clean_topic:
-                    clean_count += 1
-                else:
-                    dlq_count += 1
+                        "Failed to route batch. Stopping stub to preserve "
+                        "at-least-once behavior."
+                    )
+                consumer.commit(asynchronous=False)
 
                 logger.info(
-                    "kafka_db_writer_stub.routed",
-                    extra={
-                        "topic": message.topic(),
-                        "partition": message.partition(),
-                        "offset": message.offset(),
-                        "key": source_key_text,
-                        "event_id": routed["event_id"],
-                        "target_topic": routed["target_topic"],
-                    },
+                    "Successfully processed and committed batch "
+                    f"of {len(messages)} messages."
                 )
 
-                if max_messages > 0 and processed >= max_messages:
+                if max_messages > 0 and processed_total >= max_messages:
                     break
+
         finally:
             producer.flush(publish_timeout)
             raw_consumer.close()
             write_buffer.close()
             self.stdout.write(
                 self.style.SUCCESS(
-                    f"kafka_db_writer stopped: processed={processed}, "
-                    f"clean={clean_count}, dlq={dlq_count}"
+                    f"Worker stopped. Total processed: {processed_total}"
                 )
             )
 
-    def _build_consumer_config(self, group_id: str) -> dict[str, Any]:
-        config = {
-            "bootstrap.servers": settings.KAFKA_BOOTSTRAP_SERVERS,
-            "client.id": (
-                f"{settings.KAFKA_CLIENT_ID}-db-writer-stub-"
-                f"{socket.gethostname()}-{os.getpid()}"
-            ),
-            "group.id": group_id,
-            "security.protocol": settings.KAFKA_SECURITY_PROTOCOL,
-            "enable.auto.commit": False,
-            "auto.offset.reset": "earliest",
-        }
-
-        if settings.KAFKA_SASL_MECHANISM:
-            config["sasl.mechanism"] = settings.KAFKA_SASL_MECHANISM
-        if settings.KAFKA_SASL_USERNAME:
-            config["sasl.username"] = settings.KAFKA_SASL_USERNAME
-        if settings.KAFKA_SASL_PASSWORD:
-            config["sasl.password"] = settings.KAFKA_SASL_PASSWORD
-
-        return config
-
-    def _install_signal_handlers(self) -> None:
-        def _stop(signum, frame):
-            logger.info(
-                "kafka_db_writer_stub.shutdown_signal",
-                extra={"signal": signum},
-            )
-            self._running = False
-
-        signal.signal(signal.SIGINT, _stop)
-        signal.signal(signal.SIGTERM, _stop)
-
     def _build_routed_message(
-        self,
-        *,
-        message,
-        clean_topic: str,
-        dlq_topic: str,
+        self, message, clean_topic: str, dlq_topic: str
     ) -> dict[str, Any]:
-        source_topic = message.topic()
-        source_partition = message.partition()
-        source_offset = message.offset()
+        source_topic, source_partition, source_offset = (
+            message.topic(),
+            message.partition(),
+            message.offset(),
+        )
         source_key = message.key()
 
         raw_obj: Any | None = None
@@ -253,14 +192,13 @@ class Command(BaseCommand):
         try:
             raw_obj = self._decode_message_value(message.value())
             raw_payload_for_dlq = raw_obj
-            contract = self._validate_raw_contract(raw_obj)
+
+            contract = validate_raw_contract(raw_obj, self._to_utc)
+
             normalized = self._normalize_payload(contract)
 
             event_id = self._build_event_id(
-                raw_obj,
-                source_topic=source_topic,
-                source_partition=source_partition,
-                source_offset=source_offset,
+                raw_obj, source_topic, source_partition, source_offset
             )
             clean_key = source_key or contract["serial_number"].encode("utf-8")
 
@@ -284,20 +222,17 @@ class Command(BaseCommand):
                 "key": clean_key,
                 "envelope": clean_envelope,
             }
+
         except RawContractError as exc:
-            error_code = exc.code
-            error_detail = exc.detail
-        except Exception as exc:  # pragma: no cover - defensive fallback
-            error_code = "unexpected_error"
-            error_detail = str(exc)
+            error_code, error_detail = exc.code, exc.detail
+        except Exception as exc:
+            error_code, error_detail = "unexpected_error", str(exc)
 
         event_id = self._build_event_id(
-            raw_obj,
-            source_topic=source_topic,
-            source_partition=source_partition,
-            source_offset=source_offset,
+            raw_obj, source_topic, source_partition, source_offset
         )
         dlq_key = self._resolve_dlq_key(source_key=source_key, raw_obj=raw_obj)
+
         dlq_envelope = {
             "event_id": event_id,
             "failed_at": timezone.now().isoformat(),
@@ -321,161 +256,102 @@ class Command(BaseCommand):
             "envelope": dlq_envelope,
         }
 
-    def _decode_message_value(self, raw_bytes: bytes | None) -> dict[str, Any]:
-        if raw_bytes is None:
-            raise RawContractError("empty_payload", "Message payload is empty")
-
-        try:
-            parsed = json.loads(raw_bytes.decode("utf-8"))
-        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-            raise RawContractError("malformed_json", str(exc)) from exc
-
-        if not isinstance(parsed, dict):
-            raise RawContractError(
-                "invalid_contract",
-                "Message payload must be a JSON object",
-            )
-        return parsed
-
-    def _validate_raw_contract(self, raw_obj: dict[str, Any]) -> dict[str, Any]:
-        required_fields = [
-            "request_id",
-            "ingest_protocol",
-            "serial_number",
-            "payload",
-            "received_at",
-            "ingest_index",
-        ]
-        missing = [field for field in required_fields if field not in raw_obj]
-        if missing:
-            raise RawContractError("missing_fields", {"missing": missing})
-
-        request_id = raw_obj["request_id"]
-        if not isinstance(request_id, str) or not request_id.strip():
-            raise RawContractError(
-                "invalid_request_id",
-                "request_id must be non-empty",
-            )
-        try:
-            UUID(request_id)
-        except ValueError as exc:
-            raise RawContractError("invalid_request_id", str(exc)) from exc
-
-        ingest_protocol = raw_obj["ingest_protocol"]
-        if not isinstance(ingest_protocol, str) or not ingest_protocol.strip():
-            raise RawContractError(
-                "invalid_ingest_protocol",
-                "ingest_protocol must be non-empty",
-            )
-
-        serial_number = raw_obj["serial_number"]
-        if not isinstance(serial_number, str) or not serial_number.strip():
-            raise RawContractError(
-                "invalid_serial_number",
-                "serial_number must be non-empty",
-            )
-
-        payload = raw_obj["payload"]
-        if not isinstance(payload, dict):
-            raise RawContractError("invalid_payload", "payload must be a JSON object")
-
-        payload_serial = payload.get("serial_number")
-        if payload_serial and payload_serial != serial_number:
-            raise RawContractError(
-                "payload_serial_mismatch",
-                "payload.serial_number must match top-level serial_number",
-            )
-
-        received_at_raw = raw_obj["received_at"]
-        if not isinstance(received_at_raw, str):
-            raise RawContractError(
-                "invalid_received_at",
-                "received_at must be string",
-            )
-        received_at_dt = parse_datetime(received_at_raw)
-        if received_at_dt is None:
-            raise RawContractError(
-                "invalid_received_at",
-                "received_at must be ISO 8601 datetime string",
-            )
-        received_at_dt = self._to_utc(received_at_dt)
-
-        ingest_index = raw_obj["ingest_index"]
-        if isinstance(ingest_index, bool) or not isinstance(ingest_index, int):
-            raise RawContractError(
-                "invalid_ingest_index",
-                "ingest_index must be int",
-            )
-        if ingest_index < 0:
-            raise RawContractError(
-                "invalid_ingest_index",
-                "ingest_index must be >= 0",
-            )
-
-        return {
-            "request_id": request_id,
-            "ingest_protocol": ingest_protocol,
-            "serial_number": serial_number,
-            "payload": payload,
-            "received_at": received_at_dt.isoformat(),
-            "ingest_index": ingest_index,
-        }
-
     def _normalize_payload(self, contract: dict[str, Any]) -> dict[str, Any]:
         payload_input = dict(contract["payload"])
         payload_input["serial_number"] = contract["serial_number"]
 
-        validated, error = TelemetryValidator.validate_single(payload_input)
+        clean_payload, error = process_telemetry_payload(payload_input)
         if error:
             raise RawContractError("payload_validation_failed", error)
 
-        normalized = {
-            "device_id": str(validated["device"].id),
-            "payload": validated["payload"],
-        }
-        if validated.get("timestamp") is not None:
-            normalized["timestamp"] = self._to_utc(validated["timestamp"]).isoformat()
+        try:
+            device = Device.objects.get(serial_number=contract["serial_number"])
+        except Device.DoesNotExist:
+            raise RawContractError(
+                "unknown_device", f"Device SN: {contract['serial_number']} not found"
+            )
+
+        normalized = {"device_id": str(device.id), "payload": clean_payload}
+
+        if (timestamp_val := clean_payload.get("timestamp")) is not None:
+            normalized["timestamp"] = (
+                timestamp_val
+                if isinstance(timestamp_val, str)
+                else self._to_utc(timestamp_val).isoformat()
+            )
+
         return normalized
 
-    def _build_event_id(
-        self,
-        raw_obj: Any | None,
-        *,
-        source_topic: str,
-        source_partition: int,
-        source_offset: int,
-    ) -> str:
+    def _build_consumer_config(self, group_id: str) -> dict[str, Any]:
+        config = {
+            "bootstrap.servers": settings.KAFKA_BOOTSTRAP_SERVERS,
+            "client.id": (
+                f"{settings.KAFKA_CLIENT_ID}"
+                f"-db-writer-stub-{socket.gethostname()}-{os.getpid()}"
+            ),
+            "group.id": group_id,
+            "security.protocol": settings.KAFKA_SECURITY_PROTOCOL,
+            "enable.auto.commit": False,
+            "auto.offset.reset": "earliest",
+        }
+        if settings.KAFKA_SASL_MECHANISM:
+            config["sasl.mechanism"] = settings.KAFKA_SASL_MECHANISM
+        if settings.KAFKA_SASL_USERNAME:
+            config["sasl.username"] = settings.KAFKA_SASL_USERNAME
+        if settings.KAFKA_SASL_PASSWORD:
+            config["sasl.password"] = settings.KAFKA_SASL_PASSWORD
+        return config
+
+    def _install_signal_handlers(self) -> None:
+        def _stop(signum, frame):
+            self._running = False
+
+        signal.signal(signal.SIGINT, _stop)
+        signal.signal(signal.SIGTERM, _stop)
+
+    def _decode_message_value(self, raw_bytes: bytes | None) -> dict[str, Any]:
+        if raw_bytes is None:
+            raise RawContractError("empty_payload", "Message payload is empty")
+        try:
+            parsed = json.loads(raw_bytes.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise RawContractError("malformed_json", str(exc)) from exc
+        if not isinstance(parsed, dict):
+            raise RawContractError(
+                "invalid_contract", "Message payload must be a JSON object"
+            )
+        return parsed
+
+    def _build_event_id(self, raw_obj, source_topic, source_partition, source_offset):
         if isinstance(raw_obj, dict):
-            request_id = raw_obj.get("request_id")
-            ingest_index = raw_obj.get("ingest_index")
-            if isinstance(request_id, str) and isinstance(ingest_index, int):
-                return f"{request_id}:{ingest_index}"
+            if isinstance(req_id := raw_obj.get("request_id"), str) and isinstance(
+                idx := raw_obj.get("ingest_index"), int
+            ):
+                return f"{req_id}:{idx}"
         return f"{source_topic}:{source_partition}:{source_offset}"
 
-    def _resolve_dlq_key(self, *, source_key: bytes | None, raw_obj: Any | None):
+    def _resolve_dlq_key(self, source_key, raw_obj):
         if source_key is not None:
             return source_key
-
-        if isinstance(raw_obj, dict):
-            serial_number = raw_obj.get("serial_number")
-            if isinstance(serial_number, str) and serial_number.strip():
-                return serial_number.encode("utf-8")
-
+        if (
+            isinstance(raw_obj, dict)
+            and isinstance(sn := raw_obj.get("serial_number"), str)
+            and sn.strip()
+        ):
+            return sn.encode("utf-8")
         return None
 
-    def _decode_key_for_logs(self, key: bytes | None) -> str | None:
+    def _decode_key_for_logs(self, key):
         if key is None:
             return None
-
         try:
             return key.decode("utf-8")
         except UnicodeDecodeError:
             return key.hex()
 
-    def _decode_raw_for_dlq(self, raw_bytes: bytes | None) -> Any:
+    def _decode_raw_for_dlq(self, raw_bytes):
         if raw_bytes is None:
             return None
-
         try:
             payload_text = raw_bytes.decode("utf-8")
         except UnicodeDecodeError:
@@ -483,66 +359,22 @@ class Command(BaseCommand):
                 "encoding": "base64",
                 "data": base64.b64encode(raw_bytes).decode("ascii"),
             }
-
         try:
             return json.loads(payload_text)
         except json.JSONDecodeError:
-            return payload_text
+            return {
+                "encoding": "utf-8",
+                "data": payload_text,
+            }
 
     def _to_utc(self, value):
         if timezone.is_naive(value):
             return timezone.make_aware(value, dt_timezone.utc)
         return value.astimezone(dt_timezone.utc)
 
-    def _ensure_jsonable(self, value: Any) -> Any:
+    def _ensure_jsonable(self, value):
         try:
             json.dumps(value, ensure_ascii=False)
             return value
         except (TypeError, ValueError):
             return str(value)
-
-    def _publish_envelope(
-        self,
-        *,
-        producer,
-        topic: str,
-        key: bytes | None,
-        envelope: dict[str, Any],
-        timeout_seconds: float,
-    ) -> None:
-        payload = json.dumps(envelope, ensure_ascii=False).encode("utf-8")
-        delivery_status: dict[str, Any] = {"done": False, "error": None}
-        started_at = time.monotonic()
-
-        def _on_delivery(err, _msg) -> None:
-            if err is not None:
-                delivery_status["error"] = str(err)
-            delivery_status["done"] = True
-
-        retries_left = 3
-        while True:
-            try:
-                producer.produce(
-                    topic,
-                    key=key,
-                    value=payload,
-                    on_delivery=_on_delivery,
-                )
-                producer.poll(0)
-                break
-            except BufferError:
-                if retries_left == 0:
-                    raise
-                retries_left -= 1
-                producer.poll(0.1)
-
-        while not delivery_status["done"]:
-            if time.monotonic() - started_at > timeout_seconds:
-                raise RuntimeError(
-                    f"Delivery callback timeout for topic '{topic}' after "
-                    f"{timeout_seconds} seconds"
-                )
-            producer.poll(0.05)
-
-        if delivery_status["error"]:
-            raise RuntimeError(str(delivery_status["error"]))
