@@ -22,6 +22,7 @@ The processor performs the following steps:
    - Supports:
      - Field renaming (`from`)
      - Default values (`default`)
+     - Literal values (`literal`)
      - Type casting (`cast`)
      - Nested objects (`inner_dict`)
      - List transformations (`list`)
@@ -36,6 +37,27 @@ The processor performs the following steps:
    - Optionally links to internal `Rule` (FK)
    - Stores external rule identifier as ID
 
+example transformation schema:
+```json
+{
+    "id": 1234,
+    "map": {
+    "cooldown_min": { "from": "cooldown", "literal": [25, 60, 70] },
+    "rule_id": { "from": "trigger", "cast": "str"},
+    "device_id": { "from": "aparatus", "cast": "str" },
+    "message": { "from": "message", "cast": "str" },
+    "telemetry_snapshot": { "from": "offender", "inner_dict": {
+        "value": { "from": "temp", "cast": "int" },
+        "ts": { "default": "", "cast": "timezone" }
+    } },
+    "action_config": { "from": "actions", "list": {
+        "type": { "default": "email" },
+        "to": { "from": "address" },
+        "name": { "from": "person" }
+    }}
+  }
+}
+```
 ---
 
 ## Request Example
@@ -47,7 +69,7 @@ POST /api/v1/rules/inbound/1234
 ```json
 {
     "trigger": 133322,
-    "cooldown": 255,
+    "cooldown": 25,
     "aparatus": 6652,
     "message": "Rule triggered",
     "offender": {

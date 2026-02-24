@@ -11,4 +11,8 @@ def get_json_body(body) -> dict:
 
 
 def check_external_cooldown(external_id, cooldown):
+    """
+    Stub to future cooldown check, might be here, might be
+    down the pipeline.
+    """
     pass

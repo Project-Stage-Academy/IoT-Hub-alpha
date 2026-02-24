@@ -3,12 +3,17 @@ from django.http import HttpRequest, JsonResponse
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
-from apps.rules.services.view_helpers import get_json_body, check_external_cooldown
+from apps.rules.services.view_helpers import get_json_body
 from apps.rules.services.inbound_transform import TransformEngine, TransformationError
 
 
 @method_decorator(csrf_exempt, name="dispatch")
 class ExternalRule(View):
+    """
+    Recieve external event and generates an internally complient instance
+    of event.topic
+    """
+
     def post(self, request: HttpRequest, inbound_id) -> JsonResponse:
 
         engine = TransformEngine()
@@ -22,4 +27,4 @@ class ExternalRule(View):
         except TransformationError as e:
             return JsonResponse({"error": f"Failed: {e}"}, status=400)
 
-        return JsonResponse(transformed, status=202)
+        return JsonResponse(transformed.model_dump(), status=202)

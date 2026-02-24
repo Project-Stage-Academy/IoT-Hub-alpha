@@ -1,7 +1,7 @@
 [{
     "id": 1234,
     "map": {
-    "cooldown_min": { "from": "cooldown" },
+    "cooldown_min": { "from": "cooldown", "literal": [25, 60, 70] },
     "rule_id": { "from": "trigger", "cast": "str"},
     "device_id": { "from": "aparatus", "cast": "str" },
     "message": { "from": "message", "cast": "str" },

@@ -1,6 +1,6 @@
 import json
-from typing import Any
 from pathlib import Path
+from typing import Any
 from dateutil import parser
 from datetime import timezone
 from django.utils import timezone as tz
@@ -16,7 +16,10 @@ class TransformEngine:
     def __init__(self):
         self.result = {}
 
-    def transform(self, id, body):
+    def transform(self, id: int, body: dict[str, Any]) -> ExternalEventMessage:
+        """
+        Transform entry point
+        """
         self.mappings = self._get_map_or_die(id)
         self.body = body
 
@@ -30,9 +33,16 @@ class TransformEngine:
         except RecursionError as e:
             raise TransformationError(f"Recursion error: {e}")
 
-        return validate_final.model_dump()
+        return validate_final
 
-    def _init_transfrom(self, mapping: dict, result: dict, body: dict):
+    def _init_transfrom(
+        self, mapping: dict, result: dict, body: dict
+    ) -> dict[str, Any]:
+        """
+        Main transform parser, responsible for logic.
+        returns a dict for ExternalEventMessage model validate or raises
+        an TransformationError
+        """
         if not isinstance(mapping, dict):
             raise TransformationError("rules.mappings must be an object")
         for target_key, spec in mapping.items():
@@ -40,31 +50,17 @@ class TransformEngine:
                 raise TransformationError(f"{target_key} spec must be an object")
 
             if "list" in spec:
-                data_list = self.body[spec.get("from")]
+                data_list = self.body[spec["from"]]
                 new_list = []
-                if not isinstance(spec.get("list"), dict):
-                    raise TransformationError("spec.list must be an object")
-                if not isinstance(data_list, list):
-                    raise TransformationError(
-                        f"{target_key}: expected list at '{spec['from']}'"
-                    )
+                self._check_list(spec, data_list, target_key)
                 for elem in data_list:
-                    transformed = self._init_transfrom(spec.get("list"), {}, elem)
+                    transformed = self._init_transfrom(spec["list"], {}, elem)
                     new_list.append(transformed)
                 result[target_key] = new_list
                 continue
 
             if "inner_dict" in spec:
-                inner_source = body
-                if "from" in spec:
-                    inner_source = body.get(spec["from"])
-                    if inner_source is None:
-                        inner_source = spec.get("default", {})
-                    if not isinstance(inner_source, dict):
-                        raise TransformationError(
-                            f"{target_key}: inner source must be a dict"
-                        )
-
+                inner_source = self._get_inner_dict(spec, body, target_key)
                 child = {}
                 result[target_key] = child
                 self._init_transfrom(spec["inner_dict"], child, inner_source)
@@ -72,6 +68,8 @@ class TransformEngine:
 
             if "from" in spec:
                 value = body.get(spec["from"])
+                if "literal" in spec:
+                    value = self._handle_literal(spec, value, target_key)
                 if value is None and "default" in spec:
                     value = spec["default"]
                 if value is None and "default" not in spec:
@@ -90,7 +88,34 @@ class TransformEngine:
 
         return result
 
-    def _cast_value(self, value, cast):
+    def _check_list(self, spec, data_list, target_key):
+        if not isinstance(spec.get("list"), dict):
+            raise TransformationError("spec.list must be an object")
+        if not isinstance(data_list, list):
+            raise TransformationError(
+                f"{target_key}: expected list at '{spec['from']}'"
+            )
+
+    def _get_inner_dict(self, spec, body, target_key):
+        inner_source = body
+        if "from" in spec:
+            inner_source = body.get(spec["from"])
+        if inner_source is None:
+            inner_source = spec.get("default", {})
+        if not isinstance(inner_source, dict):
+            raise TransformationError(f"{target_key}: inner source must be a dict")
+        return inner_source
+
+    def _handle_literal(self, spec, value, target_key):
+        literal = spec["literal"]
+        if value not in literal:
+            raise TransformationError(f"{target_key} can only accept {literal}")
+        return value
+
+    def _cast_value(self, value: Any, cast: str) -> Any:
+        """
+        Method for type casting
+        """
         match cast:
             case "str":
                 return str(value)
@@ -109,19 +134,27 @@ class TransformEngine:
             case "timezone":
                 return self._convert_time(value)
 
-    def _convert_time(self, value=None):
+    def _convert_time(self, value: str | None = None) -> str:
         try:
             dt = parser.parse(value)
-        except Exception:
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+
+        except (
+            TypeError,
+            ValueError,
+            OverflowError,
+            AttributeError,
+            parser.ParserError,
+        ):
             return tz.now().isoformat()
 
-        if dt.tzinfo is None:
-            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone(timezone.utc).isoformat()
 
-        return dt.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
-
-    def _get_map_or_die(self, id):
-
+    def _get_map_or_die(self, id: int) -> dict[str, Any]:
+        """
+        Get transformation map from json or raise TransformationError
+        """
         path = Path(__file__).parent / "inbound_map.json"
         with path.open("r") as f:
             raw_transform_rules = json.load(f)
