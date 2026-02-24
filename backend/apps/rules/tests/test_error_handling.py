@@ -158,9 +158,13 @@ class TestInvalidTelemetryData:
         """TelemetryPoint with non-datetime timestamp fails on timedelta ops."""
         point = TelemetryPoint(ts="2026-02-16", value=10.0)
         assert point.ts == "2026-02-16"
-        # Fails when used in WindowState.add_point (ts - timedelta)
+        # Fails when used in WindowState.add_point (ts - timedelta during cleanup)
+        # Use cleanup_interval=1 to trigger cleanup immediately on second call
         with pytest.raises(TypeError):
-            WindowState(window_seconds=60).add_point(ts=point.ts, value=point.value)
+            window = WindowState(window_seconds=60, cleanup_interval=1)
+            window.add_point(ts=point.ts, value=point.value)
+            # Second add_point triggers cleanup which fails on string ts
+            window.add_point(ts=point.ts, value=point.value)
 
 
 class TestEvalRuleErrorHandling:
