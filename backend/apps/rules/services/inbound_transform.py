@@ -50,7 +50,7 @@ class TransformEngine:
                 raise TransformationError(f"{target_key} spec must be an object")
 
             if "list" in spec:
-                data_list = self.body[spec["from"]]
+                data_list = body[spec["from"]]
                 new_list = []
                 self._check_list(spec, data_list, target_key)
                 for elem in data_list:
@@ -107,9 +107,14 @@ class TransformEngine:
         return inner_source
 
     def _handle_literal(self, spec, value, target_key):
-        literal = spec["literal"]
+        literal = [x.lower() if type(x) is str else x for x in spec["literal"]]
+        value = value.lower() if type(value) is str else value
+        if not value:
+            value = spec.get("default")
         if value not in literal:
-            raise TransformationError(f"{target_key} can only accept {literal}")
+            raise TransformationError(
+                f"{target_key} got ({value}) can only accept {literal}"
+            )
         return value
 
     def _cast_value(self, value: Any, cast: str) -> Any:

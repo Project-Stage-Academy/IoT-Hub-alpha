@@ -41,4 +41,3 @@ paho-mqtt==2.1.0
 channels==4.2.0
 daphne==4.1.2
 whitenoise==6.7.0
-confluent-kafka==2.13.0
