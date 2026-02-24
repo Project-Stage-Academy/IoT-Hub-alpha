@@ -37,6 +37,7 @@ def trigger_engine_realtime(
         event_timestamp = eval_result.end.isoformat()
 
     event_message = {
+        "type": "internal",
         "rule_id": str(rule_id),
         "device_id": str(device_id),
         "timestamp": event_timestamp,
