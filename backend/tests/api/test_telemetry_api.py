@@ -52,7 +52,7 @@ def test_ingest_telemetry_single_missing_header(api_client):
 
 
 @pytest.mark.django_db
-def test_ingest_telemetry_single_invalid_payload(api_client, device):
+def test_ingest_telemetry_single_invalid_payload(api_client, device, settings):
     _require_telemetry_api(api_client)
     payload = {"schema_version": "9.9", "value": 2443}
     headers = {"HTTP_X_DEVICE_SERIAL_NUMBER": device.serial_number}
@@ -64,12 +64,12 @@ def test_ingest_telemetry_single_invalid_payload(api_client, device):
         **headers,
     )
 
-    # Ingestion is publish-only; schema validation happens downstream in the consumer.
-    assert response.status_code == 202
+    expected_status = 202 if settings.TELEMETRY_PIPELINE_MODE == "kafka" else 400
+    assert response.status_code == expected_status
 
 
 @pytest.mark.django_db
-def test_ingest_telemetry_invalid_device_serial(api_client):
+def test_ingest_telemetry_invalid_device_serial(api_client, settings):
     _require_telemetry_api(api_client)
     payload = {"schema_version": "1.0", "value": 2443}
     headers = {"HTTP_X_DEVICE_SERIAL_NUMBER": "SN-DOES-NOT-EXIST"}
@@ -81,8 +81,8 @@ def test_ingest_telemetry_invalid_device_serial(api_client):
         **headers,
     )
 
-    # Ingestion is publish-only; device lookup happens downstream in the consumer.
-    assert response.status_code == 202
+    expected_status = 202 if settings.TELEMETRY_PIPELINE_MODE == "kafka" else 400
+    assert response.status_code == expected_status
 
 
 @pytest.mark.django_db

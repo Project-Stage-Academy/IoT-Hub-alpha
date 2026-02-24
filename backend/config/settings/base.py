@@ -215,6 +215,88 @@ TELEMETRY_ASYNC_INGESTION = os.getenv("TELEMETRY_ASYNC_INGESTION", "false").lowe
     "yes",
 )
 TELEMETRY_MAX_BATCH_SIZE = int(os.getenv("TELEMETRY_MAX_BATCH_SIZE", "1000"))
+TELEMETRY_PIPELINE_MODE = os.getenv("TELEMETRY_PIPELINE_MODE", "direct").strip().lower()
+if TELEMETRY_PIPELINE_MODE not in {"direct", "kafka"}:
+    raise ValueError(
+        "Invalid TELEMETRY_PIPELINE_MODE='"
+        f"{TELEMETRY_PIPELINE_MODE}'. Allowed values: direct, kafka"
+    )
+
+# Kafka ingestion settings (used when TELEMETRY_PIPELINE_MODE=kafka)
+KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "kafka:9092").strip()
+KAFKA_CLIENT_ID = os.getenv("KAFKA_CLIENT_ID", "iot-hub-backend").strip()
+KAFKA_SECURITY_PROTOCOL = os.getenv("KAFKA_SECURITY_PROTOCOL", "PLAINTEXT").strip()
+KAFKA_SASL_MECHANISM = os.getenv("KAFKA_SASL_MECHANISM", "").strip()
+KAFKA_SASL_USERNAME = os.getenv("KAFKA_SASL_USERNAME", "").strip()
+KAFKA_SASL_PASSWORD = os.getenv("KAFKA_SASL_PASSWORD", "").strip()
+
+KAFKA_TOPIC_TELEMETRY_RAW = os.getenv(
+    "KAFKA_TOPIC_TELEMETRY_RAW", "telemetry.raw"
+).strip()
+KAFKA_TOPIC_TELEMETRY_CLEAN = os.getenv(
+    "KAFKA_TOPIC_TELEMETRY_CLEAN", "telemetry.clean"
+).strip()
+KAFKA_TOPIC_TELEMETRY_DLQ = os.getenv(
+    "KAFKA_TOPIC_TELEMETRY_DLQ", "telemetry.dlq"
+).strip()
+KAFKA_TOPIC_EVENT = os.getenv("KAFKA_TOPIC_EVENT", "event.topic").strip()
+
+KAFKA_PIPELINE_TOPICS = (
+    KAFKA_TOPIC_TELEMETRY_RAW,
+    KAFKA_TOPIC_TELEMETRY_CLEAN,
+    KAFKA_TOPIC_TELEMETRY_DLQ,
+    KAFKA_TOPIC_EVENT,
+)
+if any(not topic for topic in KAFKA_PIPELINE_TOPICS):
+    raise ValueError("Kafka topic names must not be empty")
+if len(KAFKA_PIPELINE_TOPICS) != len(set(KAFKA_PIPELINE_TOPICS)):
+    raise ValueError("Kafka topic names must be unique")
+
+KAFKA_PRODUCER_ACKS = os.getenv("KAFKA_PRODUCER_ACKS", "all").strip()
+try:
+    KAFKA_PRODUCER_LINGER_MS = int(os.getenv("KAFKA_PRODUCER_LINGER_MS", "20"))
+    KAFKA_PRODUCER_BATCH_SIZE = int(os.getenv("KAFKA_PRODUCER_BATCH_SIZE", "65536"))
+    KAFKA_REQUEST_TIMEOUT_MS = int(os.getenv("KAFKA_REQUEST_TIMEOUT_MS", "30000"))
+    KAFKA_PUBLISH_MAX_RETRIES = int(os.getenv("KAFKA_PUBLISH_MAX_RETRIES", "3"))
+    KAFKA_RETRY_BACKOFF_BASE_MS = int(os.getenv("KAFKA_RETRY_BACKOFF_BASE_MS", "100"))
+    KAFKA_RETRY_BACKOFF_MAX_MS = int(os.getenv("KAFKA_RETRY_BACKOFF_MAX_MS", "2000"))
+    KAFKA_RETRY_BACKOFF_JITTER = float(os.getenv("KAFKA_RETRY_BACKOFF_JITTER", "0.2"))
+except ValueError as exc:
+    raise ValueError(
+        "Kafka numeric settings must be valid numbers "
+        "(integers except KAFKA_RETRY_BACKOFF_JITTER which may be float)"
+    ) from exc
+
+if KAFKA_PUBLISH_MAX_RETRIES < 0:
+    raise ValueError("KAFKA_PUBLISH_MAX_RETRIES must be >= 0")
+if KAFKA_RETRY_BACKOFF_BASE_MS < 0:
+    raise ValueError("KAFKA_RETRY_BACKOFF_BASE_MS must be >= 0")
+if KAFKA_RETRY_BACKOFF_MAX_MS < KAFKA_RETRY_BACKOFF_BASE_MS:
+    raise ValueError(
+        "KAFKA_RETRY_BACKOFF_MAX_MS must be >= KAFKA_RETRY_BACKOFF_BASE_MS"
+    )
+if not 0 <= KAFKA_RETRY_BACKOFF_JITTER <= 1:
+    raise ValueError("KAFKA_RETRY_BACKOFF_JITTER must be between 0 and 1")
+KAFKA_PRODUCER_COMPRESSION_TYPE = os.getenv(
+    "KAFKA_PRODUCER_COMPRESSION_TYPE", "none"
+).strip()
+
+KAFKA_PRODUCER_CONFIG = {
+    "bootstrap.servers": KAFKA_BOOTSTRAP_SERVERS,
+    "client.id": KAFKA_CLIENT_ID,
+    "security.protocol": KAFKA_SECURITY_PROTOCOL,
+    "acks": KAFKA_PRODUCER_ACKS,
+    "linger.ms": KAFKA_PRODUCER_LINGER_MS,
+    "batch.size": KAFKA_PRODUCER_BATCH_SIZE,
+    "compression.type": KAFKA_PRODUCER_COMPRESSION_TYPE,
+    "request.timeout.ms": KAFKA_REQUEST_TIMEOUT_MS,
+}
+if KAFKA_SASL_MECHANISM:
+    KAFKA_PRODUCER_CONFIG["sasl.mechanism"] = KAFKA_SASL_MECHANISM
+if KAFKA_SASL_USERNAME:
+    KAFKA_PRODUCER_CONFIG["sasl.username"] = KAFKA_SASL_USERNAME
+if KAFKA_SASL_PASSWORD:
+    KAFKA_PRODUCER_CONFIG["sasl.password"] = KAFKA_SASL_PASSWORD
 
 WEBHOOKS_ENABLED = os.getenv("DJANGO_WEBHOOKS_ENABLED", "false").lower() in (
     "true",
@@ -251,8 +333,22 @@ MQTT_TOPIC = os.getenv("MQTT_TOPIC", "telemetry/#")
 MQTT_QOS = int(os.getenv("MQTT_QOS", "1"))
 MQTT_CONNECT_TIMEOUT = int(os.getenv("MQTT_CONNECT_TIMEOUT", "10"))
 
-# Telemetry producer backend: "log" (stub) or "kafka" (when available)
-TELEMETRY_PRODUCER_BACKEND = os.getenv("TELEMETRY_PRODUCER_BACKEND", "log")
+# Telemetry producer backend: "log" or "kafka".
+# If not explicitly provided, derive a sensible default from pipeline mode.
+TELEMETRY_PRODUCER_BACKEND = os.getenv("TELEMETRY_PRODUCER_BACKEND", "").strip().lower()
+if not TELEMETRY_PRODUCER_BACKEND:
+    TELEMETRY_PRODUCER_BACKEND = (
+        "kafka" if TELEMETRY_PIPELINE_MODE == "kafka" else "log"
+    )
+if TELEMETRY_PRODUCER_BACKEND not in {"log", "kafka"}:
+    raise ValueError(
+        "Invalid TELEMETRY_PRODUCER_BACKEND='"
+        f"{TELEMETRY_PRODUCER_BACKEND}'. Allowed values: log, kafka"
+    )
+if TELEMETRY_PIPELINE_MODE == "kafka" and TELEMETRY_PRODUCER_BACKEND != "kafka":
+    raise ValueError(
+        "TELEMETRY_PIPELINE_MODE='kafka' requires " "TELEMETRY_PRODUCER_BACKEND='kafka'"
+    )
 
 RATE_LIMIT_ENABLED = os.getenv("RATE_LIMIT_ENABLED", "False").lower() in (
     "true",

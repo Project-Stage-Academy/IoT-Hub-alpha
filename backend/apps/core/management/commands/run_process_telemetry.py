@@ -7,7 +7,6 @@ from typing import Any
 from apps.rules.tasks import process_telemetry
 from apps.telemetry.models import Telemetry
 
-
 BATCH_SIZE = os.getenv("CELERY_RULE_BATCH_SIZE", 1000)
 
 
