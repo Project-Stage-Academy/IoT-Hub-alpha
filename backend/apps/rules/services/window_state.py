@@ -88,7 +88,8 @@ class WindowState:
 
         Side Effects:
         - Modifies self.values list (adds point)
-        - Periodically removes old points and may truncate (every cleanup_interval calls)
+        - Periodically removes old points and may truncate
+          (every cleanup_interval calls)
         """
         # Always add the new point
         self.values.append(TelemetryPoint(ts=ts, value=value))
