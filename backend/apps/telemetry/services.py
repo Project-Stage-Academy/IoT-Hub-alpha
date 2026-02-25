@@ -4,12 +4,16 @@ Separates business logic from view layer for better maintainability.
 """
 
 import logging
+from functools import lru_cache
 from typing import Any
 from django.core.exceptions import ValidationError
 from django.db import transaction
+from jsonschema import validate
+from jsonschema.exceptions import ValidationError as JsonSchemaValidationError
 
 from .serializer import TelemetrySerializer
 from .models import Telemetry
+from .models import TelemetrySchema
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +25,76 @@ def extract_validation_errors(error: ValidationError) -> dict:
     )
 
 
+def apply_transformations(data: dict, rules: dict) -> dict:
+    """
+    Apply transformations based on provided rules
+    """
+    result = data.copy()
+
+    rename_rules = rules.get("rename", {})
+    if rename_rules:
+        intermediate_map = {}
+        for old_key, new_key in rename_rules.items():
+            if old_key in result:
+                intermediate_map[new_key] = result.pop(old_key)
+
+        result.update(intermediate_map)
+
+    for key, factor in rules.get("multiply", {}).items():
+        if key in result and isinstance(result[key], (int, float)):
+            result[key] = result[key] * factor
+
+    for key, divisor in rules.get("divide", {}).items():
+        if key in result and isinstance(result[key], (int, float)):
+            if divisor != 0:
+                result[key] = result[key] / divisor
+
+    for key, decimals in rules.get("round", {}).items():
+        if key in result and isinstance(result[key], (int, float)):
+            result[key] = round(result[key], decimals)
+
+    return result
+
+
+@lru_cache(maxsize=128)
+def get_cached_telemetry_schema(version: str):
+    """
+    Retrieves the TelemetrySchema from the database.
+    Cached in memory to prevent DB bottleneck on
+    high-throughput ingestion.
+    """
+    try:
+        return TelemetrySchema.objects.get(version=version, is_active=True)
+    except TelemetrySchema.DoesNotExist:
+        return None
+
+
+def process_telemetry_payload(raw_payload: dict):
+    """
+    Main pipeline for processing incoming telemetry payload.
+    """
+    schema_version = raw_payload.get("schema_version")
+    if not schema_version:
+        return None, "Missing field 'schema_version' in payload"
+
+    schema_obj = get_cached_telemetry_schema(schema_version)
+
+    if not schema_obj:
+        return None, f"Active version schema '{schema_version}' not found in database"
+
+    try:
+        validate(instance=raw_payload, schema=schema_obj.validation_schema)
+    except JsonSchemaValidationError as e:
+        error_msg = f"Validation error: field {e.json_path} -> {e.message}"
+        return None, error_msg
+
+    try:
+        clean_data = apply_transformations(raw_payload, schema_obj.transformation_rules)
+        return clean_data, None
+    except Exception as e:
+        return None, f"Error applying transformations: {str(e)}"
+
+
 class TelemetryValidator:
     """Handles validation of single or batch telemetry data."""
 
@@ -30,17 +104,30 @@ class TelemetryValidator:
     ) -> dict[str, Any]:
         """Format validation error into consistent structure."""
         if isinstance(error, ValidationError):
+            details = extract_validation_errors(error)
             error_dict = {
                 "error": "Validation failed",
-                "details": extract_validation_errors(error),
+                "details": details,
             }
+            logger.warning(
+                "Telemetry validation failed",
+                extra={
+                    "index": index,
+                    "validation_details": details,
+                },
+            )
         else:
-            error_dict = {"error": "Invalid data format", "details": str(error)}
-            if index is not None:
-                logger.error(
-                    "Invalid data format in batch item",
-                    extra={"index": index, "error": str(error)},
-                )
+            error_dict = {
+                "error": "Invalid data format",
+                "details": str(error),
+            }
+            logger.error(
+                "Invalid data format in batch item",
+                extra={
+                    "index": index,
+                    "error": str(error),
+                },
+            )
 
         if index is not None:
             error_dict["index"] = index
