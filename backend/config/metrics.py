@@ -42,3 +42,35 @@ CELERY_TASK_DURATION_SECONDS = Histogram(
     ["task_name"],
     buckets=(0.1, 0.5, 1.0, 5.0, 10.0),
 )
+
+# Ingestion pipeline metrics
+INGEST_MESSAGES_TOTAL = Counter(
+    "ingest_messages_total",
+    "Total ingestion messages by pipeline stage",
+    ["stage", "protocol", "status"],
+)
+
+INGEST_ERRORS_TOTAL = Counter(
+    "ingest_errors_total",
+    "Total ingestion errors",
+    ["component", "error_type", "protocol"],
+)
+
+INGEST_LATENCY_SECONDS = Histogram(
+    "ingest_latency_seconds",
+    "Ingestion latency by stage in seconds",
+    ["stage", "protocol"],
+    buckets=(0.01, 0.05, 0.1, 0.25, 0.5, 1.0, 2.0, 5.0, 10.0, 30.0),
+)
+
+BUFFER_FILL_RATIO = Gauge(
+    "buffer_fill_ratio",
+    "Buffer fill ratio from 0.0 to 1.0",
+    ["component"],
+)
+
+KAFKA_CONSUMER_LAG = Gauge(
+    "kafka_consumer_lag",
+    "Kafka consumer lag by topic and group",
+    ["topic", "group"],
+)

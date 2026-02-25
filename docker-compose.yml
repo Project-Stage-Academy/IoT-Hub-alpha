@@ -261,6 +261,7 @@ services:
       - grafana_data:/var/lib/grafana
       - ./devops/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
       - ./devops/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./devops/grafana/provisioning/alerting:/etc/grafana/provisioning/alerting:ro
     env_file:
       - .env
     depends_on:
