@@ -80,8 +80,10 @@ class TelemetryIngestView(View):
         if is_batch:
             for item in data:
                 item["serial_number"] = serial_number
+                item.pop("ssn", None)
         else:
             data["serial_number"] = serial_number
+            data.pop("ssn", None)
         if idempotency_key is None:
             idempotency_key = _build_http_idempotency_key(
                 serial_number=serial_number,
