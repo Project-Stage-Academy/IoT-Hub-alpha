@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("rules", "0006_delete_telemetrycursor"),
+        ("rules", "0008_merge_20260225_0001"),
     ]
 
     operations = [
