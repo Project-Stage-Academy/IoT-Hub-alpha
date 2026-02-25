@@ -10,5 +10,4 @@ class Migration(migrations.Migration):
         ("rules", "0006_delete_telemetrycursor"),
     ]
 
-    operations = [
-    ]
+    operations = []
