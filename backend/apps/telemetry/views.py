@@ -22,7 +22,6 @@ from .services import (
 
 logger = logging.getLogger(__name__)
 
-
 def _build_http_idempotency_key(*, serial_number: str, payload: object) -> str:
     canonical_payload = json.dumps(
         payload,
@@ -46,6 +45,28 @@ def _build_http_batch_item_idempotency_key(
         return None
     return f"{batch_idempotency_key}:{ingest_index}"
 
+def _build_http_idempotency_key(*, serial_number: str, payload: object) -> str:
+    canonical_payload = json.dumps(
+        payload,
+        sort_keys=True,
+        ensure_ascii=False,
+        separators=(",", ":"),
+    )
+    hasher = hashlib.sha256()
+    hasher.update(serial_number.encode("utf-8"))
+    hasher.update(b"|")
+    hasher.update(canonical_payload.encode("utf-8"))
+    return f"http:{hasher.hexdigest()}"
+
+
+def _build_http_batch_item_idempotency_key(
+    *,
+    batch_idempotency_key: str | None,
+    ingest_index: int,
+) -> str | None:
+    if batch_idempotency_key is None:
+        return None
+    return f"{batch_idempotency_key}:{ingest_index}"
 
 @method_decorator(csrf_exempt, name="dispatch")
 class TelemetryIngestView(View):
@@ -251,6 +272,14 @@ class TelemetryIngestView(View):
         request_id = str(uuid.uuid4())
         count = len(data) if is_batch else 1
         items_to_publish = data if is_batch else [data]
+
+        validated_items, errors = TelemetryValidator.validate_batch(items_to_publish)
+
+        if errors:
+            error_response = TelemetryResponseFormatter.format_validation_error(
+                errors, count, is_batch=is_batch
+            )
+            return JsonResponse(error_response, status=400)
 
         received_at = timezone.now().isoformat()
         producer = get_producer()

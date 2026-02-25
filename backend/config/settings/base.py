@@ -222,6 +222,14 @@ if TELEMETRY_PIPELINE_MODE not in {"direct", "kafka"}:
         f"{TELEMETRY_PIPELINE_MODE}'. Allowed values: direct, kafka"
     )
 
+# DB Writer settings
+DB_WRITER_LATENCY_MS = int(os.getenv("DB_WRITER_LATENCY_MS", "1000"))
+DB_WRITER_BATCH_SIZE = int(os.getenv("DB_WRITER_BATCH_SIZE", "2000"))
+DB_WRITER_MAX_BUFFER_SIZE = int(os.getenv("DB_WRITER_BUFFER_SIZE", "20000"))
+DB_WRITER_MAX_FLUSH_ATTEMPTS = int(os.getenv("DB_WRITER_MAX_FLUSH_ATTEMPTS", "3"))
+DB_WRITER_SAFETY_SLEEP = float(os.getenv("DB_WRITER_SAFETY_SAFE_SLEEP", "0.01"))
+DB_WRITER_CELERY_TIMEOUT_MIN = int(os.getenv("DB_WRITER_CELERY_TIMEOUT_MIN", "600"))
+
 # Kafka ingestion settings (used when TELEMETRY_PIPELINE_MODE=kafka)
 KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "kafka:9092").strip()
 KAFKA_CLIENT_ID = os.getenv("KAFKA_CLIENT_ID", "iot-hub-backend").strip()

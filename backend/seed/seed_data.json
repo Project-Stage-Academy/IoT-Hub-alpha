@@ -367,5 +367,9 @@
         "value": 6543
       }
     }
+  ],
+  "telemetry_schema": [
+    {"version": "1.0", "validation_schema": {"type": "object", "required": ["schema_version", "serial_number", "value"], "properties": {"value": {"type": "number"}, "serial_number": {"type": "string"}, "schema_version": {"type": "string"}}},
+  "transformation_rules": {"rename": {"value": "temperature"}}, "is_active": true}
   ]
 }
