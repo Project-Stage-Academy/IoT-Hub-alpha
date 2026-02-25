@@ -1,12 +1,14 @@
 import pytest
 from django.core.exceptions import ValidationError
 
-from apps.telemetry.models import Telemetry
+from apps.telemetry.models import Telemetry, TelemetrySchema
 from apps.telemetry.services import (
     TelemetryValidator,
     TelemetryBatchProcessor,
     TelemetryResponseFormatter,
     extract_validation_errors,
+    apply_transformations,
+    process_telemetry_payload,
 )
 
 
@@ -247,3 +249,98 @@ class TestExtractValidationErrors:
         exc = ValidationError("plain error")
         result = extract_validation_errors(exc)
         assert "error" in result
+
+
+class TestApplyTransformations:
+    """Tests for the apply_transformations helper."""
+
+    def test_rename_transformation(self):
+        data = {"v": 100, "t": 25.5}
+        rules = {"rename": {"v": "voltage", "t": "temperature"}}
+        assert apply_transformations(data, rules) == {
+            "voltage": 100,
+            "temperature": 25.5,
+        }
+
+    def test_multiply_and_round(self):
+        data = {"temp_raw": 25.5555}
+        rules = {"multiply": {"temp_raw": 10}, "round": {"temp_raw": 1}}
+        assert apply_transformations(data, rules) == {"temp_raw": 255.6}
+
+    def test_ignore_non_numeric_for_math(self):
+        data = {"status": "ok", "value": "100"}
+        rules = {"multiply": {"status": 2, "value": 5}, "round": {"status": 1}}
+        assert apply_transformations(data, rules) == {"status": "ok", "value": "100"}
+
+    def test_empty_rules_and_missing_keys(self):
+        data = {"value": 10}
+        assert apply_transformations(data, {"rename": {"non_existent": "new_key"}}) == {
+            "value": 10
+        }
+        assert apply_transformations(data, {}) == {"value": 10}
+
+    def test_apply_transformations_divide(self):
+        data = {"value": 9552, "temperature": 25, "status": 1}
+
+        rules = {
+            "divide": {
+                "value": 100,
+                "temperature": 0,
+                "missing_key": 10,
+            }
+        }
+
+        result = apply_transformations(data, rules)
+
+        assert result["value"] == 95.52
+        assert result["temperature"] == 25
+        assert result["status"] == 1
+        assert "missing_key" not in result
+
+
+class TestProcessTelemetryPayload:
+    """Tests for the process_telemetry_payload function."""
+
+    @pytest.fixture
+    def telemetry_schema(self, db):
+        return TelemetrySchema.objects.create(
+            version="1.0",
+            is_active=True,
+            validation_schema={
+                "type": "object",
+                "properties": {"value": {"type": "number"}},
+                "required": ["value"],
+            },
+            transformation_rules={"rename": {"value": "temperature"}},
+        )
+
+    @pytest.mark.django_db
+    def test_successful_processing(self, telemetry_schema):
+        payload = {"schema_version": "1.0", "value": 25.5}
+        clean_data, error = process_telemetry_payload(payload)
+
+        assert error is None
+        assert clean_data["temperature"] == 25.5
+        assert "value" not in clean_data
+
+    @pytest.mark.django_db
+    def test_missing_schema_version(self):
+        clean_data, error = process_telemetry_payload({"value": 25.5})
+        assert clean_data is None
+        assert error == "Missing field 'schema_version' in payload"
+
+    @pytest.mark.django_db
+    def test_schema_not_found(self, telemetry_schema):
+        clean_data, error = process_telemetry_payload(
+            {"schema_version": "99.9", "value": 25.5}
+        )
+        assert clean_data is None
+        assert "not found in database" in error
+
+    @pytest.mark.django_db
+    def test_jsonschema_validation_error(self, telemetry_schema):
+        clean_data, error = process_telemetry_payload(
+            {"schema_version": "1.0", "value": "not-a-number"}
+        )
+        assert clean_data is None
+        assert error.startswith("Validation error: field $.value")

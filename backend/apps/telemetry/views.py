@@ -11,7 +11,12 @@ from django.utils import timezone
 from django.db import DatabaseError, IntegrityError
 from django.conf import settings
 
-from .kafka import KafkaDeliveryError, KafkaProducerError, KafkaPublishError
+from .kafka import (
+    KafkaDeliveryError,
+    KafkaProducerError,
+    KafkaPublishError,
+    TelemetryKafkaProducer,
+)
 from .tasks import ingest_telemetry_batch_async
 from .producers import build_raw_event, get_producer
 from .services import (
@@ -75,8 +80,10 @@ class TelemetryIngestView(View):
         if is_batch:
             for item in data:
                 item["serial_number"] = serial_number
+                item.pop("ssn", None)
         else:
             data["serial_number"] = serial_number
+            data.pop("ssn", None)
         if idempotency_key is None:
             idempotency_key = _build_http_idempotency_key(
                 serial_number=serial_number,
@@ -252,7 +259,16 @@ class TelemetryIngestView(View):
         count = len(data) if is_batch else 1
         items_to_publish = data if is_batch else [data]
 
+        validated_items, errors = TelemetryValidator.validate_batch(items_to_publish)
+
+        if errors:
+            error_response = TelemetryResponseFormatter.format_validation_error(
+                errors, count, is_batch=is_batch
+            )
+            return JsonResponse(error_response, status=400)
+
         received_at = timezone.now().isoformat()
+
         producer = get_producer()
         target_topic: str | None = None
 
