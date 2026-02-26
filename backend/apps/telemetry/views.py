@@ -27,28 +27,6 @@ from .services import (
 
 logger = logging.getLogger(__name__)
 
-def _build_http_idempotency_key(*, serial_number: str, payload: object) -> str:
-    canonical_payload = json.dumps(
-        payload,
-        sort_keys=True,
-        ensure_ascii=False,
-        separators=(",", ":"),
-    )
-    hasher = hashlib.sha256()
-    hasher.update(serial_number.encode("utf-8"))
-    hasher.update(b"|")
-    hasher.update(canonical_payload.encode("utf-8"))
-    return f"http:{hasher.hexdigest()}"
-
-
-def _build_http_batch_item_idempotency_key(
-    *,
-    batch_idempotency_key: str | None,
-    ingest_index: int,
-) -> str | None:
-    if batch_idempotency_key is None:
-        return None
-    return f"{batch_idempotency_key}:{ingest_index}"
 
 def _build_http_idempotency_key(*, serial_number: str, payload: object) -> str:
     canonical_payload = json.dumps(
@@ -72,6 +50,7 @@ def _build_http_batch_item_idempotency_key(
     if batch_idempotency_key is None:
         return None
     return f"{batch_idempotency_key}:{ingest_index}"
+
 
 @method_decorator(csrf_exempt, name="dispatch")
 class TelemetryIngestView(View):

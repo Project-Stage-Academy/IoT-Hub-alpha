@@ -40,7 +40,11 @@ class Command(BaseCommand):
         )
         parser.add_argument("--dlq-topic", default=settings.KAFKA_TOPIC_TELEMETRY_DLQ)
         parser.add_argument(
-            "--group-id", default=f"{settings.KAFKA_CLIENT_ID}-db-writer-stub"
+            "--validator-group-id",
+            default=f"{settings.KAFKA_CLIENT_ID}-db-writer-validator",
+        )
+        parser.add_argument(
+            "--writer-group-id", default=f"{settings.KAFKA_CLIENT_ID}-db-writer-clean"
         )
         parser.add_argument("--poll-timeout", type=float, default=1.0)
         parser.add_argument("--max-messages", type=int, default=0)
@@ -62,52 +66,38 @@ class Command(BaseCommand):
             options["clean_topic"],
             options["dlq_topic"],
         )
-        group_id, poll_timeout = options["group_id"], options["poll_timeout"]
+        clean_group_id, raw_group_id, poll_timeout = (
+            options["writer_group_id"],
+            options["validator_group_id"],
+            options["poll_timeout"],
+        )
         max_messages, batch_size = options["max_messages"], options["batch_size"]
 
-        raw_consumer = Consumer(self._build_consumer_config(group_id))
-        clean_consumer = Consumer(
-            self._build_consumer_config("db-writer-clean")
-        )
+        raw_consumer = Consumer(self._build_consumer_config(raw_group_id))
+        clean_consumer = Consumer(self._build_consumer_config(clean_group_id))
         producer = Producer(settings.KAFKA_PRODUCER_CONFIG)
 
         self._install_signal_handlers()
         raw_consumer.subscribe([raw_topic])
         clean_consumer.subscribe([clean_topic])
-        
+
         write_buffer = WriteBuffer(clean_consumer, poll_timeout, batch_size)
 
-        deadline = time.time() + 20
-        while time.time() < deadline:
-            clean_consumer.poll(0.2)
-            a = clean_consumer.assignment()
-            if a:
-                logger.info("clean_consumer assigned", extra={"assignment": [(tp.topic, tp.partition) for tp in a]})
-                break
-        else:
-            logger.error(
-                "clean_consumer never got assignment (20s). Check topic name, auth, brokers, or another consumer owning partitions.",
-                extra={"topic": clean_topic, "group_id": "db-writer-clean"},
-            )
-        
         self.stdout.write(
             self.style.SUCCESS(f"Worker started (BATCH SIZE: {batch_size})")
         )
 
         processed_total = 0
         publish_timeout = max(settings.KAFKA_REQUEST_TIMEOUT_MS / 1000.0, 5.0)
-        loop_counter = 0
+
         try:
             while self._running:
-                
+
                 messages = raw_consumer.consume(
                     num_messages=batch_size, timeout=poll_timeout
                 )
-                if loop_counter >= 10:
-                    write_buffer.handle()
-                    loop_counter = 0
-                loop_counter += 1
-                
+                write_buffer.handle()
+
                 if not messages:
                     continue
 
@@ -164,10 +154,8 @@ class Command(BaseCommand):
                             producer.poll(0.5)
 
                     processed_total += 1
-                    
-                producer.flush(publish_timeout)
 
-                
+                producer.flush(publish_timeout)
 
                 if batch_errors:
                     logger.critical(
@@ -309,13 +297,13 @@ class Command(BaseCommand):
             "bootstrap.servers": settings.KAFKA_BOOTSTRAP_SERVERS,
             "client.id": (
                 f"{settings.KAFKA_CLIENT_ID}"
-                f"-db-writer-stub-{socket.gethostname()}-{os.getpid()}"
+                f"-db-writer-{socket.gethostname()}-{os.getpid()}"
             ),
             "group.id": group_id,
             "security.protocol": settings.KAFKA_SECURITY_PROTOCOL,
             "enable.auto.commit": False,
             "auto.offset.reset": "earliest",
-            "max.poll.interval.ms": 15 * 60 * 1000
+            "max.poll.interval.ms": 15 * 60 * 1000,
         }
         if settings.KAFKA_SASL_MECHANISM:
             config["sasl.mechanism"] = settings.KAFKA_SASL_MECHANISM

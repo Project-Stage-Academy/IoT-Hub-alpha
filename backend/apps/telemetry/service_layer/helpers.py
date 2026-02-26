@@ -42,7 +42,8 @@ def dump_jsonl(record: list[BufferedItem] | BufferedItem, reason, task_id="unkno
             dump_helper(path, rec, reason)
     else:
         dump_helper(path, record, reason)
-        
+
+
 def safe_decode(v) -> str | None:
     if v is None:
         return None

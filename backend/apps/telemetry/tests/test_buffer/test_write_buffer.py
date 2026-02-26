@@ -2,7 +2,9 @@ import json
 
 
 class DummyMessage:
-    def __init__(self, value=b"{}", key=b"", topic="telemetry.clean", partition=0, offset=0):
+    def __init__(
+        self, value=b"{}", key=b"", topic="telemetry.clean", partition=0, offset=0
+    ):
         if isinstance(value, (dict, list)):
             value = json.dumps(value).encode("utf-8")
         elif isinstance(value, str):
@@ -41,7 +43,7 @@ class DummyConsumer:
         self.pause_calls = 0
         self.resume_calls = 0
         self.poll_calls = 0
-        
+
     def poll(self, timeout=0):
         self.poll_calls += 1
         return None

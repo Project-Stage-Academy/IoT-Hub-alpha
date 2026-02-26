@@ -53,6 +53,10 @@ def apply_transformations(data: dict, rules: dict) -> dict:
         if key in result and isinstance(result[key], (int, float)):
             result[key] = round(result[key], decimals)
 
+    for key, remover in rules.get("remove", {}).items():
+        if key in result and remover:
+            result.pop(key, None)
+
     return result
 
 

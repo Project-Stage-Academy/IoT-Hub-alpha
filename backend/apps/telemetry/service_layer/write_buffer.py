@@ -27,7 +27,7 @@ class WriteBuffer:
         self.logger = logging.getLogger(__name__)
 
     def handle(self):
-        
+
         assignment = self.consumer.assignment()
         if not assignment:
             self.logger.info("No assignment yet (not joined group?)")
@@ -41,8 +41,6 @@ class WriteBuffer:
             self._overflow_policy()
             self.consumer.poll(0.1)
 
-        
-        
         task_time_check = (monotonic() - self.last_celery_check) * 1000 >= self.flush_ms
         if task_time_check:
             for task_id in list(self.inflight.keys()):
@@ -50,11 +48,10 @@ class WriteBuffer:
                 self.consumer.poll(0)
             self.last_celery_check = monotonic()
 
-
         message = []
         if not self.paused:
             message = self.consumer.consume(
-                max(0, self.max_buffer_size - self.buffer_len) , self.timeout
+                max(0, self.max_buffer_size - self.buffer_len), self.timeout
             )
 
         for msg in message:
@@ -68,7 +65,12 @@ class WriteBuffer:
                 )
                 continue
 
-            data = json.loads(safe_decode(msg.value()))
+            try:
+                data = json.loads(safe_decode(msg.value()))
+            except json.JSONDecodeError:
+                self.logger.warning("Bad json data", extra={"msg": msg})
+                return
+
             self.buffer.append(
                 BufferedItem(
                     kafka_msg=msg,
@@ -95,7 +97,12 @@ class WriteBuffer:
 
         flush = self.buffer[: self.batch_size]
         flush_serialized = [
-            {"payload": p.payload, "device_serial": p.device_serial, "meta": self._construct_meta(p)} for p in flush
+            {
+                "payload": p.payload,
+                "device_serial": p.device_serial,
+                "meta": self._construct_meta(p),
+            }
+            for p in flush
         ]
         self.logger.info(
             "Attempting flush", extra={"flush_size": len(flush_serialized)}
@@ -126,9 +133,8 @@ class WriteBuffer:
         request_id = data.get("request_id") or ""
         serial_number = data.get("serial_number") or ""
 
-        payload = data.get("payload") or {}
         idempotency_key = f"{ingest_protocol}:{request_id}:{serial_number}"
-        
+
         return {
             "source": {
                 "topic": flush.kafka_msg.topic(),
@@ -142,7 +148,7 @@ class WriteBuffer:
                 "serial_number": data.get("serial_number"),
                 "recieved_at": data.get("received_at"),
                 "ingest_index": data.get("ingest_index"),
-                "idempotency_key": idempotency_key
+                "idempotency_key": idempotency_key,
             },
         }
 

@@ -12,6 +12,7 @@ class DummyAtomic:
     def __exit__(self, exc_type, exc, tb):
         return False
 
+
 @pytest.fixture()
 def fake_settings():
     return types.SimpleNamespace(DB_WRITER_BATCH_SIZE=500)
@@ -180,7 +181,7 @@ def test_bulk_telemetry_write_db_error_triggers_retry(monkeypatch, fake_settings
 
     monkeypatch.setattr(tasks.bulk_telemetry_write, "retry", fake_retry)
 
-    with pytest.raises(RuntimeError, match=r"RETRY_CALLED countdown=1"):
+    with pytest.raises(RuntimeError, match=r"RETRY_CALLED countdown=60"):
         tasks.bulk_telemetry_write.run([{"device_serial": "A", "payload": {"x": 1}}])
 
 

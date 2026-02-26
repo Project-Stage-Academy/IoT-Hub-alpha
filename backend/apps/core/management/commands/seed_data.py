@@ -132,7 +132,8 @@ class Command(BaseCommand):
                 f"updated: {stats.notification_templates.updated}\n"
                 f"Telemetry: created - {stats.telemetry.created}, "
                 f"updated: {stats.telemetry.updated}\n"
-                f"Telemetry Schema Version: created - {stats.telemetry_schema.created}, "
+                f"Telemetry Schema Version: created - "
+                f"{stats.telemetry_schema.created}, "
                 f"updated: {stats.telemetry_schema.updated}\n"
             )
         )
@@ -222,12 +223,12 @@ class Command(BaseCommand):
                 defaults={
                     "validation_schema": schema.validation_schema,
                     "transformation_rules": schema.transformation_rules,
-                    "is_active": schema.is_active
-                }
+                    "is_active": schema.is_active,
+                },
             )
-            
+
             stats.telemetry_schema.add(created=created)
-    
+
     def _seed_device(self, data: SeedData, stats: StatsTally) -> dict[str, Device]:
         dt_map: dict[str, DeviceType] = {}
         d_map: dict[str, Device] = {}

@@ -57,12 +57,14 @@ class TelemetrySeed(BaseModel):
     device: str
     payload: Payload
 
+
 class TelemetrySchemaVersion(BaseModel):
     version: str
     validation_schema: dict[str, Any]
     transformation_rules: dict[str, Any]
     is_active: bool
-    
+
+
 class SeedData(BaseModel):
     device_types: list[DeviceTypeSeed]
     devices: list[DeviceSeed]
@@ -70,7 +72,6 @@ class SeedData(BaseModel):
     telemetry: list[TelemetrySeed]
     notification_templates: list[NotificationTemplateSeed]
     telemetry_schema: list[TelemetrySchemaVersion]
-
 
 
 @dataclass
