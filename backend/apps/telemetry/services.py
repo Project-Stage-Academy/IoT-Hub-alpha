@@ -61,14 +61,12 @@ def apply_transformations(data: dict, rules: dict) -> dict:
 
 
 @lru_cache(maxsize=128)
+def _get_schema_cached(version: str):
+    return TelemetrySchema.objects.get(version=version, is_active=True)
+
 def get_cached_telemetry_schema(version: str):
-    """
-    Retrieves the TelemetrySchema from the database.
-    Cached in memory to prevent DB bottleneck on
-    high-throughput ingestion.
-    """
     try:
-        return TelemetrySchema.objects.get(version=version, is_active=True)
+        return _get_schema_cached(version)
     except TelemetrySchema.DoesNotExist:
         return None
 
