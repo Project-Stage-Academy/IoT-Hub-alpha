@@ -64,6 +64,7 @@ def apply_transformations(data: dict, rules: dict) -> dict:
 def _get_schema_cached(version: str):
     return TelemetrySchema.objects.get(version=version, is_active=True)
 
+
 def get_cached_telemetry_schema(version: str):
     try:
         return _get_schema_cached(version)

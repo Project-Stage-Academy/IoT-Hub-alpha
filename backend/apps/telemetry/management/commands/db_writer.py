@@ -73,8 +73,12 @@ class Command(BaseCommand):
         )
         max_messages, batch_size = options["max_messages"], options["batch_size"]
 
-        raw_consumer = Consumer(self._build_consumer_config(raw_group_id))
-        clean_consumer = Consumer(self._build_consumer_config(clean_group_id))
+        raw_consumer = Consumer(
+            self._build_consumer_config(raw_group_id, enable_auto_offset=True)
+        )
+        clean_consumer = Consumer(
+            self._build_consumer_config(clean_group_id, enable_auto_offset=False)
+        )
         producer = Producer(settings.KAFKA_PRODUCER_CONFIG)
 
         self._install_signal_handlers()
@@ -292,7 +296,9 @@ class Command(BaseCommand):
 
         return normalized
 
-    def _build_consumer_config(self, group_id: str) -> dict[str, Any]:
+    def _build_consumer_config(
+        self, group_id: str, enable_auto_offset
+    ) -> dict[str, Any]:
         config = {
             "bootstrap.servers": settings.KAFKA_BOOTSTRAP_SERVERS,
             "client.id": (
@@ -303,6 +309,7 @@ class Command(BaseCommand):
             "security.protocol": settings.KAFKA_SECURITY_PROTOCOL,
             "enable.auto.commit": False,
             "auto.offset.reset": "earliest",
+            "enable.auto.offset.store": enable_auto_offset,
             "max.poll.interval.ms": 15 * 60 * 1000,
         }
         if settings.KAFKA_SASL_MECHANISM:

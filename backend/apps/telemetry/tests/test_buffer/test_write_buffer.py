@@ -115,36 +115,6 @@ def test_handle_consumes_and_flushes_to_inflight(monkeypatch, fake_settings):
     assert buf.buffer_len == 0
 
 
-def test_flush_celery_offline_dumps_and_pauses(monkeypatch, fake_settings):
-    import apps.telemetry.service_layer.write_buffer as wb
-
-    monkeypatch.setattr(wb, "settings", fake_settings)
-    monkeypatch.setattr(wb, "TopicPartition", DummyTopicPartition)
-
-    class DummyTask:
-        id = None
-
-    monkeypatch.setattr(wb.bulk_telemetry_write, "delay", lambda payload: DummyTask())
-
-    dumped = {"called": False}
-    monkeypatch.setattr(
-        wb, "dump_jsonl", lambda *a, **k: dumped.__setitem__("called", True)
-    )
-
-    consumer = DummyConsumer(
-        [DummyMessage({"payload": {"x": 1}, "serial_number": "S1"}, offset=5)]
-    )
-    buf = wb.WriteBuffer(consumer, timeout=0.01, batch_size=200)
-    buf.batch_size = 1
-    buf.flush_ms = 0
-
-    buf.handle()
-
-    assert dumped["called"] is True
-    assert consumer.paused is True
-    assert len(buf.inflight) == 0
-
-
 def test_check_celery_success_commits(monkeypatch, fake_settings):
     import apps.telemetry.service_layer.write_buffer as wb
 

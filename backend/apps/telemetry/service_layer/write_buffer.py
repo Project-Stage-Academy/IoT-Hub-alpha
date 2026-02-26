@@ -30,7 +30,7 @@ class WriteBuffer:
 
         assignment = self.consumer.assignment()
         if not assignment:
-            self.logger.info("No assignment yet (not joined group?)")
+            self.logger.info("No assignment yet")
 
         while self.buffer_len > self.max_buffer_size:
 
@@ -39,13 +39,11 @@ class WriteBuffer:
             )
 
             self._overflow_policy()
-            self.consumer.poll(0.1)
 
         task_time_check = (monotonic() - self.last_celery_check) * 1000 >= self.flush_ms
         if task_time_check:
             for task_id in list(self.inflight.keys()):
                 self._check_celery_status(task_id)
-                self.consumer.poll(0)
             self.last_celery_check = monotonic()
 
         message = []
@@ -110,11 +108,6 @@ class WriteBuffer:
 
         task = bulk_telemetry_write.delay(flush_serialized)
 
-        if not task.id:
-            dump_jsonl(flush, "Celery appeared offline")
-            self._pause()
-            return
-
         self.inflight[task.id] = InFlight(
             flush=flush, offsets=self._prepare_commit(flush), start=monotonic()
         )
@@ -154,7 +147,6 @@ class WriteBuffer:
 
     def _check_celery_status(self, task_id) -> None:
         res = AsyncResult(task_id)
-        self.consumer.poll(0)
         timed_out = False
 
         if (
@@ -165,7 +157,7 @@ class WriteBuffer:
         if not res.ready() and not timed_out:
             return
 
-        data = res.result
+        data = res.result or None
         if data and type(data) is dict:
             success = data.get("success")
             written_db = data.get("written_to_db")
@@ -189,9 +181,13 @@ class WriteBuffer:
                 )
                 del self.inflight[task_id]
                 self._pause()
+        elif data and type(data) is not dict:
+            dump_jsonl(self.inflight[task_id].flush, "Celery Down", task_id)
+            del self.inflight[task_id]
+            self._pause()
         elif timed_out:
             self.logger.error("celery task timedout, dumping to jsonl")
-            dump_jsonl(self.inflight[task_id].flush, "Failed DB and DLQ write", task_id)
+            dump_jsonl(self.inflight[task_id].flush, "Celery timed out", task_id)
             del self.inflight[task_id]
             self._pause()
 
