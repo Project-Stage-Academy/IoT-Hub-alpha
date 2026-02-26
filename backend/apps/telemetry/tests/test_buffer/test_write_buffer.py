@@ -102,7 +102,7 @@ def test_handle_consumes_and_flushes_to_inflight(monkeypatch, fake_settings):
         ]
     )
 
-    buf = wb.WriteBuffer(consumer, timeout=0.01)
+    buf = wb.WriteBuffer(consumer, timeout=0.01, batch_size=200)
     buf.batch_size = 2
     buf.flush_ms = 10_000
 
@@ -132,7 +132,7 @@ def test_flush_celery_offline_dumps_and_pauses(monkeypatch, fake_settings):
     consumer = DummyConsumer(
         [DummyMessage({"payload": {"x": 1}, "serial_number": "S1"}, offset=5)]
     )
-    buf = wb.WriteBuffer(consumer, timeout=0.01)
+    buf = wb.WriteBuffer(consumer, timeout=0.01, batch_size=200)
     buf.batch_size = 1
     buf.flush_ms = 0
 
@@ -150,7 +150,7 @@ def test_check_celery_success_commits(monkeypatch, fake_settings):
     monkeypatch.setattr(wb, "TopicPartition", DummyTopicPartition)
 
     consumer = DummyConsumer([])
-    buf = wb.WriteBuffer(consumer, timeout=0.01)
+    buf = wb.WriteBuffer(consumer, timeout=0.01, batch_size=200)
 
     msg = DummyMessage({"payload": {"x": 1}, "serial_number": "S1"}, offset=10)
     item = wb.BufferedItem(kafka_msg=msg, payload={"x": 1}, device_serial="S1")
@@ -185,7 +185,7 @@ def test_check_celery_success_false_dumps_and_pauses(monkeypatch, fake_settings)
     monkeypatch.setattr(wb, "TopicPartition", DummyTopicPartition)
 
     consumer = DummyConsumer([])
-    buf = wb.WriteBuffer(consumer, timeout=0.01)
+    buf = wb.WriteBuffer(consumer, timeout=0.01, batch_size=200)
 
     msg = DummyMessage({"payload": {"x": 1}, "serial_number": "S1"}, offset=10)
     item = wb.BufferedItem(kafka_msg=msg, payload={"x": 1}, device_serial="S1")
@@ -221,7 +221,7 @@ def test_check_celery_timeout_dumps_and_pauses(monkeypatch, fake_settings):
     monkeypatch.setattr(wb, "TopicPartition", DummyTopicPartition)
 
     consumer = DummyConsumer([])
-    buf = wb.WriteBuffer(consumer, timeout=0.01)
+    buf = wb.WriteBuffer(consumer, timeout=0.01, batch_size=200)
 
     msg = DummyMessage({"payload": {"x": 1}, "serial_number": "S1"}, offset=10)
     item = wb.BufferedItem(kafka_msg=msg, payload={"x": 1}, device_serial="S1")

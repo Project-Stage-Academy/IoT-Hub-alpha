@@ -16,7 +16,10 @@ from apps.devices.models import Device
 from apps.telemetry.services import process_telemetry_payload
 from apps.telemetry.exceptions import RawContractError
 from apps.telemetry.validators import validate_raw_contract
+<<<<<<< HEAD
 from apps.telemetry.service_layer.write_buffer import WriteBuffer
+=======
+>>>>>>> origin/main
 
 logger = logging.getLogger(__name__)
 

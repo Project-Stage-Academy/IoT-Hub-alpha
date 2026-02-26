@@ -1,6 +1,8 @@
 import types
 import pytest
 from unittest.mock import PropertyMock
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
 
 
 class DummyAtomic:
@@ -63,7 +65,7 @@ def _patch_telemetry(tasks_mod, *, bulk_create_raises=None):
     return created
 
 
-def test_bulk_telemetry_write_happy_path(monkeypatch, count_queries, fake_settings):
+def test_bulk_telemetry_write_happy_path(monkeypatch, fake_settings):
     import apps.telemetry.tasks as tasks
 
     monkeypatch.setattr(tasks, "settings", fake_settings)
@@ -234,3 +236,52 @@ def test_bulk_telemetry_write_max_retries_dlq_fail_sets_success_false(
     assert res["success"] is False
     assert res["written_to_db"] == 0
     assert res["written_to_dlq"] == 0
+
+
+@pytest.mark.django_db(transaction=True)
+def test_bulk_create_is_single_insert_query(monkeypatch, settings):
+    import apps.telemetry.tasks as tasks
+    from apps.devices.models import Device, DeviceType
+    from apps.telemetry.models import Telemetry
+
+    settings.DB_WRITER_BATCH_SIZE = 10_000
+
+    monkeypatch.setattr(tasks, "get_producer", lambda: object())
+    monkeypatch.setattr(tasks, "publish_flush_to_dlq", lambda *a, **k: True)
+
+    monkeypatch.setattr(
+        type(tasks.bulk_telemetry_write),
+        "request",
+        property(lambda _: types.SimpleNamespace(retries=0)),
+        raising=False,
+    )
+
+    dt = DeviceType.objects.create(name="test-type")
+
+    Device.objects.create(serial_number="A", device_type=dt)
+    Device.objects.create(serial_number="B", device_type=dt)
+
+    flush = [
+        {"device_serial": "A", "payload": {"x": 1}},
+        {"device_serial": "B", "payload": {"x": 2}},
+        {"device_serial": "A", "payload": {"x": 1}},
+        {"device_serial": "B", "payload": {"x": 2}},
+        {"device_serial": "A", "payload": {"x": 1}},
+        {"device_serial": "B", "payload": {"x": 2}},
+    ]
+
+    telemetry_table = Telemetry._meta.db_table
+
+    with CaptureQueriesContext(connection) as ctx:
+        res = tasks.bulk_telemetry_write.run(flush)
+
+    assert res["success"] is True
+    assert res["written_to_db"] == 6
+
+    inserts = []
+    for q in ctx.captured_queries:
+        sql = q["sql"].lower()
+        if "insert into" in sql and telemetry_table.lower() in sql:
+            inserts.append(q["sql"])
+
+    assert len(inserts) == 1, f"Expected 1 INSERT, got {len(inserts)}:\n{inserts}"
