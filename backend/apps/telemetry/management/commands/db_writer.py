@@ -52,7 +52,7 @@ class Command(BaseCommand):
         parser.add_argument(
             "--batch-size",
             type=int,
-            default=2000,
+            default=500,
             help="Number of messages to process in one batch",
         )
 

@@ -75,7 +75,9 @@ def bulk_telemetry_write(self, flush) -> dict[str, Any]:
         )
 
         with transaction.atomic():
-            Telemetry.objects.bulk_create(telem_data, batch_size=700)
+            Telemetry.objects.bulk_create(
+                telem_data, batch_size=settings.DB_INSERT_BATCH_SIZE
+            )
             result.written_to_db += len(telem_data)
             logger.info("Successfully written to DB")
 

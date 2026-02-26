@@ -15,7 +15,7 @@ class DummyAtomic:
 
 @pytest.fixture()
 def fake_settings():
-    return types.SimpleNamespace(DB_WRITER_BATCH_SIZE=500)
+    return types.SimpleNamespace(DB_INSERT_BATCH_SIZE=500)
 
 
 def set_task_request(monkeypatch, task, retries: int):

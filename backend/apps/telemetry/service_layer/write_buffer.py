@@ -14,7 +14,11 @@ class WriteBuffer:
         self.consumer = consumer
         self.timeout = timeout
         self.flush_ms = settings.DB_WRITER_LATENCY_MS
-        self.batch_size = batch_size
+        self.batch_size = (
+            settings.DB_WRITER_BATCH_SIZE
+            if settings.DB_WRITER_BATCH_SIZE != 0
+            else batch_size
+        )
         self.max_buffer_size = settings.DB_WRITER_MAX_BUFFER_SIZE
         self.max_retry = settings.DB_WRITER_MAX_FLUSH_ATTEMPTS
         self.paused = False
