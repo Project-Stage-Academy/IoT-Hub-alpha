@@ -14,6 +14,7 @@ from .services import TelemetryBatchProcessor
 from celery.exceptions import MaxRetriesExceededError
 from apps.telemetry.service_layer.publish_to_dlq import publish_flush_to_dlq
 from apps.telemetry.service_layer.helpers import get_producer
+from apps.telemetry.service_layer.data_structure import BufferedItem
 
 
 import time
@@ -36,10 +37,10 @@ class WriterResult:
 logger = logging.getLogger(__name__)
 
 
-@shared_task(bind=True, max_retries=3, default_retry_delay=60)
+@shared_task(bind=True, max_retries=2, default_retry_delay=60)
 def bulk_telemetry_write(self, flush) -> dict[str, Any]:
     producer = get_producer()
-    serials = {p.get("device_serial") for p in flush}
+    serials = {p.get('device_serial') for p in flush}
     result = WriterResult()
     telem_data = []
     bad_data = []
@@ -48,15 +49,15 @@ def bulk_telemetry_write(self, flush) -> dict[str, Any]:
         device_by_serial = Device.objects.in_bulk(serials, field_name="serial_number")
 
         for p in flush:
-            d = device_by_serial.get(p.get("device_serial"))
+            d = device_by_serial.get(p.get('device_serial'))
             if not d:
                 logger.warning(
-                    "Device not in DB", extra={"device": p.get("device_serial")}
+                    "Device not in DB", extra={"device": p.get('device_serial')}
                 )
                 bad_data.append(p)
                 continue
 
-            telem_data.append(Telemetry(payload=p.get("payload"), device_id=d.id))
+            telem_data.append(Telemetry(payload=p.get('payload'), device_id=d.id))
 
         if bad_data:
             logger.warning("No device id detected", extra={"bad_data": bad_data})
@@ -86,7 +87,7 @@ def bulk_telemetry_write(self, flush) -> dict[str, Any]:
             logger.warning(
                 f"DB Write failed due to: {e}, attempt {self.request.retries}"
             )
-            self.retry(exc=e, countdown=1 * (2**self.request.retries))
+            raise self.retry(countdown=1 * (60**self.request.retries))
         except MaxRetriesExceededError:
             logger.warning("DB Write attemps execceded max, dumping batch to telem.dlq")
             if publish_flush_to_dlq(producer, flush, reason="Failed DB Write"):

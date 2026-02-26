@@ -17,10 +17,19 @@ def test_publish_flush_to_dlq_retries_then_success(monkeypatch, fake_settings):
             if self.fail_left > 0:
                 self.fail_left -= 1
                 raise BufferError("full")
+
             assert topic == fake_settings.KAFKA_TOPIC_TELEMETRY_DLQ
+
             env = json.loads(value.decode("utf-8"))
-            assert env["reason"] == "R"
+
+            assert env["error"]["code"] == "R"
+            assert "failed_at" in env
+            assert "raw_message" in env
+            assert "source" in env
+
             assert headers[0][0] == "dlq_reason"
+            assert headers[0][1] == b"R"
+            assert headers[1][0] == "event_id"
 
         def poll(self, t):
             calls["poll"] += 1
@@ -30,7 +39,9 @@ def test_publish_flush_to_dlq_retries_then_success(monkeypatch, fake_settings):
             return 0
 
     ok = dlq.publish_flush_to_dlq(
-        DummyProducer(), [{"device_serial": "A", "payload": {"x": 1}}], reason="R"
+        DummyProducer(),
+        [{"device_serial": "A", "payload": {"x": 1}}],
+        reason="R",
     )
     assert ok is True
     assert calls["produce"] >= 3

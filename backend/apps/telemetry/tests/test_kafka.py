@@ -1,6 +1,7 @@
 import pytest
 from unittest.mock import patch, MagicMock
 
+from apps.telemetry import kafka as kafka_module
 from apps.telemetry.kafka import (
     TelemetryKafkaProducer,
     KafkaProducerError,
@@ -174,86 +175,153 @@ class TestKafkaProducerBootstrap:
         fake = _FakeProducer()
         TelemetryKafkaProducer._shared_producer = fake
 
-    @pytest.fixture(autouse=True)
-    def reset_singleton(self):
         TelemetryKafkaProducer.reset_for_tests()
 
-    @patch("apps.telemetry.kafka.Producer")
-    def test_singleton_pattern(self, mock_producer_class):
-        mock_producer_class.return_value = MagicMock()
+        assert TelemetryKafkaProducer._shared_producer is None
+        assert fake.poll_calls == [0]
+        assert fake.flush_calls == [1.0]
 
-        producer1 = TelemetryKafkaProducer()
-        producer2 = TelemetryKafkaProducer()
 
-        assert producer1._producer is producer2._producer
-        mock_producer_class.assert_called_once()
+class TestTopicResolution:
+    def test_requested_topic_override_wins(self):
+        assert (
+            TelemetryKafkaProducer.resolve_topic(requested_topic="telemetry.raw.custom")
+            == "telemetry.raw.custom"
+        )
 
-    @patch("apps.telemetry.kafka.Producer", new=None)
-    def test_missing_dependency(self):
-        with pytest.raises(
-            KafkaProducerError, match="confluent-kafka dependency is not installed"
+    def test_device_exact_route(self, settings):
+        settings.KAFKA_DEVICE_TOPIC_ROUTES = {"TEMP-SN-002": "telemetry.device"}
+
+        topic = TelemetryKafkaProducer.resolve_topic(serial_number="temp-sn-002")
+
+        assert topic == "telemetry.device"
+
+    def test_device_prefix_route(self, settings):
+        settings.KAFKA_DEVICE_TOPIC_ROUTES = {"TEMP": "telemetry.prefix"}
+
+        topic = TelemetryKafkaProducer.resolve_topic(serial_number="temp-abc-1")
+
+        assert topic == "telemetry.prefix"
+
+    def test_application_route_fallback(self, settings):
+        settings.KAFKA_DEVICE_TOPIC_ROUTES = {}
+        settings.KAFKA_APPLICATION_TOPIC_ROUTES = {"events": "event.topic"}
+
+        assert (
+            TelemetryKafkaProducer.resolve_topic(application="events") == "event.topic"
+        )
+        assert (
+            TelemetryKafkaProducer.resolve_topic(application="missing")
+            == settings.KAFKA_TOPIC_TELEMETRY_RAW
+        )
+
+
+class TestPublishBatch:
+    def _producer(self) -> TelemetryKafkaProducer:
+        producer = TelemetryKafkaProducer.__new__(TelemetryKafkaProducer)
+        producer._producer = _FakeProducer()
+        return producer
+
+    def test_retries_transient_errors(self, settings):
+        settings.KAFKA_PUBLISH_MAX_RETRIES = 2
+        producer = self._producer()
+
+        with (
+            patch.object(
+                TelemetryKafkaProducer,
+                "_publish_batch_once",
+                side_effect=[KafkaPublishError("queue is full"), None],
+            ) as mock_once,
+            patch("apps.telemetry.kafka.time.sleep") as mock_sleep,
         ):
-            TelemetryKafkaProducer()
+            producer.publish_batch(messages=[{"value": 1}], topic="telemetry.raw")
 
-    def test_resolve_topic_explicit(self):
-        assert (
-            TelemetryKafkaProducer.resolve_topic(requested_topic="my.custom.topic")
-            == "my.custom.topic"
+        assert mock_once.call_count == 2
+        mock_sleep.assert_called_once()
+
+    def test_non_transient_error_does_not_retry(self, settings):
+        settings.KAFKA_PUBLISH_MAX_RETRIES = 3
+        producer = self._producer()
+
+        with (
+            patch.object(
+                TelemetryKafkaProducer,
+                "_publish_batch_once",
+                side_effect=KafkaPublishError("invalid payload"),
+            ) as mock_once,
+            patch("apps.telemetry.kafka.time.sleep") as mock_sleep,
+        ):
+            with pytest.raises(KafkaPublishError, match="invalid payload"):
+                producer.publish_batch(messages=[{"value": 1}], topic="telemetry.raw")
+
+        assert mock_once.call_count == 1
+        mock_sleep.assert_not_called()
+
+    def test_stops_after_max_retries(self, settings):
+        settings.KAFKA_PUBLISH_MAX_RETRIES = 1
+        producer = self._producer()
+
+        with (
+            patch.object(
+                TelemetryKafkaProducer,
+                "_publish_batch_once",
+                side_effect=[
+                    KafkaDeliveryError("timed out"),
+                    KafkaDeliveryError("timed out"),
+                ],
+            ) as mock_once,
+            patch("apps.telemetry.kafka.time.sleep") as mock_sleep,
+        ):
+            with pytest.raises(KafkaDeliveryError, match="timed out"):
+                producer.publish_batch(messages=[{"value": 1}], topic="telemetry.raw")
+
+        assert mock_once.call_count == 2
+        mock_sleep.assert_called_once()
+
+
+class TestPublishBatchOnce:
+    def _producer_with_fake(self) -> tuple[TelemetryKafkaProducer, _FakeProducer]:
+        fake = _FakeProducer()
+        producer = TelemetryKafkaProducer.__new__(TelemetryKafkaProducer)
+        producer._producer = fake
+        return producer, fake
+
+    def test_successful_batch_publish(self, settings):
+        producer, fake = self._producer_with_fake()
+        messages = [
+            {"device_id": "dev-1", "value": 1},
+            {"serial_number": "SN-2", "value": 2},
+        ]
+
+        producer._publish_batch_once(
+            messages=messages,
+            topic="telemetry.raw",
+            headers=[("ingest_protocol", b"http")],
         )
 
-    def test_resolve_topic_routing(self, settings):
-        settings.KAFKA_DEVICE_TOPIC_ROUTES = {
-            "SN-123": "topic.special",
-            "PREFIX": "topic.prefix",
-        }
-        settings.KAFKA_TOPIC_TELEMETRY_RAW = "topic.default"
-
-        assert (
-            TelemetryKafkaProducer.resolve_topic(serial_number="SN-123")
-            == "topic.special"
-        )
-        assert (
-            TelemetryKafkaProducer.resolve_topic(serial_number="PREFIX-999")
-            == "topic.prefix"
-        )
-        assert (
-            TelemetryKafkaProducer.resolve_topic(serial_number="UNKNOWN-000")
-            == "topic.default"
+        assert len(fake.produce_calls) == 2
+        assert fake.produce_calls[0]["key"] == b"dev-1"
+        assert fake.produce_calls[1]["key"] == b"SN-2"
+        assert fake.flush_calls[-1] == max(
+            (settings.KAFKA_REQUEST_TIMEOUT_MS / 1000.0)
+            + TelemetryKafkaProducer._flush_timeout_buffer_seconds,
+            1.0,
         )
 
-    @patch("apps.telemetry.kafka.Producer")
-    def test_publish_batch_success(self, mock_producer_class):
-        mock_instance = MagicMock()
-        mock_instance.flush.return_value = 0
-        mock_producer_class.return_value = mock_instance
+    def test_delivery_callback_error_raises(self):
+        producer, fake = self._producer_with_fake()
+        fake.delivery_error = RuntimeError("broker down")
 
-        producer = TelemetryKafkaProducer()
-        producer.publish_batch([{"serial_number": "SN-1", "val": 1}])
+        with pytest.raises(KafkaDeliveryError, match="callback_errors=1"):
+            producer._publish_batch_once(
+                messages=[{"serial_number": "SN-1", "value": 1}],
+                topic="telemetry.raw",
+                headers=None,
+            )
 
-        mock_instance.produce.assert_called_once()
-        mock_instance.poll.assert_called()
-        mock_instance.flush.assert_called_once()
-
-    @patch("apps.telemetry.kafka.Producer")
-    def test_publish_batch_buffer_error(self, mock_producer_class):
-        mock_instance = MagicMock()
-        mock_instance.produce.side_effect = BufferError("Local queue full")
-        mock_producer_class.return_value = mock_instance
-
-        producer = TelemetryKafkaProducer()
-
-        with pytest.raises(KafkaPublishError, match="Kafka local queue is full"):
-            producer.publish_batch([{"val": 1}])
-
-        assert mock_instance.produce.call_count == 4
-
-    @patch("apps.telemetry.kafka.Producer")
-    def test_publish_batch_delivery_error(self, mock_producer_class):
-        mock_instance = MagicMock()
-        mock_instance.flush.return_value = 2
-        mock_producer_class.return_value = mock_instance
-
-        producer = TelemetryKafkaProducer()
+    def test_undelivered_flush_result_raises(self):
+        producer, fake = self._producer_with_fake()
+        fake.flush_result = 2
 
         with pytest.raises(KafkaDeliveryError, match="undelivered=2"):
             producer._publish_batch_once(

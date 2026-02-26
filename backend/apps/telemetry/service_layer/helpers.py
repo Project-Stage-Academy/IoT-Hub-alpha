@@ -42,3 +42,18 @@ def dump_jsonl(record: list[BufferedItem] | BufferedItem, reason, task_id="unkno
             dump_helper(path, rec, reason)
     else:
         dump_helper(path, record, reason)
+        
+def safe_decode(v) -> str | None:
+    if v is None:
+        return None
+
+    if isinstance(v, str):
+        return v
+
+    if isinstance(v, (bytes, bytearray, memoryview)):
+        try:
+            return v.decode("utf-8", errors="replace")
+        except Exception:
+            return repr(v)
+
+    return str(v)

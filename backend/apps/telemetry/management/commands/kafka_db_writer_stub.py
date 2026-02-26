@@ -16,6 +16,7 @@ from apps.devices.models import Device
 from apps.telemetry.services import process_telemetry_payload
 from apps.telemetry.exceptions import RawContractError
 from apps.telemetry.validators import validate_raw_contract
+from apps.telemetry.service_layer.write_buffer import WriteBuffer
 
 logger = logging.getLogger(__name__)
 
@@ -63,11 +64,17 @@ class Command(BaseCommand):
         group_id, poll_timeout = options["group_id"], options["poll_timeout"]
         max_messages, batch_size = options["max_messages"], options["batch_size"]
 
-        consumer = Consumer(self._build_consumer_config(group_id))
+        raw_consumer = Consumer(self._build_consumer_config(group_id))
+        clean_consumer = Consumer(
+            self._build_consumer_config(group_id="db-writer-clean")
+        )
         producer = Producer(settings.KAFKA_PRODUCER_CONFIG)
+        
+        write_buffer = WriteBuffer(clean_consumer, poll_timeout)
 
         self._install_signal_handlers()
-        consumer.subscribe([raw_topic])
+        raw_consumer.subscribe([raw_topic])
+        clean_consumer.subscribe([clean_topic])
 
         self.stdout.write(
             self.style.SUCCESS(f"Worker started (BATCH SIZE: {batch_size})")
@@ -78,7 +85,7 @@ class Command(BaseCommand):
 
         try:
             while self._running:
-                messages = consumer.consume(
+                messages = raw_consumer.consume(
                     num_messages=batch_size, timeout=poll_timeout
                 )
 
@@ -141,6 +148,8 @@ class Command(BaseCommand):
 
                 producer.flush(publish_timeout)
 
+                write_buffer.handle()
+
                 if batch_errors:
                     logger.critical(
                         f"Batch publish failed with {len(batch_errors)} errors."
@@ -150,7 +159,7 @@ class Command(BaseCommand):
                         "Failed to route batch. Stopping stub to preserve "
                         "at-least-once behavior."
                     )
-                consumer.commit(asynchronous=False)
+                raw_consumer.commit(asynchronous=False)
 
                 logger.info(
                     "Successfully processed and committed batch "
@@ -162,7 +171,8 @@ class Command(BaseCommand):
 
         finally:
             producer.flush(publish_timeout)
-            consumer.close()
+            clean_consumer.close()
+            raw_consumer.close()
             self.stdout.write(
                 self.style.SUCCESS(
                     f"Worker stopped. Total processed: {processed_total}"

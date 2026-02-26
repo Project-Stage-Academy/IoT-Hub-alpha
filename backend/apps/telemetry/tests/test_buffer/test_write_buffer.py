@@ -2,15 +2,23 @@ import json
 
 
 class DummyMessage:
-    def __init__(self, payload_dict, *, topic="t", partition=0, offset=0, err=None):
-        self._payload = json.dumps(payload_dict).encode("utf-8")
+    def __init__(self, value=b"{}", key=b"", topic="telemetry.clean", partition=0, offset=0):
+        if isinstance(value, (dict, list)):
+            value = json.dumps(value).encode("utf-8")
+        elif isinstance(value, str):
+            value = value.encode("utf-8")
+        self._value = value
+        self._key = key
         self._topic = topic
         self._partition = partition
         self._offset = offset
-        self._err = err
+        self._err = None
 
     def value(self):
-        return self._payload
+        return self._value
+
+    def key(self):
+        return self._key
 
     def error(self):
         return self._err
@@ -32,6 +40,11 @@ class DummyConsumer:
         self.paused = False
         self.pause_calls = 0
         self.resume_calls = 0
+        self.poll_calls = 0
+        
+    def poll(self, timeout=0):
+        self.poll_calls += 1
+        return None
 
     def consume(self, n, timeout):
         out = self._messages[:n]

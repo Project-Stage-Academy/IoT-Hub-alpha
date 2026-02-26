@@ -10,7 +10,6 @@ class DummyAtomic:
     def __exit__(self, exc_type, exc, tb):
         return False
 
-
 @pytest.fixture()
 def fake_settings():
     return types.SimpleNamespace(DB_WRITER_BATCH_SIZE=500)
@@ -64,7 +63,7 @@ def _patch_telemetry(tasks_mod, *, bulk_create_raises=None):
     return created
 
 
-def test_bulk_telemetry_write_happy_path(monkeypatch, fake_settings):
+def test_bulk_telemetry_write_happy_path(monkeypatch, count_queries, fake_settings):
     import apps.telemetry.tasks as tasks
 
     monkeypatch.setattr(tasks, "settings", fake_settings)

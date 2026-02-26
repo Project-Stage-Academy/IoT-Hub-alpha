@@ -2,20 +2,19 @@ import json
 import logging
 from celery.result import AsyncResult
 from time import sleep, monotonic
-from confluent_kafka import TopicPartition
+from confluent_kafka import TopicPartition, Message
 from django.conf import settings
 from apps.telemetry.tasks import bulk_telemetry_write
-from apps.telemetry.service_layer.helpers import dump_jsonl
-from apps.telemetry.service_layer.publish_to_dlq import publish_flush_to_dlq
+from apps.telemetry.service_layer.helpers import dump_jsonl, safe_decode
 from apps.telemetry.service_layer.data_structure import BufferedItem, InFlight
 
 
 class WriteBuffer:
-    def __init__(self, consumer, timeout):
+    def __init__(self, consumer, timeout, batch_size):
         self.consumer = consumer
         self.timeout = timeout
         self.flush_ms = settings.DB_WRITER_LATENCY_MS
-        self.batch_size = settings.DB_WRITER_BATCH_SIZE
+        self.batch_size = batch_size
         self.max_buffer_size = settings.DB_WRITER_MAX_BUFFER_SIZE
         self.max_retry = settings.DB_WRITER_MAX_FLUSH_ATTEMPTS
         self.paused = False
@@ -28,6 +27,10 @@ class WriteBuffer:
         self.logger = logging.getLogger(__name__)
 
     def handle(self):
+        
+        assignment = self.consumer.assignment()
+        if not assignment:
+            self.logger.info("No assignment yet (not joined group?)")
 
         while self.buffer_len > self.max_buffer_size:
 
@@ -36,16 +39,22 @@ class WriteBuffer:
             )
 
             self._overflow_policy()
+            self.consumer.poll(0.1)
 
+        
+        
         task_time_check = (monotonic() - self.last_celery_check) * 1000 >= self.flush_ms
         if task_time_check:
             for task_id in list(self.inflight.keys()):
                 self._check_celery_status(task_id)
+                self.consumer.poll(0)
             self.last_celery_check = monotonic()
 
+
+        message = []
         if not self.paused:
             message = self.consumer.consume(
-                max(0, self.batch_size - self.buffer_len), self.timeout
+                max(0, self.max_buffer_size - self.buffer_len) , self.timeout
             )
 
         for msg in message:
@@ -59,7 +68,7 @@ class WriteBuffer:
                 )
                 continue
 
-            data = json.loads(msg.value().decode("utf-8"))
+            data = json.loads(safe_decode(msg.value()))
             self.buffer.append(
                 BufferedItem(
                     kafka_msg=msg,
@@ -70,7 +79,7 @@ class WriteBuffer:
 
         self._maybe_flush()
 
-    def _flush(self, retry_num: int = 0) -> None:
+    def _flush(self) -> None:
         """
         Flush handlers, attempts write retries
         and sends payload to self._bulk_write_to_db
@@ -80,14 +89,13 @@ class WriteBuffer:
         :param retry_num: Description
         :param flush: Description
         """
-
         if not self.buffer:
             self.last_flush = monotonic()
             return
 
         flush = self.buffer[: self.batch_size]
         flush_serialized = [
-            {"payload": p.payload, "device_serial": p.device_serial} for p in flush
+            {"payload": p.payload, "device_serial": p.device_serial, "meta": self._construct_meta(p)} for p in flush
         ]
         self.logger.info(
             "Attempting flush", extra={"flush_size": len(flush_serialized)}
@@ -108,9 +116,39 @@ class WriteBuffer:
 
         self.last_flush = monotonic()
 
+    def _construct_meta(self, flush: BufferedItem):
+        data = json.loads(safe_decode(flush.kafka_msg.value()))
+
+        k = flush.kafka_msg.key()
+        key_str = safe_decode(k)
+
+        ingest_protocol = data.get("ingest_protocol") or ""
+        request_id = data.get("request_id") or ""
+        serial_number = data.get("serial_number") or ""
+
+        payload = data.get("payload") or {}
+        idempotency_key = f"{ingest_protocol}:{request_id}:{serial_number}"
+        
+        return {
+            "source": {
+                "topic": flush.kafka_msg.topic(),
+                "partition": flush.kafka_msg.partition(),
+                "offset": flush.kafka_msg.offset(),
+                "key": key_str,
+            },
+            "raw_message": {
+                "request_id": data.get("request_id"),
+                "ingest_protocol": data.get("ingest_protocol"),
+                "serial_number": data.get("serial_number"),
+                "recieved_at": data.get("received_at"),
+                "ingest_index": data.get("ingest_index"),
+                "idempotency_key": idempotency_key
+            },
+        }
+
     def _check_celery_status(self, task_id) -> None:
         res = AsyncResult(task_id)
-
+        self.consumer.poll(0)
         timed_out = False
 
         if (
@@ -122,7 +160,7 @@ class WriteBuffer:
             return
 
         data = res.result
-        if data:
+        if data and type(data) is dict:
             success = data.get("success")
             written_db = data.get("written_to_db")
             written_dlq = data.get("written_to_dlq")
@@ -196,11 +234,12 @@ class WriteBuffer:
     def _pause(self):
         if self.paused:
             return
-        assigment = self.consumer.assignment()
-        if assigment:
-            self.consumer.pause(assigment)
-            self.paused = True
-
+        a = self.consumer.assignment()
+        if not a:
+            self.logger.warning("Pause requested but no assignment yet; not pausing")
+            return
+        self.consumer.pause(a)
+        self.paused = True
         self.logger.info("Polling of kafka paused")
 
     def _resume(self):

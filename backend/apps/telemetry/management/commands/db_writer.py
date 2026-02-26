@@ -48,11 +48,12 @@ class Command(BaseCommand):
         parser.add_argument(
             "--batch-size",
             type=int,
-            default=200,
+            default=2000,
             help="Number of messages to process in one batch",
         )
 
     def handle(self, *args, **options):
+        logger.info("Starting DB Writer......")
         if Consumer is None:
             raise CommandError("confluent-kafka not installed.")
 
@@ -66,29 +67,47 @@ class Command(BaseCommand):
 
         raw_consumer = Consumer(self._build_consumer_config(group_id))
         clean_consumer = Consumer(
-            self._build_consumer_config(group_id="db-writer-clean")
+            self._build_consumer_config("db-writer-clean")
         )
         producer = Producer(settings.KAFKA_PRODUCER_CONFIG)
 
         self._install_signal_handlers()
         raw_consumer.subscribe([raw_topic])
         clean_consumer.subscribe([clean_topic])
+        
+        write_buffer = WriteBuffer(clean_consumer, poll_timeout, batch_size)
 
-        write_buffer = WriteBuffer(clean_consumer, poll_timeout)
-
+        deadline = time.time() + 20
+        while time.time() < deadline:
+            clean_consumer.poll(0.2)
+            a = clean_consumer.assignment()
+            if a:
+                logger.info("clean_consumer assigned", extra={"assignment": [(tp.topic, tp.partition) for tp in a]})
+                break
+        else:
+            logger.error(
+                "clean_consumer never got assignment (20s). Check topic name, auth, brokers, or another consumer owning partitions.",
+                extra={"topic": clean_topic, "group_id": "db-writer-clean"},
+            )
+        
         self.stdout.write(
             self.style.SUCCESS(f"Worker started (BATCH SIZE: {batch_size})")
         )
 
         processed_total = 0
         publish_timeout = max(settings.KAFKA_REQUEST_TIMEOUT_MS / 1000.0, 5.0)
-
+        loop_counter = 0
         try:
             while self._running:
+                
                 messages = raw_consumer.consume(
                     num_messages=batch_size, timeout=poll_timeout
                 )
-
+                if loop_counter >= 10:
+                    write_buffer.handle()
+                    loop_counter = 0
+                loop_counter += 1
+                
                 if not messages:
                     continue
 
@@ -145,10 +164,10 @@ class Command(BaseCommand):
                             producer.poll(0.5)
 
                     processed_total += 1
-
+                    
                 producer.flush(publish_timeout)
 
-                write_buffer.handle()
+                
 
                 if batch_errors:
                     logger.critical(
@@ -163,7 +182,7 @@ class Command(BaseCommand):
 
                 logger.info(
                     "Successfully processed and committed batch "
-                    f"of {len(messages)} messages. {routed["target_topic"]}"
+                    f"of {len(messages)} messages."
                 )
 
                 if max_messages > 0 and processed_total >= max_messages:
@@ -171,8 +190,8 @@ class Command(BaseCommand):
 
         finally:
             producer.flush(publish_timeout)
+            clean_consumer.close()
             raw_consumer.close()
-            write_buffer.close()
             self.stdout.write(
                 self.style.SUCCESS(
                     f"Worker stopped. Total processed: {processed_total}"
@@ -228,10 +247,8 @@ class Command(BaseCommand):
 
         except RawContractError as exc:
             error_code, error_detail = exc.code, exc.detail
-            print(error_code, error_detail)
         except Exception as exc:
             error_code, error_detail = "unexpected_error", str(exc)
-            print(error_code, error_detail)
 
         event_id = self._build_event_id(
             raw_obj, source_topic, source_partition, source_offset
@@ -298,6 +315,7 @@ class Command(BaseCommand):
             "security.protocol": settings.KAFKA_SECURITY_PROTOCOL,
             "enable.auto.commit": False,
             "auto.offset.reset": "earliest",
+            "max.poll.interval.ms": 15 * 60 * 1000
         }
         if settings.KAFKA_SASL_MECHANISM:
             config["sasl.mechanism"] = settings.KAFKA_SASL_MECHANISM
