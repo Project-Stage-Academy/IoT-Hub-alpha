@@ -215,6 +215,7 @@ All metrics exported to Prometheus via HTTP on specified port (default: 9101).
                                 rule_name = f"Rule {rule_id}"
 
                             event_msg = {
+                                "type": "internal",
                                 "rule_id": str(rule_id),
                                 "device_id": str(device_id),
                                 "timestamp": timezone.now().isoformat(),

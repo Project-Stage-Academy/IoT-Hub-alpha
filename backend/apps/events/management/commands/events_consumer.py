@@ -21,9 +21,10 @@ from django.core.management.base import BaseCommand, CommandError
 from apps.events.services.event_handler import (
     event_handler,
     EventCooldownActive,
+    external_event_handler,
 )
 from apps.events.services.actions import action_dispatch
-from apps.rules.models import Rule
+from apps.events.services.helpers import handle_rules
 from apps.rules.services.data_structure import EvalResults, ActionConfig
 from apps.rules.services.metrics import track_kafka_message_processing
 
@@ -146,24 +147,15 @@ Metrics Exported (Prometheus):
                     with track_kafka_message_processing(input_topic, group_id):
                         payload = json.loads(msg.value().decode("utf-8"))
                         message_count += 1
+                        payload_type = payload.get("type")
 
-                        rule_id = UUID(payload["rule_id"])
-                        device_id = UUID(payload["device_id"])
-                        message_text = payload.get("message", "Rule triggered")
-
-                        try:
-                            rule = Rule.objects.get(id=rule_id)
-                        except Rule.DoesNotExist:
-                            logger.error(
-                                f"Rule not found: {rule_id}",
-                                extra={
-                                    "rule_id": str(rule_id),
-                                    "device_id": str(device_id),
-                                },
-                            )
-                            consumer.commit(asynchronous=False)
+                        rule, rule_id, device_id = handle_rules(
+                            payload, payload_type, consumer, logger
+                        )
+                        if not rule:
                             continue
 
+                        message_text = payload.get("message", "Rule triggered")
                         snapshot = payload.get("telemetry_snapshot", {})
                         aggregate = EvalResults(
                             trigger=True,
@@ -181,7 +173,15 @@ Metrics Exported (Prometheus):
                         )
 
                         try:
-                            event = event_handler(aggregate, rule, message_text)
+                            if payload_type == "internal":
+                                event = event_handler(aggregate, rule, message_text)
+                            else:
+                                event = external_event_handler(
+                                    aggregate,
+                                    rule_id,
+                                    message_text,
+                                    rule.event_cooldown_until,
+                                )
 
                             logger.info(
                                 f"Event created: {event.id}",

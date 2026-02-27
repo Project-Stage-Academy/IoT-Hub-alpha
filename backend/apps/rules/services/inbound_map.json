@@ -1,0 +1,46 @@
+[{
+    "id": 1234,
+    "map": {
+    "cooldown_min": { "from": "cooldown", "literal": [25, 60, 70] },
+    "rule_id": { "from": "trigger", "cast": "str"},
+    "device_id": { "from": "aparatus", "cast": "str" },
+    "message": { "from": "message", "cast": "str" },
+    "telemetry_snapshot": { "from": "offender", "inner_dict": {
+        "value": { "from": "temp", "cast": "int" },
+        "start": { "default": "", "cast": "timezone" },
+        "end": { "default": "", "cast": "timezone" }
+    } },
+    "action_config": { "from": "actions", "list": {
+        "type": { "default": "notification" },
+        "to": { "from": "address" },
+        "name": { "from": "person" },
+        "template_id": {"default": 1}
+    }}
+  }
+},
+{
+    "id": 1111,
+    "map": {
+    "cooldown_min": { "from": "cd" },
+    "rule_id": { "from": "place", "cast": "str"},
+    "device_id": { "from": "device", "cast": "str" },
+    "telemetry_snapshot": { "from": "trigger_device", "inner_dict": {
+        "value": { "from": "vibration", "cast": "int" },
+        "start": { "default": "", "cast": "timezone" },
+        "end": { "default": "", "cast": "timezone" }
+    } },
+    "action_config": { "from": "actions", "list": {
+        "type": { "default": "email" },
+        "to": { "from": "address" },
+        "name": { "from": "person" }
+    }}
+  }
+},
+{
+    "id": 4454,
+    "map": {
+    "rule_id": { "from": "rule", "cast": "str"},
+    "device_id": { "from": "device-5523LONG", "cast": "str" }
+    }
+}
+]
