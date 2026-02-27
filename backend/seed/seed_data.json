@@ -383,7 +383,8 @@
       "transformation_rules": {
         "divide": { "value": 100 },
         "remove": { "ssn": true },
-        "rename": { "value": "value" }
+        "rename": { "value": "value" },
+        "timestamp": true
       },
       "is_active": true
     }

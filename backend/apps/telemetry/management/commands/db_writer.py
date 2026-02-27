@@ -272,9 +272,9 @@ class Command(BaseCommand):
 
     def _normalize_payload(self, contract: dict[str, Any]) -> dict[str, Any]:
         payload_input = dict(contract["payload"])
+        recived_ts = contract["received_at"]
         payload_input["serial_number"] = contract["serial_number"]
-
-        clean_payload, error = process_telemetry_payload(payload_input)
+        clean_payload, error = process_telemetry_payload(payload_input, recived_ts)
         if error:
             raise RawContractError("payload_validation_failed", error)
 
@@ -288,7 +288,7 @@ class Command(BaseCommand):
         normalized = {"device_id": str(device.id), "payload": clean_payload}
 
         if (timestamp_val := clean_payload.get("timestamp")) is not None:
-            normalized["timestamp"] = (
+            normalized["payload"]["timestamp"] = (
                 timestamp_val
                 if isinstance(timestamp_val, str)
                 else self._to_utc(timestamp_val).isoformat()
