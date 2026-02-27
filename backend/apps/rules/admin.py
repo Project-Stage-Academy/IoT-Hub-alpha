@@ -1,17 +1,25 @@
 from django import forms
 from django.contrib import admin
 from django.contrib import messages
-from django.http import HttpRequest, HttpResponse
-from django.urls import path
-from django.shortcuts import redirect
 from .models import Rule, validate_condition, validate_action_config
-from .tasks import process_telemetry
 from .admin_widget import HelpWidget
 from django.core.exceptions import PermissionDenied
 
 
 @admin.action(description="Enable selected rules")
 def enable_rules(modeladmin, request, queryset):
+    """
+    Django admin action to enable selected rules.
+
+    Bulk-updates is_enabled=True for selected Rule instances and displays
+    success message with count. Called from Rule admin change list when user
+    selects rules and chooses "Enable selected rules" action.
+
+    Args:
+        modeladmin: RuleAdmin instance
+        request: HTTP request object
+        queryset: QuerySet of Rule instances to enable
+    """
     updated = queryset.update(is_enabled=True)
     modeladmin.message_user(
         request,
@@ -22,6 +30,18 @@ def enable_rules(modeladmin, request, queryset):
 
 @admin.action(description="Disable selected rules")
 def disable_rules(modeladmin, request, queryset):
+    """
+    Django admin action to disable selected rules.
+
+    Bulk-updates is_enabled=False for selected Rule instances and displays
+    success message with count. Called from Rule admin change list when user
+    selects rules and chooses "Disable selected rules" action.
+
+    Args:
+        modeladmin: RuleAdmin instance
+        request: HTTP request object
+        queryset: QuerySet of Rule instances to disable
+    """
     updated = queryset.update(is_enabled=False)
     modeladmin.message_user(
         request,
@@ -86,17 +106,6 @@ class RuleAdmin(admin.ModelAdmin):
 
         return formfield
 
-    def get_urls(self):
-        urls = super().get_urls()
-        custom = [
-            path(
-                "run-processor/",
-                self.admin_site.admin_view(self.run_processor_view),
-                name="rules_rule_run_processor",
-            ),
-        ]
-        return custom + urls
-
     def save_model(self, request, obj, form, change):
         if change:
             if not request.user.has_perm("rules.change_rule"):
@@ -109,18 +118,3 @@ class RuleAdmin(admin.ModelAdmin):
             obj.created_by = request.user
 
         super().save_model(request, obj, form, change)
-
-    def run_processor_view(self, request: HttpRequest) -> HttpResponse:
-        if not self.has_change_permission(request):
-            self.message_user(request, "Permission denied.", level=messages.ERROR)
-            return redirect("..")
-
-        # Enqueue Celery task (don’t call the function directly!)
-        result = process_telemetry.delay()
-
-        self.message_user(
-            request,
-            f"Enqueued process_telemetry. Task id: {result.id}",
-            level=messages.SUCCESS,
-        )
-        return redirect("..")

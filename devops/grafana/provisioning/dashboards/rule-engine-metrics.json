@@ -1,0 +1,457 @@
+{
+  "title": "IoT Hub - Rule Engine Performance",
+  "uid": "iot-rule-engine",
+  "schemaVersion": 39,
+  "editable": true,
+  "timezone": "UTC",
+  "panels": [
+    {
+      "title": "Rules Evaluated (Total)",
+      "type": "stat",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "expr": "increase(rules_evaluated_total[5m])",
+          "legendFormat": "{{ rule_id }}"
+        }
+      ]
+    },
+    {
+      "title": "Rules Triggered (Total)",
+      "type": "stat",
+      "gridPos": {
+        "x": 6,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "expr": "increase(rules_triggered_total[5m])",
+          "legendFormat": "{{ rule_id }}"
+        }
+      ]
+    },
+    {
+      "title": "Events Created (Total)",
+      "type": "stat",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "expr": "increase(events_created_total[5m])",
+          "legendFormat": "{{ rule_id }}"
+        }
+      ]
+    },
+    {
+      "title": "Events Skipped (Cooldown)",
+      "type": "stat",
+      "gridPos": {
+        "x": 18,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "expr": "increase(events_cooldown_skipped_total[5m])",
+          "legendFormat": "{{ rule_id }}"
+        }
+      ]
+    },
+    {
+      "title": "Rule Evaluation Latency (p50/p95/p99)",
+      "type": "graph",
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, rate(rule_evaluation_duration_ms_bucket[5m]))",
+          "legendFormat": "p50"
+        },
+        {
+          "expr": "histogram_quantile(0.95, rate(rule_evaluation_duration_ms_bucket[5m]))",
+          "legendFormat": "p95"
+        },
+        {
+          "expr": "histogram_quantile(0.99, rate(rule_evaluation_duration_ms_bucket[5m]))",
+          "legendFormat": "p99"
+        }
+      ],
+      "yaxes": [
+        {
+          "format": "ms",
+          "label": "Duration (ms)"
+        }
+      ]
+    },
+    {
+      "title": "Event Creation Latency (p50/p95/p99)",
+      "type": "graph",
+      "gridPos": {
+        "x": 12,
+        "y": 4,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, rate(event_creation_duration_ms_bucket[5m]))",
+          "legendFormat": "p50"
+        },
+        {
+          "expr": "histogram_quantile(0.95, rate(event_creation_duration_ms_bucket[5m]))",
+          "legendFormat": "p95"
+        },
+        {
+          "expr": "histogram_quantile(0.99, rate(event_creation_duration_ms_bucket[5m]))",
+          "legendFormat": "p99"
+        }
+      ],
+      "yaxes": [
+        {
+          "format": "ms",
+          "label": "Duration (ms)"
+        }
+      ]
+    },
+    {
+      "title": "Kafka Message Processing Latency (p50/p95/p99)",
+      "type": "graph",
+      "gridPos": {
+        "x": 0,
+        "y": 12,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, rate(kafka_message_processing_duration_ms_bucket[5m]))",
+          "legendFormat": "{{ topic }} - p50"
+        },
+        {
+          "expr": "histogram_quantile(0.95, rate(kafka_message_processing_duration_ms_bucket[5m]))",
+          "legendFormat": "{{ topic }} - p95"
+        },
+        {
+          "expr": "histogram_quantile(0.99, rate(kafka_message_processing_duration_ms_bucket[5m]))",
+          "legendFormat": "{{ topic }} - p99"
+        }
+      ],
+      "yaxes": [
+        {
+          "format": "ms",
+          "label": "Duration (ms)"
+        }
+      ]
+    },
+    {
+      "title": "Kafka Messages Processed (Rate)",
+      "type": "graph",
+      "gridPos": {
+        "x": 12,
+        "y": 12,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "expr": "rate(kafka_messages_processed_total{status=\"success\"}[5m])",
+          "legendFormat": "{{ topic }} - success"
+        },
+        {
+          "expr": "rate(kafka_messages_processed_total{status=\"error\"}[5m])",
+          "legendFormat": "{{ topic }} - error"
+        }
+      ],
+      "yaxes": [
+        {
+          "format": "ops",
+          "label": "Messages/sec"
+        }
+      ]
+    },
+    {
+      "title": "Evaluation Errors by Type",
+      "type": "graph",
+      "gridPos": {
+        "x": 0,
+        "y": 20,
+        "w": 12,
+        "h": 6
+      },
+      "targets": [
+        {
+          "expr": "increase(rule_evaluation_errors_total[5m])",
+          "legendFormat": "{{ error_type }}"
+        }
+      ],
+      "yaxes": [
+        {
+          "format": "short",
+          "label": "Errors"
+        }
+      ]
+    },
+    {
+      "title": "Action Dispatch Duration (p50/p95/p99)",
+      "type": "graph",
+      "gridPos": {
+        "x": 12,
+        "y": 20,
+        "w": 12,
+        "h": 6
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, rate(action_dispatch_duration_ms_bucket[5m]))",
+          "legendFormat": "{{ action_type }} - p50"
+        },
+        {
+          "expr": "histogram_quantile(0.95, rate(action_dispatch_duration_ms_bucket[5m]))",
+          "legendFormat": "{{ action_type }} - p95"
+        },
+        {
+          "expr": "histogram_quantile(0.99, rate(action_dispatch_duration_ms_bucket[5m]))",
+          "legendFormat": "{{ action_type }} - p99"
+        }
+      ],
+      "yaxes": [
+        {
+          "format": "ms",
+          "label": "Duration (ms)"
+        }
+      ]
+    },
+    {
+      "title": "Actions Dispatched (Success vs Error)",
+      "type": "graph",
+      "gridPos": {
+        "x": 0,
+        "y": 26,
+        "w": 12,
+        "h": 6
+      },
+      "targets": [
+        {
+          "expr": "rate(actions_dispatched_total{status=\"success\"}[5m])",
+          "legendFormat": "{{ action_type }} - success"
+        },
+        {
+          "expr": "rate(actions_dispatched_total{status=\"error\"}[5m])",
+          "legendFormat": "{{ action_type }} - error"
+        }
+      ],
+      "yaxes": [
+        {
+          "format": "ops",
+          "label": "Actions/sec"
+        }
+      ]
+    },
+    {
+      "title": "Notification Deliveries Enqueued",
+      "type": "graph",
+      "gridPos": {
+        "x": 12,
+        "y": 26,
+        "w": 12,
+        "h": 6
+      },
+      "targets": [
+        {
+          "expr": "rate(notification_deliveries_enqueued_total[5m])",
+          "legendFormat": "{{ recipient_type }}"
+        }
+      ],
+      "yaxes": [
+        {
+          "format": "ops",
+          "label": "Notifications/sec"
+        }
+      ]
+    },
+    {
+      "title": "Window State Points (Current)",
+      "type": "graph",
+      "gridPos": {
+        "x": 0,
+        "y": 32,
+        "w": 12,
+        "h": 6
+      },
+      "targets": [
+        {
+          "expr": "window_state_points_current",
+          "legendFormat": "{{ rule_id }} - {{ device_id }}"
+        }
+      ],
+      "yaxes": [
+        {
+          "format": "short",
+          "label": "Points"
+        }
+      ]
+    },
+    {
+      "title": "Window State Cleanup Duration",
+      "type": "graph",
+      "gridPos": {
+        "x": 12,
+        "y": 32,
+        "w": 12,
+        "h": 6
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, rate(window_state_cleanup_duration_ms_bucket[5m]))",
+          "legendFormat": "{{ rule_id }} - p95"
+        }
+      ],
+      "yaxes": [
+        {
+          "format": "ms",
+          "label": "Duration (ms)"
+        }
+      ]
+    },
+    {
+      "title": "End-to-End Latency (Telemetry → Event)",
+      "type": "graph",
+      "gridPos": {
+        "x": 0,
+        "y": 38,
+        "w": 12,
+        "h": 6
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, rate(telemetry_to_event_latency_ms_bucket[5m]))",
+          "legendFormat": "p50"
+        },
+        {
+          "expr": "histogram_quantile(0.95, rate(telemetry_to_event_latency_ms_bucket[5m]))",
+          "legendFormat": "p95"
+        },
+        {
+          "expr": "histogram_quantile(0.99, rate(telemetry_to_event_latency_ms_bucket[5m]))",
+          "legendFormat": "p99"
+        }
+      ],
+      "yaxes": [
+        {
+          "format": "ms",
+          "label": "Latency (ms)"
+        }
+      ]
+    },
+    {
+      "title": "Throughput (Events/sec)",
+      "type": "graph",
+      "gridPos": {
+        "x": 12,
+        "y": 38,
+        "w": 12,
+        "h": 6
+      },
+      "targets": [
+        {
+          "expr": "telemetry_points_per_second",
+          "legendFormat": "Telemetry points/sec"
+        },
+        {
+          "expr": "events_created_per_second",
+          "legendFormat": "Events created/sec"
+        }
+      ],
+      "yaxes": [
+        {
+          "format": "ops",
+          "label": "Events/sec"
+        }
+      ]
+    },
+    {
+      "title": "Evaluator Cache Hit Rate",
+      "type": "graph",
+      "gridPos": {
+        "x": 0,
+        "y": 44,
+        "w": 12,
+        "h": 6
+      },
+      "targets": [
+        {
+          "expr": "realtime_evaluator_cache_hit_rate",
+          "legendFormat": "{{ device_id }}"
+        }
+      ],
+      "yaxes": [
+        {
+          "format": "percent",
+          "label": "Hit Rate (%)"
+        }
+      ]
+    },
+    {
+      "title": "Evaluator Rules Cached",
+      "type": "graph",
+      "gridPos": {
+        "x": 12,
+        "y": 44,
+        "w": 12,
+        "h": 6
+      },
+      "targets": [
+        {
+          "expr": "realtime_evaluator_rules_cached",
+          "legendFormat": "{{ device_id }}"
+        }
+      ],
+      "yaxes": [
+        {
+          "format": "short",
+          "label": "Rules"
+        }
+      ]
+    }
+  ],
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "rule_id",
+        "type": "query",
+        "datasource": "Prometheus",
+        "query": "label_values(rules_evaluated_total, rule_id)",
+        "multi": true,
+        "includeAll": true
+      },
+      {
+        "name": "device_id",
+        "type": "query",
+        "datasource": "Prometheus",
+        "query": "label_values(rules_evaluated_total, device_id)",
+        "multi": true,
+        "includeAll": true
+      }
+    ]
+  }
+}
