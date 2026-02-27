@@ -7,12 +7,14 @@
     "message": { "from": "message", "cast": "str" },
     "telemetry_snapshot": { "from": "offender", "inner_dict": {
         "value": { "from": "temp", "cast": "int" },
-        "ts": { "default": "", "cast": "timezone" }
+        "start": { "default": "", "cast": "timezone" },
+        "end": { "default": "", "cast": "timezone" }
     } },
     "action_config": { "from": "actions", "list": {
-        "type": { "default": "email" },
+        "type": { "default": "notification" },
         "to": { "from": "address" },
-        "name": { "from": "person" }
+        "name": { "from": "person" },
+        "template_id": {"default": 1}
     }}
   }
 },
@@ -24,7 +26,8 @@
     "device_id": { "from": "device", "cast": "str" },
     "telemetry_snapshot": { "from": "trigger_device", "inner_dict": {
         "value": { "from": "vibration", "cast": "int" },
-        "ts": { "default": "", "cast": "timezone" }
+        "start": { "default": "", "cast": "timezone" },
+        "end": { "default": "", "cast": "timezone" }
     } },
     "action_config": { "from": "actions", "list": {
         "type": { "default": "email" },

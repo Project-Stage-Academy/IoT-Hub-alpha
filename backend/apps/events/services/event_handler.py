@@ -64,6 +64,34 @@ def event_handler(aggregate, rule, message: str, template=None):
     return event
 
 
+def external_event_handler(aggregate, rule_id, message, cooldown_min) -> Event:
+    cooldown = timezone.now() - timedelta(minutes=20)
+
+    qs = Event.objects.filter(
+        external_rule_id=rule_id,
+        timestamp__gte=cooldown,
+    ).exists()
+
+    if qs:
+        raise EventCooldownActive(f"External rule {rule_id} is on cooldown.")
+
+    event = Event.objects.create(
+        external_rule_id=rule_id,
+        timestamp=timezone.now(),
+        message=message,
+        severity=Event.EventSeverity.WARNING,
+        status=Event.EventStatus.NEW,
+        execution_results=[],
+        telemetry_snapshot={
+            "values": aggregate.values,
+            "start": aggregate.start.isoformat() if aggregate.start else None,
+            "end": aggregate.end.isoformat() if aggregate.end else None,
+        },
+    )
+
+    return event
+
+
 def get_template(template_id: int):
     """Get notification template by ID with caching."""
     return NotificationTemplate.objects.get(id=template_id)
