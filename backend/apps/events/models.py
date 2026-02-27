@@ -55,7 +55,10 @@ class Event(models.Model):
         RESOLVED = "resolved", "Resolved"
 
     id = models.BigAutoField(primary_key=True)
-    rule = models.ForeignKey(Rule, on_delete=models.CASCADE, related_name="events")
+    rule = models.ForeignKey(
+        Rule, on_delete=models.CASCADE, related_name="events", null=True, blank=True
+    )
+    external_rule_id = models.CharField(max_length=100, null=True, blank=True)
     timestamp = models.DateTimeField(auto_now_add=True)
     severity = models.CharField(max_length=20, choices=EventSeverity.choices)
     message = models.TextField(help_text="Human-readable event description")
