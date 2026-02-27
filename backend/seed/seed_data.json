@@ -367,5 +367,26 @@
         "value": 6543
       }
     }
+  ],
+  "telemetry_schema": [
+    {
+      "version": "1.0",
+      "validation_schema": {
+        "type": "object",
+        "required": ["schema_version", "serial_number", "value"],
+        "properties": {
+          "value": { "type": "number" },
+          "serial_number": { "type": "string" },
+          "schema_version": { "type": "string" }
+        }
+      },
+      "transformation_rules": {
+        "divide": { "value": 100 },
+        "remove": { "ssn": true },
+        "rename": { "value": "value" },
+        "timestamp": true
+      },
+      "is_active": true
+    }
   ]
 }
