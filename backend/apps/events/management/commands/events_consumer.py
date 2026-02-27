@@ -27,7 +27,7 @@ from apps.rules.models import Rule
 from apps.rules.services.data_structure import EvalResults, ActionConfig
 from apps.rules.services.metrics import track_kafka_message_processing
 
-logger = logging.getLogger("events.consumer")
+logger = logging.getLogger("apps.events.consumer")
 
 try:
     from confluent_kafka import Consumer, KafkaError, Producer
@@ -86,6 +86,12 @@ Metrics Exported (Prometheus):
             default="events-processor",
             help="Kafka consumer group ID (default: events-processor)",
         )
+        parser.add_argument(
+            "--metrics-port",
+            type=int,
+            default=9102,
+            help="Port for Prometheus metrics HTTP server (default: 9102)",
+        )
 
     def handle(self, **options):
         if Consumer is None or Producer is None:
@@ -96,6 +102,18 @@ Metrics Exported (Prometheus):
 
         input_topic = options["input_topic"]
         group_id = options["group_id"]
+        metrics_port = options["metrics_port"]
+
+        from prometheus_client import start_http_server
+
+        try:
+            start_http_server(metrics_port)
+        except OSError as e:
+            logger.warning(
+                "Could not start Prometheus HTTP server on port %d: %s",
+                metrics_port,
+                str(e),
+            )
 
         consumer = Consumer(self._build_consumer_config(group_id))
         consumer.subscribe([input_topic])
@@ -104,7 +122,8 @@ Metrics Exported (Prometheus):
             self.style.SUCCESS(
                 f"EventsConsumer started\n"
                 f"   Input:  {input_topic}\n"
-                f"   Group:  {group_id}"
+                f"   Group:  {group_id}\n"
+                f"   Metrics: http://0.0.0.0:{metrics_port}/"
             )
         )
 

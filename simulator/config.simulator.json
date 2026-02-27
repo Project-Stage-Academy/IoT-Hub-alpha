@@ -12,15 +12,15 @@
       "data": {
         "schema_version": "1.0",
         "ssn": "TEMP-SN-002",
-        "value": 9552
+        "value": 95520
       },
-      "expected": 201
+      "expected": 202
     },
     {
       "name": "device2",
       "data": {
         "schema_version": "1.0",
-        "ssn": "PWR-FK-003",
+        "ssn": "PWR-SN-003",
         "value": 3244
       },
       "expected": 202
