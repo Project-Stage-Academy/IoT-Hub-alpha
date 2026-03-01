@@ -167,6 +167,34 @@ Invalid numeric `value`:
 - `500`: internal processing error.
 - `503`: temporary upstream issue (for example Kafka publish failure).
 
+## Mock Server for Integration Testing
+
+Hardware and frontend developers can test API integration locally using a mock server based on our OpenAPI specification. Since the project uses Docker, you can run the mock server instantly without installing any language-specific dependencies.
+
+Run the mock server via Docker (from the repository root):
+
+```bash
+docker run --init --rm -p 4010:4010 -v "${PWD}/docs/api.yaml:/api.yaml" stoplight/prism:5 mock -h 0.0.0.0 /api.yaml
+
+```
+
+**Note for Windows users:** If you are using the standard Command Prompt (CMD), use `%cd%` instead of `${PWD}`:
+```bash
+docker run --init --rm -p 4010:4010 -v "%cd%/docs/api.yaml:/api.yaml" stoplight/prism:5 mock -h 0.0.0.0 /api.yaml
+```
+
+The server will start on port 4010. You can now send test requests to it:
+
+```bash
+curl -X POST "[http://127.0.0.1:4010/api/v1/telemetry](http://127.0.0.1:4010/api/v1/telemetry)" \
+  -H "Content-Type: application/json" \
+  -H "X-Device-Serial-Number: MOCK-SN-001" \
+  -d '{
+    "schema_version": "1.0",
+    "value": 1500
+  }'
+```
+
 ## Source of Truth
 
 - OpenAPI contract: `docs/api.yaml`
