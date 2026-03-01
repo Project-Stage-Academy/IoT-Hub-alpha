@@ -90,7 +90,7 @@ class TelemetryConsumer(AsyncWebsocketConsumer):
         if len(connected_clients) == 0:
             from apps.telemetry.telemetry_ws_consumer import stop_telemetry_consumer
 
-            stop_telemetry_consumer()
+            await stop_telemetry_consumer()
 
         client = self.scope.get("client", ("unknown", 0))
         logger.info(
