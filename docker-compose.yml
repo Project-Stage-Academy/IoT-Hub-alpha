@@ -305,6 +305,72 @@ services:
     networks:
       - iot_hub_net
 
+  kafka_db_writer_stub:
+    build: ./backend
+    container_name: iot_hub_kafka_db_writer_stub
+    entrypoint: ["/app/scripts/entrypoint.sh"]
+    command: >-
+      python manage.py kafka_db_writer_stub
+      --raw-topic telemetry.raw
+      --clean-topic telemetry.clean
+      --dlq-topic telemetry.dlq
+      --group-id telemetry-validator
+    env_file:
+      - .env
+    depends_on:
+      kafka:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+    logging: *default-logging
+    networks:
+      - iot_hub_net
+
+  rules_consumer:
+    build: ./backend
+    container_name: iot_hub_rules_consumer
+    entrypoint: ["/app/scripts/entrypoint.sh"]
+    command: >-
+      python manage.py rules_consumer
+      --input-topic telemetry.clean
+      --output-topic event.topic
+      --group-id rules-evaluator
+      --metrics-port 9101
+    expose:
+      - "9101"
+    env_file:
+      - .env
+    depends_on:
+      kafka:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+    logging: *default-logging
+    networks:
+      - iot_hub_net
+
+  events_consumer:
+    build: ./backend
+    container_name: iot_hub_events_consumer
+    entrypoint: ["/app/scripts/entrypoint.sh"]
+    command: >-
+      python manage.py events_consumer
+      --input-topic event.topic
+      --group-id events-processor
+      --metrics-port 9102
+    expose:
+      - "9102"
+    env_file:
+      - .env
+    depends_on:
+      kafka:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+    logging: *default-logging
+    networks:
+      - iot_hub_net
+
   simulator:
     build:
       context: .

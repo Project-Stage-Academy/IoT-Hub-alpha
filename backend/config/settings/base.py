@@ -114,15 +114,6 @@ CELERY_TASK_SERIALIZER = "json"
 
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 
-CELERY_TIMER = int(os.getenv("CELERY_RUN_PROCESS_TELEMETRY_TIMER_MINUTES", 5)) * 60
-
-CELERY_BEAT_SCHEDULE = {
-    "run-rule-processor-every-5m": {
-        "task": "apps.rules.tasks.process_telemetry",
-        "schedule": CELERY_TIMER,
-    }
-}
-
 LANGUAGE_CODE = "en-us"
 
 TIME_ZONE = "UTC"
