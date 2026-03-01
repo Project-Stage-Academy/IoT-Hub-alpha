@@ -36,6 +36,12 @@ cd iot-catalog-hub
 
 [Api style guide](docs/readme-api.md)
 
+## Telemetry Ingestion API Docs
+
+- OpenAPI spec: `docs/api.yaml`
+- Integration walkthrough and examples: `docs/telemetry-ingestion-api.md`
+- OpenAPI maintenance notes: `docs/openapi.md`
+
 ### 3. Environment Setup
 
 The application relies on environment variables defined in a `.env` file. Create your local version from the provided template:
