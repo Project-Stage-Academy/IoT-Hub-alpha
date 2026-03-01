@@ -141,13 +141,17 @@ def start_telemetry_consumer() -> None:
     logger.info("telemetry_ws_consumer.task_started")
 
 
-def stop_telemetry_consumer() -> None:
-    """Stop the Kafka consumer background task."""
+async def stop_telemetry_consumer() -> None:
+    """Stop the Kafka consumer background task and wait for cleanup."""
     global _consumer_task
 
     _consumer_stop_event.set()
 
     if _consumer_task is not None and not _consumer_task.done():
         _consumer_task.cancel()
+        try:
+            await _consumer_task  # Wait for cleanup to complete
+        except asyncio.CancelledError:
+            pass  # Expected when task is cancelled
         _consumer_task = None
         logger.info("telemetry_ws_consumer.task_stopped")
