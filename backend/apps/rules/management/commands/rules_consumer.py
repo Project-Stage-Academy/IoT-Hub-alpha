@@ -29,7 +29,7 @@ from apps.rules.services.realtime_evaluator import RealTimeRuleEvaluator
 from apps.rules.services.window_state import TelemetryPoint
 from apps.rules.services.metrics import track_kafka_message_processing
 
-logger = logging.getLogger("rules.consumer")
+logger = logging.getLogger("apps.rules.consumer")
 
 try:
     from confluent_kafka import Consumer, KafkaError, Producer
@@ -135,10 +135,18 @@ All metrics exported to Prometheus via HTTP on specified port (default: 9101).
 
         from prometheus_client import start_http_server
 
-        start_http_server(metrics_port)
+        try:
+            start_http_server(metrics_port)
+        except OSError as e:
+            logger.warning(
+                "Could not start Prometheus HTTP server on port %d: %s",
+                metrics_port,
+                str(e),
+            )
 
         consumer = Consumer(self._build_consumer_config(group_id))
         consumer.subscribe([input_topic])
+
         producer = Producer(settings.KAFKA_PRODUCER_CONFIG)
 
         evaluator = RealTimeRuleEvaluator()
@@ -157,8 +165,13 @@ All metrics exported to Prometheus via HTTP on specified port (default: 9101).
         error_count = 0
 
         try:
+            iteration_count = 0
             while True:
                 msg = consumer.poll(timeout=1.0)
+                iteration_count += 1
+
+                if iteration_count % 10 == 0:
+                    self.stdout.write(f"[{iteration_count}] Polling Kafka...")
 
                 if msg is None:
                     continue
@@ -173,12 +186,26 @@ All metrics exported to Prometheus via HTTP on specified port (default: 9101).
                         message_count += 1
 
                         device_id = UUID(payload["device_id"])
-                        timestamp = datetime.fromisoformat(payload["timestamp"])
+                        timestamp = datetime.fromisoformat(
+                            payload.get("timestamp")
+                            or payload["payload"].get("timestamp")
+                        )
                         value = float(payload["payload"]["value"])
 
                         point = TelemetryPoint(ts=timestamp, value=value)
 
+                        logger.info(
+                            "Processing telemetry: device=%s value=%s",
+                            str(device_id),
+                            value,
+                        )
+
                         triggered = evaluator.evaluate(device_id, point)
+                        logger.info(
+                            "Evaluation result: device=%s triggered_rules=%d",
+                            str(device_id),
+                            len(triggered) if triggered else 0,
+                        )
                     if triggered:
                         for rule_id, result in triggered.items():
                             try:

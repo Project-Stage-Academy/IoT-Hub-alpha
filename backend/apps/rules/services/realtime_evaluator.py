@@ -145,6 +145,17 @@ class RealTimeRuleEvaluator:
                 "id", "condition", "action_config", "device_id"
             )
             self.rule_cache[device_id] = list(rules)
+            logger.info(
+                "Loaded %d rules for device %s",
+                len(self.rule_cache[device_id]),
+                str(device_id),
+            )
+            for rule in self.rule_cache[device_id]:
+                logger.info(
+                    "  Rule %s: %s",
+                    rule.id,
+                    rule.condition,
+                )
 
         return self.rule_cache[device_id]
 

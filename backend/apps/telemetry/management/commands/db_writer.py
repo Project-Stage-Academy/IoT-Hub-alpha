@@ -16,6 +16,7 @@ from apps.devices.models import Device
 from apps.telemetry.services import process_telemetry_payload
 from apps.telemetry.exceptions import RawContractError
 from apps.telemetry.validators import validate_raw_contract
+from apps.telemetry.service_layer.write_buffer import WriteBuffer
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +40,11 @@ class Command(BaseCommand):
         )
         parser.add_argument("--dlq-topic", default=settings.KAFKA_TOPIC_TELEMETRY_DLQ)
         parser.add_argument(
-            "--group-id", default=f"{settings.KAFKA_CLIENT_ID}-db-writer-stub"
+            "--validator-group-id",
+            default=f"{settings.KAFKA_CLIENT_ID}-db-writer-validator",
+        )
+        parser.add_argument(
+            "--writer-group-id", default=f"{settings.KAFKA_CLIENT_ID}-db-writer-clean"
         )
         parser.add_argument("--poll-timeout", type=float, default=1.0)
         parser.add_argument("--max-messages", type=int, default=0)
@@ -47,11 +52,12 @@ class Command(BaseCommand):
         parser.add_argument(
             "--batch-size",
             type=int,
-            default=100,
+            default=500,
             help="Number of messages to process in one batch",
         )
 
     def handle(self, *args, **options):
+        logger.info("Starting DB Writer......")
         if Consumer is None:
             raise CommandError("confluent-kafka not installed.")
 
@@ -60,14 +66,26 @@ class Command(BaseCommand):
             options["clean_topic"],
             options["dlq_topic"],
         )
-        group_id, poll_timeout = options["group_id"], options["poll_timeout"]
+        clean_group_id, raw_group_id, poll_timeout = (
+            options["writer_group_id"],
+            options["validator_group_id"],
+            options["poll_timeout"],
+        )
         max_messages, batch_size = options["max_messages"], options["batch_size"]
 
-        consumer = Consumer(self._build_consumer_config(group_id))
+        raw_consumer = Consumer(
+            self._build_consumer_config(raw_group_id, enable_auto_offset=True)
+        )
+        clean_consumer = Consumer(
+            self._build_consumer_config(clean_group_id, enable_auto_offset=False)
+        )
         producer = Producer(settings.KAFKA_PRODUCER_CONFIG)
 
         self._install_signal_handlers()
-        consumer.subscribe([raw_topic])
+        raw_consumer.subscribe([raw_topic])
+        clean_consumer.subscribe([clean_topic])
+
+        write_buffer = WriteBuffer(clean_consumer, poll_timeout, batch_size)
 
         self.stdout.write(
             self.style.SUCCESS(f"Worker started (BATCH SIZE: {batch_size})")
@@ -78,9 +96,11 @@ class Command(BaseCommand):
 
         try:
             while self._running:
-                messages = consumer.consume(
+
+                messages = raw_consumer.consume(
                     num_messages=batch_size, timeout=poll_timeout
                 )
+                write_buffer.handle()
 
                 if not messages:
                     continue
@@ -150,7 +170,7 @@ class Command(BaseCommand):
                         "Failed to route batch. Stopping stub to preserve "
                         "at-least-once behavior."
                     )
-                consumer.commit(asynchronous=False)
+                raw_consumer.commit(asynchronous=False)
 
                 logger.info(
                     "Successfully processed and committed batch "
@@ -162,7 +182,8 @@ class Command(BaseCommand):
 
         finally:
             producer.flush(publish_timeout)
-            consumer.close()
+            clean_consumer.close()
+            raw_consumer.close()
             self.stdout.write(
                 self.style.SUCCESS(
                     f"Worker stopped. Total processed: {processed_total}"
@@ -251,9 +272,9 @@ class Command(BaseCommand):
 
     def _normalize_payload(self, contract: dict[str, Any]) -> dict[str, Any]:
         payload_input = dict(contract["payload"])
+        recived_ts = contract["received_at"]
         payload_input["serial_number"] = contract["serial_number"]
-
-        clean_payload, error = process_telemetry_payload(payload_input)
+        clean_payload, error = process_telemetry_payload(payload_input, recived_ts)
         if error:
             raise RawContractError("payload_validation_failed", error)
 
@@ -267,7 +288,7 @@ class Command(BaseCommand):
         normalized = {"device_id": str(device.id), "payload": clean_payload}
 
         if (timestamp_val := clean_payload.get("timestamp")) is not None:
-            normalized["timestamp"] = (
+            normalized["payload"]["timestamp"] = (
                 timestamp_val
                 if isinstance(timestamp_val, str)
                 else self._to_utc(timestamp_val).isoformat()
@@ -275,17 +296,21 @@ class Command(BaseCommand):
 
         return normalized
 
-    def _build_consumer_config(self, group_id: str) -> dict[str, Any]:
+    def _build_consumer_config(
+        self, group_id: str, enable_auto_offset
+    ) -> dict[str, Any]:
         config = {
             "bootstrap.servers": settings.KAFKA_BOOTSTRAP_SERVERS,
             "client.id": (
                 f"{settings.KAFKA_CLIENT_ID}"
-                f"-db-writer-stub-{socket.gethostname()}-{os.getpid()}"
+                f"-db-writer-{socket.gethostname()}-{os.getpid()}"
             ),
             "group.id": group_id,
             "security.protocol": settings.KAFKA_SECURITY_PROTOCOL,
             "enable.auto.commit": False,
             "auto.offset.reset": "earliest",
+            "enable.auto.offset.store": enable_auto_offset,
+            "max.poll.interval.ms": 15 * 60 * 1000,
         }
         if settings.KAFKA_SASL_MECHANISM:
             config["sasl.mechanism"] = settings.KAFKA_SASL_MECHANISM
