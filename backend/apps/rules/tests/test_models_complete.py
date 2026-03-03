@@ -109,6 +109,58 @@ class TestValidateActionConfig:
             ]
         )
 
+    def test_action_config_alert_with_template_id(self):
+        """Accept alert action with template_id."""
+        validate_action_config([{"type": "alert", "template_id": 10}])
+
+    def test_action_config_alert_without_template_id(self):
+        """Reject alert action without template_id."""
+        with pytest.raises(
+            DjangoValidationError,
+            match="alert action must include template_id",
+        ):
+            validate_action_config([{"type": "alert"}])
+
+    def test_action_config_webhook_with_url(self):
+        """Accept webhook action with url."""
+        validate_action_config(
+            [
+                {
+                    "type": "webhook",
+                    "url": "https://ops.example.com/hook",
+                    "method": "POST",
+                }
+            ]
+        )
+
+    def test_action_config_webhook_without_url(self):
+        """Reject webhook action without url."""
+        with pytest.raises(
+            DjangoValidationError,
+            match="webhook action must include url",
+        ):
+            validate_action_config([{"type": "webhook"}])
+
+    def test_action_config_command_with_command_name(self):
+        """Accept command action with command name."""
+        validate_action_config(
+            [
+                {
+                    "type": "command",
+                    "command": "set_device_status",
+                    "params": {"status": "inactive"},
+                }
+            ]
+        )
+
+    def test_action_config_command_without_command(self):
+        """Reject command action without command field."""
+        with pytest.raises(
+            DjangoValidationError,
+            match="command action must include command",
+        ):
+            validate_action_config([{"type": "command", "params": {"status": "error"}}])
+
     def test_action_config_multiple_actions_mixed(self):
         """Accept multiple actions with mixed types."""
         # Should not raise
