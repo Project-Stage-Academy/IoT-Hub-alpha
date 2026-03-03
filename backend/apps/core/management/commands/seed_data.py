@@ -14,7 +14,7 @@ from pydantic import ValidationError
 from apps.rules.models import Rule
 from apps.notifications.models import NotificationTemplate
 from apps.devices.models import DeviceType, Device
-from apps.telemetry.models import Telemetry
+from apps.telemetry.models import Telemetry, TelemetrySchema
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
@@ -132,6 +132,9 @@ class Command(BaseCommand):
                 f"updated: {stats.notification_templates.updated}\n"
                 f"Telemetry: created - {stats.telemetry.created}, "
                 f"updated: {stats.telemetry.updated}\n"
+                f"Telemetry Schema Version: created - "
+                f"{stats.telemetry_schema.created}, "
+                f"updated: {stats.telemetry_schema.updated}\n"
             )
         )
 
@@ -170,6 +173,7 @@ class Command(BaseCommand):
         notif_map = self._seed_notif_template(data, stats)
         self._seed_rule(data, device_map, notif_map, stats)
         self._seed_telemetry(data, device_map, stats)
+        self._seed_telemetry_schema_version(data, stats)
 
     def _seed_super_user(self) -> None:
         email = os.getenv("ADMIN_EMAIL", None)
@@ -211,6 +215,19 @@ class Command(BaseCommand):
                 )
             else:
                 self.stdout.write(self.style.SUCCESS("Superuser already ok"))
+
+    def _seed_telemetry_schema_version(self, data: SeedData, stats: StatsTally):
+        for schema in data.telemetry_schema:
+            _, created = TelemetrySchema.objects.update_or_create(
+                version=schema.version,
+                defaults={
+                    "validation_schema": schema.validation_schema,
+                    "transformation_rules": schema.transformation_rules,
+                    "is_active": schema.is_active,
+                },
+            )
+
+            stats.telemetry_schema.add(created=created)
 
     def _seed_device(self, data: SeedData, stats: StatsTally) -> dict[str, Device]:
         dt_map: dict[str, DeviceType] = {}
