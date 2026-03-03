@@ -17,6 +17,7 @@ from uuid import UUID
 
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
+from django.utils import timezone
 
 from apps.events.services.event_handler import (
     event_handler,
@@ -86,6 +87,12 @@ Metrics Exported (Prometheus):
             default="events-processor",
             help="Kafka consumer group ID (default: events-processor)",
         )
+        parser.add_argument(
+            "--metrics-port",
+            type=int,
+            default=9102,
+            help="Port for Prometheus metrics HTTP server (default: 9102)",
+        )
 
     def handle(self, **options):
         if Consumer is None or Producer is None:
@@ -96,6 +103,11 @@ Metrics Exported (Prometheus):
 
         input_topic = options["input_topic"]
         group_id = options["group_id"]
+        metrics_port = options["metrics_port"]
+
+        from prometheus_client import start_http_server
+
+        start_http_server(metrics_port)
 
         consumer = Consumer(self._build_consumer_config(group_id))
         consumer.subscribe([input_topic])
@@ -104,7 +116,8 @@ Metrics Exported (Prometheus):
             self.style.SUCCESS(
                 f"EventsConsumer started\n"
                 f"   Input:  {input_topic}\n"
-                f"   Group:  {group_id}"
+                f"   Group:  {group_id}\n"
+                f"   Metrics: http://0.0.0.0:{metrics_port}/"
             )
         )
 
@@ -173,21 +186,46 @@ Metrics Exported (Prometheus):
                                 },
                             )
 
+                            execution_results: list[dict] = []
                             for action_config_dict in rule.action_config:
-                                action_config = ActionConfig.model_validate(
-                                    action_config_dict
-                                )
                                 try:
-                                    action_dispatch(action_config, rule, aggregate)
-                                except Exception as e:
+                                    action_config = ActionConfig.model_validate(
+                                        action_config_dict
+                                    )
+                                except Exception as exc:
+                                    invalid_action_type = (
+                                        action_config_dict.get("type", "unknown")
+                                        if isinstance(action_config_dict, dict)
+                                        else "unknown"
+                                    )
                                     logger.error(
-                                        f"Error dispatching action: {e}",
+                                        "Invalid action config",
                                         exc_info=True,
                                         extra={
                                             "rule_id": str(rule_id),
-                                            "action_type": (action_config.type),
+                                            "action_type": invalid_action_type,
                                         },
                                     )
+                                    execution_results.append(
+                                        {
+                                            "type": invalid_action_type,
+                                            "status": "failed",
+                                            "error": f"Invalid action config: {exc}",
+                                            "completed_at": timezone.now().isoformat(),
+                                        }
+                                    )
+                                    continue
+
+                                execution_result = action_dispatch(
+                                    action_config,
+                                    rule,
+                                    aggregate,
+                                )
+                                execution_results.append(execution_result)
+
+                            if execution_results:
+                                event.execution_results = execution_results
+                                event.save(update_fields=["execution_results"])
 
                         except EventCooldownActive:
                             logger.info(
