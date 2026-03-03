@@ -95,9 +95,7 @@ def test_trigger_engine_realtime_event_message_structure():
     )
 
     now = datetime.now(timezone.utc)
-    eval_result = EvalResults(
-        trigger=True, values=[55.0, 60.0], start=now, end=now
-    )
+    eval_result = EvalResults(trigger=True, values=[55.0, 60.0], start=now, end=now)
 
     trigger_engine_realtime(rule.id, device.id, eval_result, producer)
 
