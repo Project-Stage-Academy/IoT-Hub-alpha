@@ -49,7 +49,7 @@ Example - Threshold Rule:
   },
   "action_config": [
     {
-      "type": "notification",
+      "type": "alert",
       "template_id": "2",
       "recipients": [
         { "type": "email", "address": "a@b.com" },
@@ -59,6 +59,44 @@ Example - Threshold Rule:
     }
   ],
   "is_enabled": true
+}
+```
+
+### 3.1 Action Types
+
+Supported action types:
+
+- `alert`: Queue alert/notification based on `template_id`
+- `webhook`: Call external URL with event payload
+- `command`: Execute supported device command (for example state change)
+
+Legacy aliases kept for compatibility:
+
+- `notification` behaves like `alert`
+- `stop_machine` behaves like command `stop_machine`
+
+Examples:
+
+```json
+{
+  "action_config": [
+    {
+      "type": "alert",
+      "template_id": 2
+    },
+    {
+      "type": "webhook",
+      "url": "https://ops.example.com/iot/events",
+      "method": "POST",
+      "headers": { "X-Env": "prod" },
+      "payload": { "source": "line-3" }
+    },
+    {
+      "type": "command",
+      "command": "set_device_status",
+      "params": { "status": "inactive" }
+    }
+  ]
 }
 ```
 

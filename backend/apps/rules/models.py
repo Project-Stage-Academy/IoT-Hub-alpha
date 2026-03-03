@@ -27,17 +27,33 @@ def validate_action_config(value):
 
         action_type = item.get("type")
 
+        allowed_types = {"notification", "stop_machine", "alert", "webhook", "command"}
+        if action_type not in allowed_types:
+            raise DjangoValidationError(
+                "Unsupported action type. Allowed values: "
+                "notification, stop_machine, alert, webhook, command"
+            )
+
         # Type-specific validation
         if action_type == "notification":
             if "template_id" not in item:
                 raise DjangoValidationError(
                     "Notification action must include template_id"
                 )
+        elif action_type == "alert":
+            if "template_id" not in item:
+                raise DjangoValidationError("alert action must include template_id")
+        elif action_type == "webhook":
+            if "url" not in item:
+                raise DjangoValidationError("webhook action must include url")
         elif action_type == "stop_machine":
             if "machine_id" not in item:
                 raise DjangoValidationError(
                     "stop_machine action must include machine_id"
                 )
+        elif action_type == "command":
+            if "command" not in item:
+                raise DjangoValidationError("command action must include command")
 
 
 def validate_condition(condition):
@@ -75,8 +91,10 @@ class Rule(models.Model):
     action_config = models.JSONField(
         validators=[validate_action_config],
         help_text=(
-            'Schema: [{"type": "notification", "template_id": 5}, '
-            '{"type": "stop_machine", "machine_id": "M-123"}]'
+            'Schema: [{"type": "alert", "template_id": 5}, '
+            '{"type": "webhook", "url": "https://ops.example/webhook"}, '
+            '{"type": "command", "command": "set_device_status", '
+            '"params": {"status": "inactive"}}]'
         ),
     )
     last_triggered_at = models.DateTimeField(null=True, blank=True)
