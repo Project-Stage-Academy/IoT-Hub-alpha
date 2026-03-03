@@ -29,7 +29,13 @@ A rule consists of:
 
 ## 3. CRUD API
 
-All rule endpoints are available at `/api/v1/rules/` and require **no authentication**.
+All rule endpoints are available at `/api/v1/rules/` and require a **Bearer token** in the `Authorization` header.
+
+```
+Authorization: Bearer <token>
+```
+
+> **Note:** Authentication is enforced at the API Gateway level. The Django backend itself does not validate the token, but clients must always include it.
 
 ### 3.1 List Rules
 
@@ -49,7 +55,8 @@ Query parameters:
 Example:
 
 ```bash
-curl http://localhost:8000/api/v1/rules/?device_id=a80031eb-189a-49d5-93ab-11bd465143e9&is_enabled=true
+curl http://localhost:8000/api/v1/rules/?device_id=a80031eb-189a-49d5-93ab-11bd465143e9&is_enabled=true \
+  -H "Authorization: Bearer <token>"
 ```
 
 Response `200`:
@@ -94,6 +101,7 @@ Example:
 
 ```bash
 curl -X POST http://localhost:8000/api/v1/rules/ \
+  -H "Authorization: Bearer <token>" \
   -H "Content-Type: application/json" \
   -d '{
     "device_id": "a80031eb-189a-49d5-93ab-11bd465143e9",
@@ -153,7 +161,8 @@ GET /api/v1/rules/{rule_id}/
 Example:
 
 ```bash
-curl http://localhost:8000/api/v1/rules/29e31015-4733-49f3-855a-ef7f30e6c147/
+curl http://localhost:8000/api/v1/rules/29e31015-4733-49f3-855a-ef7f30e6c147/ \
+  -H "Authorization: Bearer <token>"
 ```
 
 Response `200`: same structure as single rule in `data` wrapper.
@@ -177,6 +186,7 @@ Example:
 
 ```bash
 curl -X PATCH http://localhost:8000/api/v1/rules/29e31015-4733-49f3-855a-ef7f30e6c147/ \
+  -H "Authorization: Bearer <token>" \
   -H "Content-Type: application/json" \
   -d '{"name": "Updated Name", "is_enabled": false}'
 ```
@@ -192,7 +202,8 @@ DELETE /api/v1/rules/{rule_id}/
 Example:
 
 ```bash
-curl -X DELETE http://localhost:8000/api/v1/rules/29e31015-4733-49f3-855a-ef7f30e6c147/
+curl -X DELETE http://localhost:8000/api/v1/rules/29e31015-4733-49f3-855a-ef7f30e6c147/ \
+  -H "Authorization: Bearer <token>"
 ```
 
 Response `204`: no content.

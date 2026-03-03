@@ -302,7 +302,6 @@ paths:
           $ref: "#/components/responses/UnauthorizedError"
   /rules:
     get:
-      security: []
       description: get list of rules
       summary: Get paginated rule data
       operationId: RuleList
@@ -331,8 +330,9 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/RuleListResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
     post:
-      security: []
       description: create a new rule
       summary: Create a new rule
       operationId: RuleSubmit
@@ -369,9 +369,10 @@ paths:
                 $ref: "#/components/schemas/RuleResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
   /rules/{id}:
     get:
-      security: []
       description: get a specific rule by id
       summary: Get a specific rule based on id in url paths
       operationId: RuleGet
@@ -394,8 +395,9 @@ paths:
                 $ref: "#/components/schemas/RuleResponse"
         "404":
           $ref: "#/components/responses/NotFoundError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
     patch:
-      security: []
       description: partially update a rule (all fields optional)
       summary: Partially update a rule
       operationId: RulePatch
@@ -441,8 +443,9 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "404":
           $ref: "#/components/responses/NotFoundError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
     delete:
-      security: []
       description: delete a rule by id
       summary: Delete a specific rule by id
       operationId: RuleDelete
@@ -461,6 +464,8 @@ paths:
           description: rule successfully deleted
         "404":
           $ref: "#/components/responses/NotFoundError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
   /auth/fake:
     get: 
       security: []
