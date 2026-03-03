@@ -10,7 +10,7 @@ from uuid import uuid4
 from apps.rules.models import Rule
 from apps.rules.services.data_structure import EvalResults
 from apps.rules.services.trigger_engine import trigger_engine_realtime
-from apps.rules.services.mock_kafka import (
+from apps.telemetry.mocks.kafka import (
     MockProducer,
     reset_mock_topics,
     get_mock_topic_messages,
@@ -95,7 +95,9 @@ def test_trigger_engine_realtime_event_message_structure():
     )
 
     now = datetime.now(timezone.utc)
-    eval_result = EvalResults(trigger=True, values=[55.0, 60.0], start=now, end=now)
+    eval_result = EvalResults(
+        trigger=True, values=[55.0, 60.0], start=now, end=now
+    )
 
     trigger_engine_realtime(rule.id, device.id, eval_result, producer)
 
