@@ -7,10 +7,12 @@ import socket
 import time
 from datetime import timezone as dt_timezone
 from typing import Any
+from prometheus_client import start_http_server
 
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 
 from apps.devices.models import Device
 from apps.telemetry.services import process_telemetry_payload
@@ -18,12 +20,19 @@ from apps.telemetry.exceptions import RawContractError
 from apps.telemetry.validators import validate_raw_contract
 from apps.telemetry.service_layer.write_buffer import WriteBuffer
 
+from config.metrics import (
+    INGEST_MESSAGES_TOTAL,
+    INGEST_ERRORS_TOTAL,
+    INGEST_LATENCY_SECONDS,
+    KAFKA_CONSUMER_LAG,
+)
+
 logger = logging.getLogger(__name__)
 
 try:
-    from confluent_kafka import Consumer, KafkaError, Producer
+    from confluent_kafka import Consumer, KafkaError, Producer, TopicPartition
 except ImportError:
-    Consumer, Producer, KafkaError = None, None, None
+    Consumer, Producer, KafkaError, TopicPartition = None, None, None, None
 
 
 class Command(BaseCommand):
@@ -73,9 +82,16 @@ class Command(BaseCommand):
         )
         max_messages, batch_size = options["max_messages"], options["batch_size"]
 
-        raw_consumer = Consumer(
-            self._build_consumer_config(raw_group_id, enable_auto_offset=True)
-        )
+        # Expose Prometheus metrics for db_writer process
+        try:
+            start_http_server(9102)
+            self.stdout.write(self.style.SUCCESS("Metrics endpoint started on :9102"))
+        except OSError as exc:
+            self.stderr.write(
+                self.style.WARNING(f"Metrics endpoint :9102 not started: {exc}")
+            )
+
+        raw_consumer = Consumer(self._build_consumer_config(group_id))
         clean_consumer = Consumer(
             self._build_consumer_config(clean_group_id, enable_auto_offset=False)
         )
@@ -85,8 +101,7 @@ class Command(BaseCommand):
         raw_consumer.subscribe([raw_topic])
         clean_consumer.subscribe([clean_topic])
 
-        write_buffer = WriteBuffer(clean_consumer, poll_timeout, batch_size)
-
+        write_buffer = WriteBuffer(clean_consumer, poll_timeout)
         self.stdout.write(
             self.style.SUCCESS(f"Worker started (BATCH SIZE: {batch_size})")
         )
@@ -106,6 +121,7 @@ class Command(BaseCommand):
                     continue
 
                 batch_errors = []
+                last_target_topic = "n/a"
 
                 def _batch_delivery_callback(err, msg):
                     if err:
@@ -114,50 +130,121 @@ class Command(BaseCommand):
                 for message in messages:
                     if message.error():
                         if message.error().code() != KafkaError._PARTITION_EOF:
+                            INGEST_ERRORS_TOTAL.labels(
+                                component="db_writer",
+                                error_type="consume_error",
+                                protocol="unknown",
+                            ).inc()
                             logger.error(
                                 "kafka_consume_error",
                                 extra={"error": str(message.error())},
                             )
                         continue
-
-                    routed = self._build_routed_message(message, clean_topic, dlq_topic)
-                    payload_bytes = json.dumps(
-                        routed["envelope"], ensure_ascii=False
-                    ).encode("utf-8")
-
-                    max_retries = 3
-                    for attempt in range(max_retries + 1):
+                    
+                    if TopicPartition is not None:
                         try:
-                            producer.produce(
-                                topic=routed["target_topic"],
-                                key=routed["key"],
-                                value=payload_bytes,
-                                on_delivery=_batch_delivery_callback,
-                            )
-                            producer.poll(0)
-                            break
-                        except BufferError:
-                            if attempt == max_retries:
-                                logger.critical(
-                                    "Kafka producer buffer full. Max retries exceeded.",
-                                    extra={"event_id": routed.get("event_id")},
-                                )
-                                raise CommandError(
-                                    "Failed to publish message due to persistent "
-                                    "BufferError. Stopping stub to preserve "
-                                    "at-least-once behavior."
-                                )
+                            tp = TopicPartition(raw_topic, message.partition())
+                            _low, high = raw_consumer.get_watermark_offsets(tp, timeout=1.0)
+                            lag = max(high - message.offset() - 1, 0)
+                            KAFKA_CONSUMER_LAG.labels(topic=raw_topic, group=group_id).set(lag)
+                        except Exception:
+                            INGEST_ERRORS_TOTAL.labels(
+                                component="db_writer",
+                                error_type="lag_metrics_failed",
+                                protocol="unknown",
+                            ).inc()
 
-                            logger.warning(
-                                "BufferError caught. Waiting for buffer to clear...",
-                                extra={
-                                    "attempt": attempt + 1,
-                                    "max_retries": max_retries,
-                                },
-                            )
-                            producer.poll(0.5)
+                        routed = self._build_routed_message(message, clean_topic, dlq_topic)
+                        protocol = routed.get("ingest_protocol", "unknown")
+                        last_target_topic = routed["target_topic"]
 
-                    processed_total += 1
+                        payload_bytes = json.dumps(
+                            routed["envelope"], ensure_ascii=False
+                        ).encode("utf-8")
+
+                        max_retries = 3
+                        for attempt in range(max_retries + 1):
+                            try:
+                                producer.produce(
+                                    topic=routed["target_topic"],
+                                    key=routed["key"],
+                                    value=payload_bytes,
+                                    on_delivery=_batch_delivery_callback,
+                                )
+                                producer.poll(0)
+                                break
+                            except BufferError:
+                                if attempt == max_retries:
+                                    logger.critical(
+                                        "Kafka producer buffer full. Max retries exceeded.",
+                                        extra={"event_id": routed.get("event_id")},
+                                    )
+                                    raise CommandError(
+                                        "Failed to publish message due to persistent "
+                                        "BufferError. Stopping stub to preserve "
+                                        "at-least-once behavior."
+                                    )
+
+                                logger.warning(
+                                    "BufferError caught. Waiting for buffer to clear...",
+                                    extra={
+                                        "attempt": attempt + 1,
+                                        "max_retries": max_retries,
+                                    },
+                                )
+                                producer.poll(0.5)
+
+                        processed_total += 1
+
+                        if routed["target_topic"] == clean_topic:
+                            INGEST_MESSAGES_TOTAL.labels(
+                                stage="clean",
+                                protocol=protocol,
+                                status="accepted",
+                            ).inc()
+
+                            envelope = routed.get("envelope", {})
+                            received_at = envelope.get("received_at")
+                            processed_at = envelope.get("processed_at")
+
+                            if isinstance(received_at, str):
+                                received_dt = parse_datetime(received_at)
+                                if received_dt is not None:
+                                    received_dt = self._to_utc(received_dt)
+
+                                    if isinstance(processed_at, str):
+                                        processed_dt = parse_datetime(processed_at)
+                                        if processed_dt is not None:
+                                            processed_dt = self._to_utc(processed_dt)
+                                            raw_to_clean = (
+                                                processed_dt - received_dt
+                                            ).total_seconds()
+                                            if raw_to_clean >= 0:
+                                                INGEST_LATENCY_SECONDS.labels(
+                                                    stage="raw_to_clean",
+                                                    protocol=protocol,
+                                                ).observe(raw_to_clean)
+
+                                    end_to_end = (
+                                        timezone.now() - received_dt
+                                    ).total_seconds()
+                                    if end_to_end >= 0:
+                                        INGEST_LATENCY_SECONDS.labels(
+                                            stage="end_to_end",
+                                            protocol=protocol,
+                                        ).observe(end_to_end)
+                        else:
+                            INGEST_MESSAGES_TOTAL.labels(
+                                stage="dlq",
+                                protocol=protocol,
+                                status="accepted",
+                            ).inc()
+                            INGEST_ERRORS_TOTAL.labels(
+                                component="validator",
+                                error_type=routed.get("error_code", "validation_failed"),
+                                protocol=protocol,
+                            ).inc()
+
 
                 producer.flush(publish_timeout)
 
@@ -235,12 +322,21 @@ class Command(BaseCommand):
                 "target_topic": clean_topic,
                 "key": clean_key,
                 "envelope": clean_envelope,
+                "ingest_protocol": contract["ingest_protocol"],
             }
 
         except RawContractError as exc:
             error_code, error_detail = exc.code, exc.detail
+            logger.warning(
+                "raw_contract_error",
+                extra={"code": error_code, "detail": str(error_detail)},
+            )
         except Exception as exc:
             error_code, error_detail = "unexpected_error", str(exc)
+            logger.exception(
+                "unexpected_error_while_routing",
+                extra={"detail": str(exc)},
+            )
 
         event_id = self._build_event_id(
             raw_obj, source_topic, source_partition, source_offset
@@ -268,6 +364,11 @@ class Command(BaseCommand):
             "target_topic": dlq_topic,
             "key": dlq_key,
             "envelope": dlq_envelope,
+            "ingest_protocol": (
+                raw_obj.get("ingest_protocol", "unknown")
+                if isinstance(raw_obj, dict)
+                else "unknown"
+            ),
         }
 
     def _normalize_payload(self, contract: dict[str, Any]) -> dict[str, Any]:

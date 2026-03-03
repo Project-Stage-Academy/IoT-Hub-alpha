@@ -2,6 +2,7 @@ import json
 import uuid
 import logging
 import hashlib
+import time
 
 from django.http import JsonResponse
 from django.views import View
@@ -24,32 +25,15 @@ from .services import (
     TelemetryBatchProcessor,
     TelemetryResponseFormatter,
 )
+from config.metrics import (
+    INGEST_ERRORS_TOTAL,
+    INGEST_LATENCY_SECONDS,
+    INGEST_MESSAGES_TOTAL,
+)
 
 logger = logging.getLogger(__name__)
 
 
-def _build_http_idempotency_key(*, serial_number: str, payload: object) -> str:
-    canonical_payload = json.dumps(
-        payload,
-        sort_keys=True,
-        ensure_ascii=False,
-        separators=(",", ":"),
-    )
-    hasher = hashlib.sha256()
-    hasher.update(serial_number.encode("utf-8"))
-    hasher.update(b"|")
-    hasher.update(canonical_payload.encode("utf-8"))
-    return f"http:{hasher.hexdigest()}"
-
-
-def _build_http_batch_item_idempotency_key(
-    *,
-    batch_idempotency_key: str | None,
-    ingest_index: int,
-) -> str | None:
-    if batch_idempotency_key is None:
-        return None
-    return f"{batch_idempotency_key}:{ingest_index}"
 
 
 @method_decorator(csrf_exempt, name="dispatch")
@@ -262,6 +246,17 @@ class TelemetryIngestView(View):
         validated_items, errors = TelemetryValidator.validate_batch(items_to_publish)
 
         if errors:
+            INGEST_MESSAGES_TOTAL.labels(
+                stage="raw",
+                protocol="http",
+                status="failed",
+            ).inc(count)
+            INGEST_ERRORS_TOTAL.labels(
+                component="ingest_api",
+                error_type="validation_failed",
+                protocol="http",
+            ).inc(count)
+
             error_response = TelemetryResponseFormatter.format_validation_error(
                 errors, count, is_batch=is_batch
             )
@@ -271,6 +266,7 @@ class TelemetryIngestView(View):
 
         producer = get_producer()
         target_topic: str | None = None
+        publish_started = time.perf_counter()
 
         try:
             if is_batch:
@@ -315,6 +311,18 @@ class TelemetryIngestView(View):
             ValueError,
             TypeError,
         ) as exc:
+            INGEST_MESSAGES_TOTAL.labels(
+                stage="raw",
+                protocol="http",
+                status="failed",
+            ).inc(count)
+            INGEST_ERRORS_TOTAL.labels(
+                component="ingest_api",
+                error_type="kafka_publish_failed",
+                protocol="http",
+            ).inc(count)
+
+            
             logger.exception(
                 "Kafka publish failed",
                 extra={
@@ -325,6 +333,16 @@ class TelemetryIngestView(View):
                 },
             )
             return JsonResponse({"error": "Kafka publish failed"}, status=503)
+
+        INGEST_MESSAGES_TOTAL.labels(
+            stage="raw",
+            protocol="http",
+            status="accepted",
+        ).inc(count)
+        INGEST_LATENCY_SECONDS.labels(
+            stage="api_to_raw",
+            protocol="http",
+        ).observe(max(time.perf_counter() - publish_started, 0.0))
 
         response = TelemetryResponseFormatter.format_async_accepted(
             request_id=request_id,

@@ -1,0 +1,567 @@
+apiVersion: 1
+groups:
+    - orgId: 1
+      name: ingestion-1m
+      folder: Ingestion
+      interval: 1m
+      rules:
+        - uid: afebmp1wltgxsf
+          title: IngestionHighErrorRate_warning
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: prometheus-iot-hub
+              model:
+                editorMode: builder
+                expr: sum(rate(ingest_errors_total[5m])) / clamp_min(sum(rate(ingest_messages_total{stage="raw",status="accepted"}[5m])), 1)
+                instant: true
+                intervalMs: 1000
+                legendFormat: __auto
+                maxDataPoints: 43200
+                range: false
+                refId: A
+            - refId: C
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 0.02
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          noDataState: NoData
+          execErrState: Error
+          for: 5m
+          annotations:
+            description: error_rate = ingest_errors / ingest_raw
+            summary: Ingestion error rate > 2% for 5m
+          labels:
+            component: ingestion
+            severity: warning
+          isPaused: false
+        - uid: bfebnakyfmiv4c
+          title: IngestionHighErrorRate_critical
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: prometheus-iot-hub
+              model:
+                editorMode: builder
+                expr: sum(rate(ingest_errors_total[5m])) / clamp_min(sum(rate(ingest_messages_total{stage="raw",status="accepted"}[5m])), 1)
+                instant: true
+                intervalMs: 1000
+                legendFormat: __auto
+                maxDataPoints: 43200
+                range: false
+                refId: A
+            - refId: C
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 0.05
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          noDataState: NoData
+          execErrState: Error
+          for: 5m
+          annotations:
+            description: error_rate = ingest_errors / ingest_raw
+            summary: Ingestion error rate > 5% for 5m
+          labels:
+            component: ingestion
+            severity: critical
+          isPaused: false
+        - uid: afebnrh5845c0f
+          title: IngestionHighP95Latency_warning
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: prometheus-iot-hub
+              model:
+                editorMode: code
+                expr: histogram_quantile(0.95, sum by (le) (rate(ingest_latency_seconds_bucket{stage="end_to_end"}[10m])))
+                instant: true
+                intervalMs: 1000
+                legendFormat: __auto
+                maxDataPoints: 43200
+                range: false
+                refId: A
+            - refId: C
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 2
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          noDataState: NoData
+          execErrState: Error
+          for: 10m
+          annotations:
+            description: p95(ingest_latency_seconds{stage="end_to_end"})
+            summary: Ingestion p95 end-to-end latency > 2s for 10m
+          labels:
+            component: ingestion
+            severity: warning
+          isPaused: false
+        - uid: afebobd83pvr4b
+          title: IngestionHighP95Latency_critical
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: prometheus-iot-hub
+              model:
+                editorMode: code
+                expr: histogram_quantile(0.95, sum by (le) (rate(ingest_latency_seconds_bucket{stage="end_to_end"}[10m])))
+                instant: true
+                intervalMs: 1000
+                legendFormat: __auto
+                maxDataPoints: 43200
+                range: false
+                refId: A
+            - refId: C
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 5
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          noDataState: NoData
+          execErrState: Error
+          for: 10m
+          annotations:
+            description: p95(ingest_latency_seconds{stage="end_to_end"})
+            summary: Ingestion p95 end-to-end latency > 5s for 10m
+          labels:
+            component: ingestion
+            severity: critical
+          isPaused: false
+        - uid: cfebp69lsdvcwe
+          title: IngestionDLQRatioHigh_warning
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: prometheus-iot-hub
+              model:
+                editorMode: code
+                expr: "(sum(rate(ingest_messages_total{stage=\"dlq\",status=\"accepted\"}[5m])) or vector(0))\r\n/\r\nclamp_min((sum(rate(ingest_messages_total{stage=\"raw\",status=\"accepted\"}[5m])) or vector(0)), 1)"
+                instant: true
+                intervalMs: 1000
+                legendFormat: __auto
+                maxDataPoints: 43200
+                range: false
+                refId: A
+            - refId: C
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 0.01
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          noDataState: OK
+          execErrState: Error
+          for: 5m
+          annotations:
+            description: dlq_accepted / raw_accepted
+            summary: DLQ ratio > 1% for 5m
+          labels:
+            component: ingestion
+            severity: warning
+          isPaused: false
+        - uid: efebqleqamdj4a
+          title: IngestionDLQRatioHigh_critical
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: prometheus-iot-hub
+              model:
+                editorMode: code
+                expr: "(sum(rate(ingest_messages_total{stage=\"dlq\",status=\"accepted\"}[5m])) or vector(0))\r\n/\r\nclamp_min((sum(rate(ingest_messages_total{stage=\"raw\",status=\"accepted\"}[5m])) or vector(0)), 1)"
+                instant: true
+                intervalMs: 1000
+                legendFormat: __auto
+                maxDataPoints: 43200
+                range: false
+                refId: A
+            - refId: C
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 0.03
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          noDataState: OK
+          execErrState: Error
+          for: 5m
+          annotations:
+            description: dlq_accepted / raw_accepted
+            summary: DLQ ratio > 3% for 5m
+          labels:
+            component: ingestion
+            severity: critical
+          isPaused: false
+        - uid: ffebsueb5ivb4f
+          title: IngestionBufferSaturation_warning
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: prometheus-iot-hub
+              model:
+                editorMode: code
+                expr: max(buffer_fill_ratio{component="db_writer_buffer"})
+                instant: true
+                intervalMs: 1000
+                legendFormat: __auto
+                maxDataPoints: 43200
+                range: false
+                refId: A
+            - refId: C
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 0.85
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          noDataState: OK
+          execErrState: Error
+          for: 5m
+          annotations:
+            description: buffer_fill_ratio for db_writer_buffer
+            summary: Buffer saturation > 0.85 for 5m
+          labels:
+            component: ingestion
+            severity: warning
+          isPaused: false
+        - uid: ffebsxkh8g9hca
+          title: IngestionBufferSaturation_critical
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: prometheus-iot-hub
+              model:
+                editorMode: code
+                expr: max(buffer_fill_ratio{component="db_writer_buffer"})
+                instant: true
+                intervalMs: 1000
+                legendFormat: __auto
+                maxDataPoints: 43200
+                range: false
+                refId: A
+            - refId: C
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 0.95
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          noDataState: OK
+          execErrState: Error
+          for: 5m
+          annotations:
+            description: buffer_fill_ratio for db_writer_buffer
+            summary: Buffer saturation > 0.95 for 5m
+          labels:
+            component: ingestion
+            severity: critical
+          isPaused: false
+        - uid: cfebt9wa9htdsd
+          title: IngestionNoData_warning
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: prometheus-iot-hub
+              model:
+                editorMode: code
+                expr: sum(rate(ingest_messages_total{stage="raw",status="accepted"}[5m]))
+                instant: true
+                intervalMs: 1000
+                legendFormat: __auto
+                maxDataPoints: 43200
+                range: false
+                refId: A
+            - refId: C
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 0.001
+                        type: lt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          noDataState: Alerting
+          execErrState: Error
+          for: 10m
+          annotations:
+            description: throughput_raw is below threshold
+            summary: No ingestion data for 10m
+          labels:
+            component: ingestion
+            severity: warning
+          isPaused: false
+        - uid: dfebtcn55tssgd
+          title: IngestionNoData_critical
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: prometheus-iot-hub
+              model:
+                editorMode: code
+                expr: sum(rate(ingest_messages_total{stage="raw",status="accepted"}[5m]))
+                instant: true
+                intervalMs: 1000
+                legendFormat: __auto
+                maxDataPoints: 43200
+                range: false
+                refId: A
+            - refId: C
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 0.001
+                        type: lt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          noDataState: Alerting
+          execErrState: Error
+          for: 20m
+          annotations:
+            description: throughput_raw is below threshold
+            summary: No ingestion data for 20m
+          labels:
+            component: ingestion
+            severity: critical
+          isPaused: false

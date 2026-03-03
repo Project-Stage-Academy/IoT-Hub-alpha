@@ -7,6 +7,8 @@ from django.conf import settings
 from apps.telemetry.tasks import bulk_telemetry_write
 from apps.telemetry.service_layer.helpers import dump_jsonl, safe_decode
 from apps.telemetry.service_layer.data_structure import BufferedItem, InFlight
+from config.metrics import BUFFER_FILL_RATIO
+
 
 
 class WriteBuffer:
@@ -36,6 +38,11 @@ class WriteBuffer:
         if not assignment:
             self.logger.info("No assignment yet")
 
+        if self.max_buffer_size > 0:
+            BUFFER_FILL_RATIO.labels(component="db_writer_buffer").set(
+                min(float(self.buffer_len) / float(self.max_buffer_size), 1.0)
+            )
+            
         while self.buffer_len > self.max_buffer_size:
 
             self.logger.warning(
@@ -167,8 +174,10 @@ class WriteBuffer:
             written_db = data.get("written_to_db")
             written_dlq = data.get("written_to_dlq")
             if success:
-                self._commit_batch(task_id)
-                del self.inflight[task_id]
+                committed = self._commit_batch(task_id)
+                if committed:
+                    del self.inflight[task_id]
+                return
 
             else:
                 self.logger.error(
@@ -211,11 +220,19 @@ class WriteBuffer:
 
         return [TopicPartition(t, p, off + 1) for (t, p), off in latest.items()]
 
-    def _commit_batch(self, id):
+    def _commit_batch(self, id) -> bool:
         self.logger.info(
             "commiting offset", extra={"offset": self.inflight[id].offsets}
         )
-        self.consumer.commit(offsets=self.inflight[id].offsets, asynchronous=False)
+        try:
+            self.consumer.commit(offsets=self.inflight[id].offsets, asynchronous=False)
+            return True
+        except Exception as exc:
+            self.logger.warning(
+                "Offset commit failed, will retry",
+                extra={"error": str(exc), "offsets": self.inflight[id].offsets},
+            )
+            return False
 
     def _maybe_flush(self):
         time_check = (monotonic() - self.last_flush) * 1000 >= self.flush_ms

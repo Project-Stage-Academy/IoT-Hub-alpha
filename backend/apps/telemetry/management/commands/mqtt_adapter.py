@@ -18,6 +18,9 @@ import sys
 import uuid
 import hashlib
 from typing import Any
+import time
+
+from prometheus_client import start_http_server
 
 from django.conf import settings
 from django.core.management.base import BaseCommand
@@ -29,6 +32,12 @@ from paho.mqtt.enums import CallbackAPIVersion
 
 from apps.telemetry.producers import get_producer, build_raw_event
 from apps.telemetry.services import TelemetryBatchProcessor, TelemetryValidator
+from config.metrics import (
+    INGEST_ERRORS_TOTAL,
+    INGEST_LATENCY_SECONDS,
+    INGEST_MESSAGES_TOTAL,
+)
+
 
 logger = logging.getLogger(__name__)
 
@@ -109,6 +118,20 @@ def handle_mqtt_message(topic: str, payload_bytes: bytes) -> dict:
 
     Returns a dict with status information for logging/testing.
     """
+    started = time.perf_counter()
+
+    def _record_error(reason: str, *, stage: str = "raw") -> None:
+        INGEST_MESSAGES_TOTAL.labels(
+            stage=stage,
+            protocol="mqtt",
+            status="failed",
+        ).inc()
+        INGEST_ERRORS_TOTAL.labels(
+            component="mqtt_adapter",
+            error_type=reason,
+            protocol="mqtt",
+        ).inc()
+
     try:
         data = json.loads(payload_bytes)
     except (json.JSONDecodeError, UnicodeDecodeError) as exc:
@@ -116,6 +139,7 @@ def handle_mqtt_message(topic: str, payload_bytes: bytes) -> dict:
             "MQTT malformed JSON payload",
             extra={"topic": topic, "error": str(exc)},
         )
+        _record_error("malformed_json", stage="raw")
         return {
             "status": "error",
             "serial_number": None,
@@ -128,6 +152,7 @@ def handle_mqtt_message(topic: str, payload_bytes: bytes) -> dict:
             "MQTT payload is not a JSON object",
             extra={"topic": topic},
         )
+        _record_error("invalid_payload_type", stage="raw")
         return {
             "status": "error",
             "serial_number": None,
@@ -141,6 +166,7 @@ def handle_mqtt_message(topic: str, payload_bytes: bytes) -> dict:
             "MQTT message missing serial_number",
             extra={"topic": topic},
         )
+        _record_error("missing_serial_number", stage="raw")
         return {
             "status": "error",
             "serial_number": None,
@@ -179,12 +205,23 @@ def handle_mqtt_message(topic: str, payload_bytes: bytes) -> dict:
                 "MQTT failed to publish raw event",
                 extra={"topic": topic, "error": str(exc)},
             )
+            _record_error("publish_failed", stage="raw")
             return {
                 "status": "error",
                 "serial_number": serial_number,
                 "reason": "publish_failed",
                 "detail": str(exc),
             }
+
+        INGEST_MESSAGES_TOTAL.labels(
+            stage="raw",
+            protocol="mqtt",
+            status="accepted",
+        ).inc()
+        INGEST_LATENCY_SECONDS.labels(
+            stage="end_to_end",
+            protocol="mqtt",
+        ).observe(max(time.perf_counter() - started, 0.0))
 
         logger.info(
             "MQTT telemetry published to Kafka",
@@ -210,12 +247,19 @@ def handle_mqtt_message(topic: str, payload_bytes: bytes) -> dict:
             "MQTT message validation failed",
             extra={"topic": topic, "error": error},
         )
+        _record_error("validation_failed", stage="raw")
         return {
             "status": "error",
             "serial_number": serial_number,
             "reason": "validation_failed",
             "detail": error,
         }
+        
+    INGEST_MESSAGES_TOTAL.labels(
+        stage="raw",
+        protocol="mqtt",
+        status="accepted",
+    ).inc()
 
     try:
         telemetry = TelemetryBatchProcessor.process_single(validated)
@@ -224,12 +268,23 @@ def handle_mqtt_message(topic: str, payload_bytes: bytes) -> dict:
             "MQTT failed to publish raw event",
             extra={"topic": topic, "error": str(exc)},
         )
+        _record_error("persistence_failed", stage="db_write")
         return {
             "status": "error",
             "serial_number": serial_number,
             "reason": "persistence_failed",
             "detail": str(exc),
         }
+
+    INGEST_MESSAGES_TOTAL.labels(
+        stage="db_write",
+        protocol="mqtt",
+        status="accepted",
+    ).inc()
+    INGEST_LATENCY_SECONDS.labels(
+        stage="end_to_end",
+        protocol="mqtt",
+    ).observe(max(time.perf_counter() - started, 0.0))
 
     logger.info(
         "MQTT telemetry ingested",
@@ -316,6 +371,15 @@ class Command(BaseCommand):
         port = options["port"]
         topic = options["topic"]
         qos = options["qos"]
+
+        # Expose Prometheus metrics for mqtt_adapter process
+        try:
+            start_http_server(9103)
+            self.stdout.write("Metrics endpoint started on :9103")
+        except OSError as exc:
+            self.stderr.write(
+                self.style.WARNING(f"Metrics endpoint :9103 not started: {exc}")
+            )
 
         if settings.TELEMETRY_PIPELINE_MODE == "direct":
             try:
