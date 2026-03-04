@@ -13,6 +13,7 @@ Usage:
 import json
 import logging
 from datetime import datetime
+from typing import Any
 from uuid import UUID
 
 from django.conf import settings
@@ -121,9 +122,11 @@ Metrics Exported (Prometheus):
             )
         )
 
-        message_count = 0
-        error_count = 0
-        cooldown_skip_count = 0
+        stats = {
+            "message_count": 0,
+            "error_count": 0,
+            "cooldown_skip_count": 0,
+        }
 
         try:
             while True:
@@ -133,137 +136,16 @@ Metrics Exported (Prometheus):
                     continue
 
                 if self._handle_kafka_error(msg):
-                    error_count += 1
+                    stats["error_count"] += 1
                     continue
 
-                try:
-                    with track_kafka_message_processing(input_topic, group_id):
-                        payload = json.loads(msg.value().decode("utf-8"))
-                        message_count += 1
-
-                        rule_id = UUID(payload["rule_id"])
-                        device_id = UUID(payload["device_id"])
-                        message_text = payload.get("message", "Rule triggered")
-
-                        try:
-                            rule = Rule.objects.get(id=rule_id)
-                        except Rule.DoesNotExist:
-                            logger.error(
-                                f"Rule not found: {rule_id}",
-                                extra={
-                                    "rule_id": str(rule_id),
-                                    "device_id": str(device_id),
-                                },
-                            )
-                            consumer.commit(asynchronous=False)
-                            continue
-
-                        snapshot = payload.get("telemetry_snapshot", {})
-                        aggregate = EvalResults(
-                            trigger=True,
-                            values=snapshot.get("values", []),
-                            start=(
-                                datetime.fromisoformat(snapshot["start"])
-                                if snapshot.get("start")
-                                else None
-                            ),
-                            end=(
-                                datetime.fromisoformat(snapshot["end"])
-                                if snapshot.get("end")
-                                else None
-                            ),
-                        )
-
-                        try:
-                            event = event_handler(aggregate, rule, message_text)
-
-                            logger.info(
-                                f"Event created: {event.id}",
-                                extra={
-                                    "event_id": str(event.id),
-                                    "rule_id": str(rule_id),
-                                    "device_id": str(device_id),
-                                },
-                            )
-
-                            execution_results: list[dict] = []
-                            for action_config_dict in rule.action_config:
-                                try:
-                                    action_config = ActionConfig.model_validate(
-                                        action_config_dict
-                                    )
-                                except Exception as exc:
-                                    invalid_action_type = (
-                                        action_config_dict.get("type", "unknown")
-                                        if isinstance(action_config_dict, dict)
-                                        else "unknown"
-                                    )
-                                    logger.error(
-                                        "Invalid action config",
-                                        exc_info=True,
-                                        extra={
-                                            "rule_id": str(rule_id),
-                                            "action_type": invalid_action_type,
-                                        },
-                                    )
-                                    execution_results.append(
-                                        {
-                                            "type": invalid_action_type,
-                                            "status": "failed",
-                                            "error": f"Invalid action config: {exc}",
-                                            "completed_at": timezone.now().isoformat(),
-                                        }
-                                    )
-                                    continue
-
-                                execution_result = action_dispatch(
-                                    action_config,
-                                    rule,
-                                    aggregate,
-                                )
-                                execution_results.append(execution_result)
-
-                            if execution_results:
-                                event.execution_results = execution_results
-                                event.save(update_fields=["execution_results"])
-
-                        except EventCooldownActive:
-                            logger.info(
-                                "Event in cooldown, skipping",
-                                extra={
-                                    "rule_id": str(rule_id),
-                                    "device_id": str(device_id),
-                                },
-                            )
-                            cooldown_skip_count += 1
-
-                        if message_count % 100 == 0:
-                            self.stdout.write(
-                                f"Processed {message_count} messages "
-                                f"({error_count} errors, "
-                                f"{cooldown_skip_count} cooldown skips)"
-                            )
-
-                        consumer.commit(asynchronous=False)
-
-                except (KeyError, ValueError, TypeError) as e:
-                    logger.error(
-                        f"Error parsing message: {e}",
-                        exc_info=True,
-                        extra={"raw_value": msg.value()},
-                    )
-                    error_count += 1
-                    consumer.commit(asynchronous=False)
-                    continue
-
-                except Exception as e:
-                    logger.error(
-                        f"Unexpected error: {e}",
-                        exc_info=True,
-                    )
-                    error_count += 1
-                    consumer.commit(asynchronous=False)
-                    continue
+                self._process_message(
+                    msg=msg,
+                    consumer=consumer,
+                    input_topic=input_topic,
+                    group_id=group_id,
+                    stats=stats,
+                )
 
         except KeyboardInterrupt:
             self.stdout.write(self.style.WARNING("\nConsumer stopped"))
@@ -274,11 +156,203 @@ Metrics Exported (Prometheus):
             self.stdout.write(
                 self.style.SUCCESS(
                     f"\nFinal stats:\n"
-                    f"   Messages:     {message_count}\n"
-                    f"   Errors:       {error_count}\n"
-                    f"   Cooldown:     {cooldown_skip_count}"
+                    f"   Messages:     {stats['message_count']}\n"
+                    f"   Errors:       {stats['error_count']}\n"
+                    f"   Cooldown:     {stats['cooldown_skip_count']}"
                 )
             )
+
+    def _process_message(
+        self,
+        *,
+        msg,
+        consumer,
+        input_topic: str,
+        group_id: str,
+        stats: dict[str, int],
+    ) -> None:
+        try:
+            with track_kafka_message_processing(input_topic, group_id):
+                payload = json.loads(msg.value().decode("utf-8"))
+                stats["message_count"] += 1
+
+                rule_id, device_id, message_text, aggregate = self._parse_payload(
+                    payload
+                )
+                rule = self._get_rule_or_none(rule_id=rule_id, device_id=device_id)
+                if rule is None:
+                    consumer.commit(asynchronous=False)
+                    return
+
+                self._handle_event_actions(
+                    rule_id=rule_id,
+                    device_id=device_id,
+                    message_text=message_text,
+                    aggregate=aggregate,
+                    rule=rule,
+                    stats=stats,
+                )
+
+                self._print_progress(stats)
+                consumer.commit(asynchronous=False)
+
+        except (KeyError, ValueError, TypeError) as exc:
+            logger.error(
+                "Error parsing message: %s",
+                str(exc),
+                exc_info=True,
+                extra={"raw_value": msg.value()},
+            )
+            stats["error_count"] += 1
+            consumer.commit(asynchronous=False)
+        except Exception as exc:
+            logger.error(
+                "Unexpected error: %s",
+                str(exc),
+                exc_info=True,
+            )
+            stats["error_count"] += 1
+            consumer.commit(asynchronous=False)
+
+    def _parse_payload(
+        self,
+        payload: dict[str, Any],
+    ) -> tuple[UUID, UUID, str, EvalResults]:
+        rule_id = UUID(payload["rule_id"])
+        device_id = UUID(payload["device_id"])
+        message_text = payload.get("message", "Rule triggered")
+        snapshot = payload.get("telemetry_snapshot", {})
+        aggregate = EvalResults(
+            trigger=True,
+            values=snapshot.get("values", []),
+            start=(
+                datetime.fromisoformat(snapshot["start"])
+                if snapshot.get("start")
+                else None
+            ),
+            end=(
+                datetime.fromisoformat(snapshot["end"]) if snapshot.get("end") else None
+            ),
+        )
+        return rule_id, device_id, message_text, aggregate
+
+    def _get_rule_or_none(self, *, rule_id: UUID, device_id: UUID) -> Rule | None:
+        try:
+            return Rule.objects.get(id=rule_id)
+        except Rule.DoesNotExist:
+            logger.error(
+                "Rule not found: %s",
+                rule_id,
+                extra={
+                    "rule_id": str(rule_id),
+                    "device_id": str(device_id),
+                },
+            )
+            return None
+
+    def _handle_event_actions(
+        self,
+        *,
+        rule_id: UUID,
+        device_id: UUID,
+        message_text: str,
+        aggregate: EvalResults,
+        rule: Rule,
+        stats: dict[str, int],
+    ) -> None:
+        try:
+            event = event_handler(aggregate, rule, message_text)
+
+            logger.info(
+                "Event created: %s",
+                event.id,
+                extra={
+                    "event_id": str(event.id),
+                    "rule_id": str(rule_id),
+                    "device_id": str(device_id),
+                },
+            )
+
+            execution_results = self._dispatch_actions(
+                rule_id=rule_id,
+                rule=rule,
+                aggregate=aggregate,
+            )
+            if execution_results:
+                event.execution_results = execution_results
+                event.save(update_fields=["execution_results"])
+
+        except EventCooldownActive:
+            logger.info(
+                "Event in cooldown, skipping",
+                extra={
+                    "rule_id": str(rule_id),
+                    "device_id": str(device_id),
+                },
+            )
+            stats["cooldown_skip_count"] += 1
+
+    def _dispatch_actions(
+        self,
+        *,
+        rule_id: UUID,
+        rule: Rule,
+        aggregate: EvalResults,
+    ) -> list[dict[str, Any]]:
+        execution_results: list[dict[str, Any]] = []
+
+        for action_config_dict in rule.action_config:
+            try:
+                action_config = ActionConfig.model_validate(action_config_dict)
+            except Exception as exc:
+                execution_results.append(
+                    self._invalid_action_result(
+                        action_config_dict=action_config_dict,
+                        rule_id=rule_id,
+                        error=exc,
+                    )
+                )
+                continue
+
+            execution_results.append(action_dispatch(action_config, rule, aggregate))
+
+        return execution_results
+
+    def _invalid_action_result(
+        self,
+        *,
+        action_config_dict: Any,
+        rule_id: UUID,
+        error: Exception,
+    ) -> dict[str, str]:
+        invalid_action_type = (
+            action_config_dict.get("type", "unknown")
+            if isinstance(action_config_dict, dict)
+            else "unknown"
+        )
+        logger.error(
+            "Invalid action config",
+            exc_info=True,
+            extra={
+                "rule_id": str(rule_id),
+                "action_type": invalid_action_type,
+            },
+        )
+        return {
+            "type": invalid_action_type,
+            "status": "failed",
+            "error": f"Invalid action config: {error}",
+            "completed_at": timezone.now().isoformat(),
+        }
+
+    def _print_progress(self, stats: dict[str, int]) -> None:
+        if stats["message_count"] % 100 != 0:
+            return
+        self.stdout.write(
+            f"Processed {stats['message_count']} messages "
+            f"({stats['error_count']} errors, "
+            f"{stats['cooldown_skip_count']} cooldown skips)"
+        )
 
     def _build_consumer_config(self, group_id: str) -> dict:
         """
