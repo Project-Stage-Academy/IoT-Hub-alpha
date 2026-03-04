@@ -405,6 +405,39 @@ paths:
           $ref: "#/components/responses/NotFoundError"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
+  /rules/inbound/{inbound_id}:
+    post:
+      description: Trigger external rule/event
+      summary: Triggeres an external event
+      operationId: InboundRule
+      tags: [rules]
+      parameters:
+        - name: inbound_id
+          in: path
+          required: true
+          description: Get rule data of specific rule by id
+          schema:
+            type: string
+            example: "1234"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "200":
+          description: Transformed rule
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InboundRules"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+
   /rules/{id}:
     get:
       description: get a specific rule by id
@@ -984,6 +1017,92 @@ components:
           type: string
           description: UUID of device ID assosiated with the rule
           example: a80031eb-189a-49d5-93ab-11bd465143e9
+    InboundRules:
+      type: object
+      additionalProperties: false
+      required:
+        - type
+        - rule_id
+        - device_id
+        - timestamp
+        - severy
+        - message
+        - execution_results
+        - telemetry_snapshot
+        - action_config
+        - notifications
+        - cooldown_min
+
+      properties:
+        type:
+          type: string
+          description: Event source/type marker.
+          example: external
+
+        rule_id:
+          type: string
+          description: Rule identifier.
+          example: "133322"
+
+        device_id:
+          type: string
+          description: Device identifier.
+          example: "6652"
+
+        timestamp:
+          type: string
+          format: date-time
+          description: Event timestamp (ISO 8601).
+          example: "2026-02-28T08:59:47.720763+00:00"
+
+        severy:
+          type: string
+          description: Severity level.
+          example: warning
+
+        message:
+          type: string
+          description: Human-readable message.
+          example: Rule triggered
+
+        execution_results:
+          type: array
+          description: Execution results from rule evaluation.
+          items: {}
+          example: []
+
+        telemetry_snapshot:
+          type: object
+          additionalProperties: true
+          description: |
+            Free-form telemetry snapshot.
+            Structure depends on device schema and is not validated at API level.
+          example:
+            value: 15
+            ts: "2026-02-28T09:02:55.979981+00:00"
+            temperature: 21.5
+            battery: 87
+
+        action_config:
+          type: array
+          description: Free-form list of action configurations.
+          items: {}
+          example:
+            - type: email
+              to: bob@gmail.com
+              name: bob
+
+        notifications:
+          type: array
+          description: Free-form list of generated notifications.
+          items: {}
+          example: []
+
+        cooldown_min:
+          type: integer
+          minimum: 0
+          description: Cooldown period in minutes.
+          example: 25
     Event:
       type: object
       required:
