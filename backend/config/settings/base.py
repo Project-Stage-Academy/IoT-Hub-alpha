@@ -114,15 +114,6 @@ CELERY_TASK_SERIALIZER = "json"
 
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 
-CELERY_TIMER = int(os.getenv("CELERY_RUN_PROCESS_TELEMETRY_TIMER_MINUTES", 5)) * 60
-
-CELERY_BEAT_SCHEDULE = {
-    "run-rule-processor-every-5m": {
-        "task": "apps.rules.tasks.process_telemetry",
-        "schedule": CELERY_TIMER,
-    }
-}
-
 LANGUAGE_CODE = "en-us"
 
 TIME_ZONE = "UTC"
@@ -221,6 +212,15 @@ if TELEMETRY_PIPELINE_MODE not in {"direct", "kafka"}:
         "Invalid TELEMETRY_PIPELINE_MODE='"
         f"{TELEMETRY_PIPELINE_MODE}'. Allowed values: direct, kafka"
     )
+
+# DB Writer settings
+DB_WRITER_LATENCY_MS = int(os.getenv("DB_WRITER_LATENCY_MS", "1000"))
+DB_WRITER_BATCH_SIZE = int(os.getenv("DB_WRITER_BATCH_SIZE", "2000"))
+DB_WRITER_MAX_BUFFER_SIZE = int(os.getenv("DB_WRITER_BUFFER_SIZE", "20000"))
+DB_WRITER_MAX_FLUSH_ATTEMPTS = int(os.getenv("DB_WRITER_MAX_FLUSH_ATTEMPTS", "3"))
+DB_WRITER_SAFETY_SLEEP = float(os.getenv("DB_WRITER_SAFETY_SAFE_SLEEP", "0.01"))
+DB_WRITER_CELERY_TIMEOUT_MIN = int(os.getenv("DB_WRITER_CELERY_TIMEOUT_MIN", "600"))
+DB_INSERT_BATCH_SIZE = int(os.getenv("DB_INSERT_BATCH_SIZE", "500"))
 
 # Kafka ingestion settings (used when TELEMETRY_PIPELINE_MODE=kafka)
 KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "kafka:9092").strip()

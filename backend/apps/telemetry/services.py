@@ -25,7 +25,7 @@ def extract_validation_errors(error: ValidationError) -> dict:
     )
 
 
-def apply_transformations(data: dict, rules: dict) -> dict:
+def apply_transformations(data: dict, rules: dict, recived_ts=None) -> dict:
     """
     Apply transformations based on provided rules
     """
@@ -53,23 +53,29 @@ def apply_transformations(data: dict, rules: dict) -> dict:
         if key in result and isinstance(result[key], (int, float)):
             result[key] = round(result[key], decimals)
 
+    for key, remover in rules.get("remove", {}).items():
+        if key in result and remover:
+            result.pop(key, None)
+
+    if "timestamp" in rules.keys():
+        result["timestamp"] = recived_ts
+
     return result
 
 
 @lru_cache(maxsize=128)
+def _get_schema_cached(version: str):
+    return TelemetrySchema.objects.get(version=version, is_active=True)
+
+
 def get_cached_telemetry_schema(version: str):
-    """
-    Retrieves the TelemetrySchema from the database.
-    Cached in memory to prevent DB bottleneck on
-    high-throughput ingestion.
-    """
     try:
-        return TelemetrySchema.objects.get(version=version, is_active=True)
+        return _get_schema_cached(version)
     except TelemetrySchema.DoesNotExist:
         return None
 
 
-def process_telemetry_payload(raw_payload: dict):
+def process_telemetry_payload(raw_payload: dict, recived_ts=None):
     """
     Main pipeline for processing incoming telemetry payload.
     """
@@ -89,7 +95,9 @@ def process_telemetry_payload(raw_payload: dict):
         return None, error_msg
 
     try:
-        clean_data = apply_transformations(raw_payload, schema_obj.transformation_rules)
+        clean_data = apply_transformations(
+            raw_payload, schema_obj.transformation_rules, recived_ts
+        )
         return clean_data, None
     except Exception as e:
         return None, f"Error applying transformations: {str(e)}"
