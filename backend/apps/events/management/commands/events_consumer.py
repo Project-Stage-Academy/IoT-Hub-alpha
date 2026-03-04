@@ -29,7 +29,7 @@ from apps.rules.models import Rule
 from apps.rules.services.data_structure import EvalResults, ActionConfig
 from apps.rules.services.metrics import track_kafka_message_processing
 
-logger = logging.getLogger("events.consumer")
+logger = logging.getLogger("apps.events.consumer")
 
 try:
     from confluent_kafka import Consumer, KafkaError, Producer
@@ -108,7 +108,14 @@ Metrics Exported (Prometheus):
 
         from prometheus_client import start_http_server
 
-        start_http_server(metrics_port)
+        try:
+            start_http_server(metrics_port)
+        except OSError as e:
+            logger.warning(
+                "Could not start Prometheus HTTP server on port %d: %s",
+                metrics_port,
+                str(e),
+            )
 
         consumer = Consumer(self._build_consumer_config(group_id))
         consumer.subscribe([input_topic])
@@ -148,11 +155,9 @@ Metrics Exported (Prometheus):
                 )
 
         except KeyboardInterrupt:
-            self.stdout.write(self.style.WARNING("\nConsumer stopped"))
-
+            self.stdout.write("Shutting down EventsConsumer")
         finally:
             consumer.close()
-
             self.stdout.write(
                 self.style.SUCCESS(
                     f"\nFinal stats:\n"

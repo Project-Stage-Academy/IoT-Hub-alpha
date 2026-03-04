@@ -1,33 +1,46 @@
 [
     {
-      "name": "malformed payload 1",
+      "name": "device1",
       "data": {
         "schema_version": "1.0",
-        "ssn": "SN2221144"
+        "ssn": "TEMP-SN-002",
+        "value": 5000
       },
-      "expected": 400
+      "expected": 202
     },
-        {
-      "name": "mailformed payload 2",
-      "data": {
-        "ssn": "SN2221144",
-        "value": 4442
-      },
-      "expected": 400
-    },
-        {
-      "name": "malformed payload 3",
-      "data": {
-        "value": 4442
-      },
-      "expected": 400
-    },
-      {
-      "name": "pass",
+    {
+      "name": "device1",
       "data": {
         "schema_version": "1.0",
-        "ssn": "SN555111",
-        "value": 4442
+        "ssn": "TEMP-SN-002",
+        "value": 6000
+      },
+      "expected": 202
+    },
+    {
+      "name": "device1",
+      "data": {
+        "schema_version": "1.0",
+        "ssn": "TEMP-SN-002",
+        "value": 7000
+      },
+      "expected": 202
+    },
+    {
+      "name": "device1",
+      "data": {
+        "schema_version": "1.0",
+        "ssn": "TEMP-SN-002",
+        "value": 8000
+      },
+      "expected": 202
+    },
+        {
+      "name": "device1",
+      "data": {
+        "schema_version": "1.0",
+        "ssn": "TEMP-SN-002",
+        "value": 9000
       },
       "expected": 202
     }
