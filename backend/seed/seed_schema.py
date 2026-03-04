@@ -58,12 +58,20 @@ class TelemetrySeed(BaseModel):
     payload: Payload
 
 
+class TelemetrySchemaVersion(BaseModel):
+    version: str
+    validation_schema: dict[str, Any]
+    transformation_rules: dict[str, Any]
+    is_active: bool
+
+
 class SeedData(BaseModel):
     device_types: list[DeviceTypeSeed]
     devices: list[DeviceSeed]
     rules: list[RuleSeed]
     telemetry: list[TelemetrySeed]
     notification_templates: list[NotificationTemplateSeed]
+    telemetry_schema: list[TelemetrySchemaVersion]
 
 
 @dataclass
@@ -85,3 +93,4 @@ class StatsTally:
     rules: Stats = field(default_factory=Stats)
     notification_templates: Stats = field(default_factory=Stats)
     telemetry: Stats = field(default_factory=Stats)
+    telemetry_schema: Stats = field(default_factory=Stats)

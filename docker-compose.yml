@@ -205,6 +205,17 @@ services:
     networks:
       - iot_hub_net
 
+  db-writer:
+    build: ./backend
+    command: python manage.py db_writer
+    env_file: .env
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - iot_hub_net
+
   kafka-ui:
     image: provectuslabs/kafka-ui:v0.7.2
     container_name: iot_hub_kafka_ui
@@ -287,27 +298,6 @@ services:
       - .env
     depends_on:
       mosquitto:
-        condition: service_healthy
-      db:
-        condition: service_healthy
-    logging: *default-logging
-    networks:
-      - iot_hub_net
-
-  kafka_db_writer_stub:
-    build: ./backend
-    container_name: iot_hub_kafka_db_writer_stub
-    entrypoint: ["/app/scripts/entrypoint.sh"]
-    command: >-
-      python manage.py kafka_db_writer_stub
-      --raw-topic telemetry.raw
-      --clean-topic telemetry.clean
-      --dlq-topic telemetry.dlq
-      --group-id telemetry-validator
-    env_file:
-      - .env
-    depends_on:
-      kafka:
         condition: service_healthy
       db:
         condition: service_healthy

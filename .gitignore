@@ -233,7 +233,7 @@ Thumbs.db
 sim_log.jsonl
 
 .vscode/settings.json
-
+backend/failed_telemetry
 devops/apt-repo/auth/.htpasswd
 devops/mosquitto/passwords
 node_modules
