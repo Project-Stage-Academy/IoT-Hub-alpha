@@ -56,23 +56,29 @@ paths:
       description: |
         Submit single or batched telemetry data for ingestion.
 
-        **Schema Versioning:**
-        - `schema_version` is required and must be specified for all payloads
-        - Current supported versions: `1.0`
-        - Schema version is stored in the JSONB payload for future migration compatibility
+        **Headers and Identity:**
+        - `X-Device-Serial-Number` is required and identifies the source device
+        - `serial_number` in body is ignored/overwritten by header value
+        - legacy body field `ssn` is removed if present
+
+        **Schema Versioning and Value:**
+        - `schema_version` is required (supported: `1.0`)
+        - `value` is optional; when provided it can be number or numeric string
+        - for `schema_version=1.0`, value is normalized with `/100` before persistence/routing
 
         **Idempotency:**
-        - Optional `Idempotency-Key` header can be provided for request deduplication
-        - Key is echoed back in the response but not enforced server-side in MVP
-
-        **Ingestion Mode:**
-        - Controlled by `TELEMETRY_ASYNC_INGESTION`
-        - `false` (sync): validates and inserts into DB in request thread (uses `bulk_create` for batch)
-        - `true` (async): validates and queues to Celery, returns immediately (no DB writes in request thread)
+        - optional `Idempotency-Key` header can be provided
+        - if omitted, a deterministic key is generated from header serial + request payload
+        - key is echoed in success responses
 
         **Batch Constraints:**
         - Maximum batch size: 1000 records (configurable via `TELEMETRY_MAX_BATCH_SIZE`)
         - All-or-nothing semantics: if any record fails validation, entire batch is rejected
+
+        **Pipeline Modes:**
+        - `TELEMETRY_PIPELINE_MODE=direct` + `TELEMETRY_ASYNC_INGESTION=false` -> `201 Created` (written in request thread)
+        - `TELEMETRY_PIPELINE_MODE=direct` + `TELEMETRY_ASYNC_INGESTION=true` -> `202 Accepted` (queued to Celery)
+        - `TELEMETRY_PIPELINE_MODE=kafka` -> `202 Accepted` (published to Kafka raw topic)
       summary: Ingest telemetry data
       operationId: TelemetrySubmit
       tags: [telemetry]
@@ -83,11 +89,11 @@ paths:
           description: Serial number of the device submitting telemetry
           schema:
             type: string
-          example: "SN123456"
+          example: "TEMP-SN-002"
         - name: Idempotency-Key
           in: header
           required: false
-          description: Optional idempotency key for request deduplication
+          description: Optional idempotency key. If omitted, the server generates one.
           schema:
             type: string
           example: "unique-client-request-id-123"
@@ -104,17 +110,18 @@ paths:
                 summary: Single telemetry record
                 value:
                   schema_version: "1.0"
-                  value: 25.5
+                  value: 2550
+                  timestamp: "2026-02-28T12:30:45Z"
               batch:
                 summary: Batch of telemetry records
                 value:
                   - schema_version: "1.0"
-                    value: 25.5
+                    value: 2550
                   - schema_version: "1.0"
-                    value: 26.0
+                    value: "2630"
       responses:
         "201":
-          description: Telemetry created (sync mode)
+          description: Telemetry created (direct sync mode)
           content:
             application/json:
               schema:
@@ -129,6 +136,7 @@ paths:
                     id: 12345
                     device_id: "a1b2c3d4-e5f6-7890-1234-567890abcdef"
                     timestamp: "2026-02-03T12:37:27.594815+00:00"
+                    idempotency_key: "http:ab12cd34ef56..."
                 batch:
                   summary: Batch created
                   value:
@@ -139,20 +147,32 @@ paths:
                       total: 3
                       successful: 3
                       failed: 0
+                    idempotency_key: "http:ab12cd34ef56..."
         "202":
-          description: Telemetry accepted for processing (async mode)
+          description: Telemetry accepted (direct async or kafka pipeline mode)
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/TelemetryAcceptedAsync"
               examples:
-                accepted:
-                  summary: Single or batch accepted
+                accepted_async:
+                  summary: Accepted in direct async mode
                   value:
                     status: "accepted"
                     request_id: "a3f5b8c2-1234-5678-90ab-cdef12345678"
-                    count: 150
+                    count: 1
                     task_id: "b4d2b6fa-1111-2222-3333-444455556666"
+                    idempotency_key: "unique-client-request-id-123"
+                accepted_kafka:
+                  summary: Accepted in kafka pipeline mode
+                  value:
+                    status: "accepted"
+                    request_id: "a3f5b8c2-1234-5678-90ab-cdef12345678"
+                    count: 2
+                    task_id: "kafka"
+                    idempotency_key: "http:ab12cd34ef56..."
+                    topic: "telemetry.raw"
+                    pipeline_mode: "kafka"
         "400":
           description: Bad request - validation errors or batch issues
           content:
@@ -182,6 +202,30 @@ paths:
                       errors:
                         - index: 1
                           error: "Validation failed"
+        "409":
+          description: Conflict, typically duplicate idempotency constraint in direct sync mode
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TelemetryError"
+              example:
+                error: "Processing failed"
+        "500":
+          description: Internal processing failure (database or unexpected error)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TelemetryError"
+              example:
+                error: "Processing failed"
+        "503":
+          description: Temporary upstream unavailability (e.g. Kafka publish failure)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TelemetryError"
+              example:
+                error: "Kafka publish failed"
   /devices:
     get:
       description: get list of devices
@@ -750,26 +794,43 @@ components:
     Telemetry:
       type: object
       required:
-        - ssn
-        - value
-        - metric
-        - ts
+        - id
+        - device_id
+        - timestamp
+        - payload
       properties:
-        ssn:
+        id:
+          type: integer
+          format: int64
+          example: 12345
+        device_id:
           type: string
-          description: "Device serial number (must match a registered device)"
-          example: SN2224412
-        value:
-          type: number
-          format: float
-          example: 24.32
-        metric:
-          type: string
-          example: C
-        ts:
+          format: uuid
+          example: a1b2c3d4-e5f6-7890-1234-567890abcdef
+        timestamp:
           type: string
           format: date-time
-          example: "2026-01-16T22:53:00Z"
+          example: "2026-02-28T12:30:45Z"
+        payload:
+          $ref: "#/components/schemas/TelemetryPayloadStored"
+    TelemetryPayloadStored:
+      type: object
+      required:
+        - schema_version
+        - serial_number
+      properties:
+        schema_version:
+          type: string
+          enum: ["1.0"]
+          example: "1.0"
+        serial_number:
+          type: string
+          description: Device serial copied from `X-Device-Serial-Number`
+          example: "TEMP-SN-002"
+        value:
+          type: number
+          description: Normalized numeric value (schema 1.0 currently divides raw input by 100)
+          example: 25.5
     TelemetryPost:
       type: object
       required:
@@ -778,17 +839,20 @@ components:
         schema_version:
           type: string
           description: "Telemetry payload schema version. Supported: 1.0"
+          enum: ["1.0"]
           example: "1.0"
         value:
-          type: number
-          format: float
-          description: Optional numeric value to extract and store in payload
-          example: 25.5
+          oneOf:
+            - type: number
+            - type: string
+          description: Optional raw numeric value. Numeric strings are accepted.
+          example: 2550
         timestamp:
           type: string
           format: date-time
           description: Optional timestamp (ISO 8601). If omitted, server time is used.
           example: "2024-01-15T10:30:00Z"
+      additionalProperties: true
     TelemetryBatchPost:
       type: array
       description: Array of telemetry records for batch ingestion
@@ -882,12 +946,20 @@ components:
           example: 150
         task_id:
           type: string
-          description: Celery task ID (optional)
+          description: Celery task ID (direct async) or literal `kafka` in kafka pipeline mode
           example: "b4d2b6fa-1111-2222-3333-444455556666"
         idempotency_key:
           type: string
-          description: Echoed idempotency key if provided in request
+          description: Effective idempotency key (header value or generated server key)
           example: "unique-client-request-id-123"
+        topic:
+          type: string
+          description: Kafka topic (present when `TELEMETRY_PIPELINE_MODE=kafka`)
+          example: "telemetry.raw"
+        pipeline_mode:
+          type: string
+          description: Pipeline mode when included in response
+          example: "kafka"
     TelemetryError:
       type: object
       required:
