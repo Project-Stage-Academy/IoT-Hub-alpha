@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IoT Telemetry Dashboard</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        h1 { margin-bottom: 20px; }
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #ccc;
+        }
+        .status-dot.connected { background: #22c55e; }
+        .status-dot.disconnected { background: #ef4444; }
+        .status-dot.connecting { background: #f59e0b; }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 8px;
+        }
+        button:hover { background: #2563eb; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        input {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-right: 8px;
+        }
+        .log {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 12px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .log-entry { margin: 4px 0; }
+        .log-entry.sent { color: #4ade80; }
+        .log-entry.received { color: #60a5fa; }
+        .log-entry.error { color: #f87171; }
+        .log-entry.info { color: #fbbf24; }
+        .telemetry-item {
+            border-left: 3px solid #3b82f6;
+            padding: 8px 12px;
+            margin: 8px 0;
+            background: #f8fafc;
+        }
+        .telemetry-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #1e40af;
+        }
+        .telemetry-meta {
+            font-size: 12px;
+            color: #64748b;
+        }
+    </style>
+</head>
+<body>
+    <h1>IoT Telemetry Dashboard</h1>
+
+    <!-- Connection Card -->
+    <div class="card">
+        <h3>Connection</h3>
+        <div class="status">
+            <div class="status-dot" id="statusDot"></div>
+            <span id="statusText">Disconnected</span>
+            <span id="userInfo"></span>
+        </div>
+        <br>
+        <button id="connectBtn" onclick="connect()">Connect</button>
+        <button id="disconnectBtn" onclick="disconnect()" disabled>Disconnect</button>
+    </div>
+
+    <!-- Subscribe Card -->
+    <div class="card">
+        <h3>Subscribe to Device</h3>
+        <input type="text" id="deviceInput" placeholder="e.g. TEMP-SN-002">
+        <button onclick="subscribe()">Subscribe</button>
+        <button onclick="unsubscribe()">Unsubscribe</button>
+        <p>Subscribed: <span id="subscriptions">None</span></p>
+    </div>
+
+    <!-- Telemetry Card -->
+    <div class="card">
+        <h3>Latest Telemetry</h3>
+        <div id="telemetryData">No data yet</div>
+    </div>
+
+    <!-- Log Card -->
+    <div class="card">
+        <h3>Message Log</h3>
+        <div class="log" id="log"></div>
+    </div>
+
+    <script>
+        let ws = null;
+        let token = null;
+
+        const logEl = document.getElementById('log');
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
+        const userInfo = document.getElementById('userInfo');
+        const connectBtn = document.getElementById('connectBtn');
+        const disconnectBtn = document.getElementById('disconnectBtn');
+        const subscriptions = document.getElementById('subscriptions');
+        const telemetryData = document.getElementById('telemetryData');
+
+        function log(message, type = 'info') {
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logEl.appendChild(entry);
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+
+        function setStatus(status, user = '') {
+            statusDot.className = `status-dot ${status}`;
+            statusText.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+            userInfo.textContent = user ? `(${user})` : '';
+            connectBtn.disabled = status === 'connected' || status === 'connecting';
+            disconnectBtn.disabled = status !== 'connected';
+        }
+
+        async function connect() {
+            try {
+                setStatus('connecting');
+                log('Getting authentication token...', 'info');
+
+                // Get token from fake auth endpoint
+                const response = await fetch('/api/v1/auth/fake', { method: 'GET' });
+                const data = await response.json();
+                token = data.token;
+                log(`Got token for user: ${data.username}`, 'info');
+
+                // Connect to WebSocket
+                const wsUrl = `wss://${window.location.host}/ws/telemetry/?token=${token}`;
+                log(`Connecting to ${wsUrl}`, 'info');
+
+                ws = new WebSocket(wsUrl);
+
+                ws.onopen = () => {
+                    log('WebSocket connected', 'info');
+                };
+
+                ws.onmessage = (event) => {
+                    const data = JSON.parse(event.data);
+                    log(`< ${event.data}`, 'received');
+                    handleMessage(data);
+                };
+
+                ws.onclose = (event) => {
+                    log(`Connection closed (code: ${event.code})`, 'error');
+                    setStatus('disconnected');
+                    ws = null;
+                };
+
+                ws.onerror = (error) => {
+                    log(`WebSocket error: ${error}`, 'error');
+                };
+
+            } catch (error) {
+                log(`Error: ${error.message}`, 'error');
+                setStatus('disconnected');
+            }
+        }
+
+        function disconnect() {
+            if (ws) {
+                ws.close();
+                ws = null;
+            }
+        }
+
+        function handleMessage(data) {
+            switch (data.type) {
+                case 'connection':
+                    setStatus('connected', data.user);
+                    subscriptions.textContent = data.subscriptions.length ? data.subscriptions.join(', ') : 'None';
+                    break;
+                case 'subscription':
+                    subscriptions.textContent = data.subscriptions.length ? data.subscriptions.join(', ') : 'None';
+                    break;
+                case 'telemetry':
+                    displayTelemetry(data);
+                    break;
+                case 'error':
+                    log(`Error: ${data.message}`, 'error');
+                    break;
+            }
+        }
+
+        function displayTelemetry(data) {
+            const value = data.payload?.value ?? 'N/A';
+            const time = new Date(data.received_at).toLocaleTimeString();
+
+            telemetryData.innerHTML = `
+                <div class="telemetry-item">
+                    <div class="telemetry-meta">${data.serial_number}</div>
+                    <div class="telemetry-value">${value}</div>
+                    <div class="telemetry-meta">Received: ${time} | Protocol: ${data.ingest_protocol}</div>
+                </div>
+            `;
+        }
+
+        function subscribe() {
+            const device = document.getElementById('deviceInput').value.trim();
+            if (!device) return alert('Enter a device serial number');
+            if (!ws) return alert('Not connected');
+
+            const msg = JSON.stringify({ action: 'subscribe', devices: [device] });
+            ws.send(msg);
+            log(`> ${msg}`, 'sent');
+        }
+
+        function unsubscribe() {
+            const device = document.getElementById('deviceInput').value.trim();
+            if (!device) return alert('Enter a device serial number');
+            if (!ws) return alert('Not connected');
+
+            const msg = JSON.stringify({ action: 'unsubscribe', devices: [device] });
+            ws.send(msg);
+            log(`> ${msg}`, 'sent');
+        }
+    </script>
+</body>
+</html>
