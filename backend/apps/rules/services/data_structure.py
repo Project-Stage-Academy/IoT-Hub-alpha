@@ -22,8 +22,27 @@ class EvalResults:
 
 
 class ActionConfig(BaseModel):
-    type: Literal["notification", "stop_machine"]
+    type: Literal["notification", "stop_machine", "alert", "webhook", "command"]
     template_id: int | None = None
+    machine_id: str | None = None
+    url: str | None = None
+    method: Literal["GET", "POST", "PUT", "PATCH", "DELETE"] = "POST"
+    headers: dict[str, str] | None = None
+    payload: dict[str, Any] | None = None
+    command: str | None = None
+    params: dict[str, Any] | None = None
+
+    @model_validator(mode="after")
+    def validate_shape(self) -> "ActionConfig":
+        if self.type in {"notification", "alert"} and self.template_id is None:
+            raise ValueError(
+                f"{self.type} action must include template_id",
+            )
+        if self.type == "webhook" and not self.url:
+            raise ValueError("webhook action must include url")
+        if self.type == "command" and not self.command:
+            raise ValueError("command action must include command")
+        return self
 
 
 class NormalizedRecipient(BaseModel):
@@ -89,9 +108,10 @@ class ExternalEventMessage(BaseModel):
     timestamp: str = str(tz.now().isoformat())
     severy: str = "warning"
     message: str = "External rule triggered"
-    execution_results: list = []
-    telemetry_snapshot: dict = {}
-    action_config: list = []
+    execution_results: list = Field(default_factory=list)
+    telemetry_snapshot: dict = Field(default_factory=dict)
+    action_config: list = Field(default_factory=list)
+    external_recipients: list = Field(default_factory=list)
     cooldown_min: int = 60
 
     model_config = ConfigDict(extra="ignore")

@@ -1,8 +1,8 @@
 {
   "default_url": "http://127.0.0.1:8000/api/v1/telemetry",
-  "mqtt_url": "54abf624e48440ad8e6733f1d400a8b8.s1.eu.hivemq.cloud",
+  "mqtt_url": "localhost",
   "mqtt_topic": "telemetry/", 
-  "mqtt_port": 8883,
+  "mqtt_port": 1883,
   "default_data_file": ["test_send.json"],
   "default_timeout": 5,
   "log_file": "sim_log.jsonl",
@@ -12,15 +12,15 @@
       "data": {
         "schema_version": "1.0",
         "ssn": "TEMP-SN-002",
-        "value": 9552
+        "value": 95520
       },
-      "expected": 202
+      "expected": 201
     },
     {
       "name": "device2",
       "data": {
         "schema_version": "1.0",
-        "ssn": "PWR-SN-003",
+        "ssn": "PWR-FK-003",
         "value": 3244
       },
       "expected": 202

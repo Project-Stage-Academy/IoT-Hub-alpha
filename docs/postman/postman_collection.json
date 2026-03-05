@@ -1,11 +1,11 @@
 {
   "info": {
-    "_postman_id": "1f5542ad-ef56-4320-8824-04a163b12618",
+    "_postman_id": "a799ddb0-dcd2-4f03-a7be-598a321eb776",
     "name": "Industry 4.0 IoT",
     "description": "IoT Service for industrial use\n\nContact Support:\n Name: Api Owner\n Email: support@industry.com",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "50199810",
-    "_collection_link": "https://go.postman.co/collection/50199810-1f5542ad-ef56-4320-8824-04a163b12618?source=collection_link"
+    "_collection_link": "https://go.postman.co/collection/50199810-a799ddb0-dcd2-4f03-a7be-598a321eb776?source=collection_link"
   },
   "item": [
     {
@@ -632,1054 +632,6 @@
               ],
               "cookie": [],
               "body": "{\n  \"error\": \"Batch ingestion failed\",\n  \"details\": {\n    \"summary\": {\n      \"total\": 3,\n      \"successful\": 0,\n      \"failed\": 1\n    },\n    \"errors\": [\n      {\n        \"index\": 1,\n        \"error\": \"Validation failed\"\n      }\n    ]\n  }\n}"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "events",
-      "item": [
-        {
-          "name": "{event_id}",
-          "item": [
-            {
-              "name": "ack",
-              "item": [
-                {
-                  "name": "Acknowledge an event",
-                  "request": {
-                    "method": "POST",
-                    "header": [
-                      {
-                        "key": "Accept",
-                        "value": "application/json"
-                      }
-                    ],
-                    "url": {
-                      "raw": "{{baseUrl}}/events/:event_id/ack",
-                      "host": [
-                        "{{baseUrl}}"
-                      ],
-                      "path": [
-                        "events",
-                        ":event_id",
-                        "ack"
-                      ],
-                      "variable": [
-                        {
-                          "key": "event_id",
-                          "value": "321",
-                          "description": "Event numeric id"
-                        }
-                      ]
-                    },
-                    "description": "acknowledge an event (requires events.change_event permission)"
-                  },
-                  "response": [
-                    {
-                      "name": "event acknowledged",
-                      "originalRequest": {
-                        "method": "POST",
-                        "header": [
-                          {
-                            "key": "Accept",
-                            "value": "application/json"
-                          },
-                          {
-                            "description": "Added as a part of security scheme: bearer",
-                            "key": "Authorization",
-                            "value": "Bearer <token>"
-                          }
-                        ],
-                        "url": {
-                          "raw": "{{baseUrl}}/events/:event_id/ack",
-                          "host": [
-                            "{{baseUrl}}"
-                          ],
-                          "path": [
-                            "events",
-                            ":event_id",
-                            "ack"
-                          ],
-                          "variable": [
-                            {
-                              "key": "event_id",
-                              "value": "321",
-                              "description": "Event numeric id"
-                            }
-                          ]
-                        }
-                      },
-                      "status": "OK",
-                      "code": 200,
-                      "_postman_previewlanguage": "json",
-                      "header": [
-                        {
-                          "key": "Content-Type",
-                          "value": "application/json"
-                        }
-                      ],
-                      "cookie": [],
-                      "body": "{\n  \"data\": {\n    \"id\": 321,\n    \"rule_id\": \"29e31015-4733-49f3-855a-ef7f30e6c147\",\n    \"device_id\": \"a1b2c3d4-e5f6-7890-1234-567890abcdef\",\n    \"severity\": \"warning\",\n    \"message\": \"Warning: Device-01 temperature 84.3C\",\n    \"status\": \"acknowledged\",\n    \"acknowledged\": true,\n    \"fired_at\": \"2026-02-08T18:22:31Z\",\n    \"created_at\": \"2026-02-08T18:22:31Z\",\n    \"execution_results\": [\n      {\n        \"type\": \"notification\",\n        \"template_id\": 5,\n        \"status\": \"completed\"\n      }\n    ],\n    \"telemetry_snapshot\": {\n      \"device_id\": \"a1b2c3d4-e5f6-7890-1234-567890abcdef\",\n      \"timestamp\": \"2026-02-08T18:22:00Z\",\n      \"payload\": {\n        \"value\": 84.3\n      }\n    },\n    \"payload\": {\n      \"value\": 84.3\n    }\n  }\n}"
-                    },
-                    {
-                      "name": "No or invalid JWT token provided",
-                      "originalRequest": {
-                        "method": "POST",
-                        "header": [
-                          {
-                            "key": "Accept",
-                            "value": "application/json"
-                          },
-                          {
-                            "description": "Added as a part of security scheme: bearer",
-                            "key": "Authorization",
-                            "value": "Bearer <token>"
-                          }
-                        ],
-                        "url": {
-                          "raw": "{{baseUrl}}/events/:event_id/ack",
-                          "host": [
-                            "{{baseUrl}}"
-                          ],
-                          "path": [
-                            "events",
-                            ":event_id",
-                            "ack"
-                          ],
-                          "variable": [
-                            {
-                              "key": "event_id",
-                              "value": "321",
-                              "description": "Event numeric id"
-                            }
-                          ]
-                        }
-                      },
-                      "status": "Unauthorized",
-                      "code": 401,
-                      "_postman_previewlanguage": "json",
-                      "header": [
-                        {
-                          "key": "Content-Type",
-                          "value": "application/json"
-                        }
-                      ],
-                      "cookie": [],
-                      "body": "{\n  \"error\": \"Some error has occured\"\n}"
-                    },
-                    {
-                      "name": "Forbidden",
-                      "originalRequest": {
-                        "method": "POST",
-                        "header": [
-                          {
-                            "key": "Accept",
-                            "value": "application/json"
-                          },
-                          {
-                            "description": "Added as a part of security scheme: bearer",
-                            "key": "Authorization",
-                            "value": "Bearer <token>"
-                          }
-                        ],
-                        "url": {
-                          "raw": "{{baseUrl}}/events/:event_id/ack",
-                          "host": [
-                            "{{baseUrl}}"
-                          ],
-                          "path": [
-                            "events",
-                            ":event_id",
-                            "ack"
-                          ],
-                          "variable": [
-                            {
-                              "key": "event_id",
-                              "value": "321",
-                              "description": "Event numeric id"
-                            }
-                          ]
-                        }
-                      },
-                      "status": "Forbidden",
-                      "code": 403,
-                      "_postman_previewlanguage": "json",
-                      "header": [
-                        {
-                          "key": "Content-Type",
-                          "value": "application/json"
-                        }
-                      ],
-                      "cookie": [],
-                      "body": "{\n  \"error\": \"Some error has occured\"\n}"
-                    },
-                    {
-                      "name": "Resource not found",
-                      "originalRequest": {
-                        "method": "POST",
-                        "header": [
-                          {
-                            "key": "Accept",
-                            "value": "application/json"
-                          },
-                          {
-                            "description": "Added as a part of security scheme: bearer",
-                            "key": "Authorization",
-                            "value": "Bearer <token>"
-                          }
-                        ],
-                        "url": {
-                          "raw": "{{baseUrl}}/events/:event_id/ack",
-                          "host": [
-                            "{{baseUrl}}"
-                          ],
-                          "path": [
-                            "events",
-                            ":event_id",
-                            "ack"
-                          ],
-                          "variable": [
-                            {
-                              "key": "event_id",
-                              "value": "321",
-                              "description": "Event numeric id"
-                            }
-                          ]
-                        }
-                      },
-                      "status": "Not Found",
-                      "code": 404,
-                      "_postman_previewlanguage": "json",
-                      "header": [
-                        {
-                          "key": "Content-Type",
-                          "value": "application/json"
-                        }
-                      ],
-                      "cookie": [],
-                      "body": "{\n  \"error\": \"Some error has occured\"\n}"
-                    }
-                  ]
-                }
-              ]
-            },
-            {
-              "name": "resolve",
-              "item": [
-                {
-                  "name": "Resolve an event",
-                  "request": {
-                    "method": "POST",
-                    "header": [
-                      {
-                        "key": "Accept",
-                        "value": "application/json"
-                      }
-                    ],
-                    "url": {
-                      "raw": "{{baseUrl}}/events/:event_id/resolve",
-                      "host": [
-                        "{{baseUrl}}"
-                      ],
-                      "path": [
-                        "events",
-                        ":event_id",
-                        "resolve"
-                      ],
-                      "variable": [
-                        {
-                          "key": "event_id",
-                          "value": "321",
-                          "description": "Event numeric id"
-                        }
-                      ]
-                    },
-                    "description": "resolve an event (requires events.change_event permission)"
-                  },
-                  "response": [
-                    {
-                      "name": "event resolved",
-                      "originalRequest": {
-                        "method": "POST",
-                        "header": [
-                          {
-                            "key": "Accept",
-                            "value": "application/json"
-                          },
-                          {
-                            "description": "Added as a part of security scheme: bearer",
-                            "key": "Authorization",
-                            "value": "Bearer <token>"
-                          }
-                        ],
-                        "url": {
-                          "raw": "{{baseUrl}}/events/:event_id/resolve",
-                          "host": [
-                            "{{baseUrl}}"
-                          ],
-                          "path": [
-                            "events",
-                            ":event_id",
-                            "resolve"
-                          ],
-                          "variable": [
-                            {
-                              "key": "event_id",
-                              "value": "321",
-                              "description": "Event numeric id"
-                            }
-                          ]
-                        }
-                      },
-                      "status": "OK",
-                      "code": 200,
-                      "_postman_previewlanguage": "json",
-                      "header": [
-                        {
-                          "key": "Content-Type",
-                          "value": "application/json"
-                        }
-                      ],
-                      "cookie": [],
-                      "body": "{\n  \"data\": {\n    \"id\": 321,\n    \"rule_id\": \"29e31015-4733-49f3-855a-ef7f30e6c147\",\n    \"device_id\": \"a1b2c3d4-e5f6-7890-1234-567890abcdef\",\n    \"severity\": \"warning\",\n    \"message\": \"Warning: Device-01 temperature 84.3C\",\n    \"status\": \"acknowledged\",\n    \"acknowledged\": true,\n    \"fired_at\": \"2026-02-08T18:22:31Z\",\n    \"created_at\": \"2026-02-08T18:22:31Z\",\n    \"execution_results\": [\n      {\n        \"type\": \"notification\",\n        \"template_id\": 5,\n        \"status\": \"completed\"\n      }\n    ],\n    \"telemetry_snapshot\": {\n      \"device_id\": \"a1b2c3d4-e5f6-7890-1234-567890abcdef\",\n      \"timestamp\": \"2026-02-08T18:22:00Z\",\n      \"payload\": {\n        \"value\": 84.3\n      }\n    },\n    \"payload\": {\n      \"value\": 84.3\n    }\n  }\n}"
-                    },
-                    {
-                      "name": "No or invalid JWT token provided",
-                      "originalRequest": {
-                        "method": "POST",
-                        "header": [
-                          {
-                            "key": "Accept",
-                            "value": "application/json"
-                          },
-                          {
-                            "description": "Added as a part of security scheme: bearer",
-                            "key": "Authorization",
-                            "value": "Bearer <token>"
-                          }
-                        ],
-                        "url": {
-                          "raw": "{{baseUrl}}/events/:event_id/resolve",
-                          "host": [
-                            "{{baseUrl}}"
-                          ],
-                          "path": [
-                            "events",
-                            ":event_id",
-                            "resolve"
-                          ],
-                          "variable": [
-                            {
-                              "key": "event_id",
-                              "value": "321",
-                              "description": "Event numeric id"
-                            }
-                          ]
-                        }
-                      },
-                      "status": "Unauthorized",
-                      "code": 401,
-                      "_postman_previewlanguage": "json",
-                      "header": [
-                        {
-                          "key": "Content-Type",
-                          "value": "application/json"
-                        }
-                      ],
-                      "cookie": [],
-                      "body": "{\n  \"error\": \"Some error has occured\"\n}"
-                    },
-                    {
-                      "name": "Forbidden",
-                      "originalRequest": {
-                        "method": "POST",
-                        "header": [
-                          {
-                            "key": "Accept",
-                            "value": "application/json"
-                          },
-                          {
-                            "description": "Added as a part of security scheme: bearer",
-                            "key": "Authorization",
-                            "value": "Bearer <token>"
-                          }
-                        ],
-                        "url": {
-                          "raw": "{{baseUrl}}/events/:event_id/resolve",
-                          "host": [
-                            "{{baseUrl}}"
-                          ],
-                          "path": [
-                            "events",
-                            ":event_id",
-                            "resolve"
-                          ],
-                          "variable": [
-                            {
-                              "key": "event_id",
-                              "value": "321",
-                              "description": "Event numeric id"
-                            }
-                          ]
-                        }
-                      },
-                      "status": "Forbidden",
-                      "code": 403,
-                      "_postman_previewlanguage": "json",
-                      "header": [
-                        {
-                          "key": "Content-Type",
-                          "value": "application/json"
-                        }
-                      ],
-                      "cookie": [],
-                      "body": "{\n  \"error\": \"Some error has occured\"\n}"
-                    },
-                    {
-                      "name": "Resource not found",
-                      "originalRequest": {
-                        "method": "POST",
-                        "header": [
-                          {
-                            "key": "Accept",
-                            "value": "application/json"
-                          },
-                          {
-                            "description": "Added as a part of security scheme: bearer",
-                            "key": "Authorization",
-                            "value": "Bearer <token>"
-                          }
-                        ],
-                        "url": {
-                          "raw": "{{baseUrl}}/events/:event_id/resolve",
-                          "host": [
-                            "{{baseUrl}}"
-                          ],
-                          "path": [
-                            "events",
-                            ":event_id",
-                            "resolve"
-                          ],
-                          "variable": [
-                            {
-                              "key": "event_id",
-                              "value": "321",
-                              "description": "Event numeric id"
-                            }
-                          ]
-                        }
-                      },
-                      "status": "Not Found",
-                      "code": 404,
-                      "_postman_previewlanguage": "json",
-                      "header": [
-                        {
-                          "key": "Content-Type",
-                          "value": "application/json"
-                        }
-                      ],
-                      "cookie": [],
-                      "body": "{\n  \"error\": \"Some error has occured\"\n}"
-                    }
-                  ]
-                }
-              ]
-            },
-            {
-              "name": "Get a specific event by id",
-              "request": {
-                "method": "GET",
-                "header": [
-                  {
-                    "key": "Accept",
-                    "value": "application/json"
-                  }
-                ],
-                "url": {
-                  "raw": "{{baseUrl}}/events/:event_id",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "events",
-                    ":event_id"
-                  ],
-                  "variable": [
-                    {
-                      "key": "event_id",
-                      "value": "321",
-                      "description": "Event numeric id"
-                    }
-                  ]
-                },
-                "description": "get a specific event by id (requires events.view_event permission)"
-              },
-              "response": [
-                {
-                  "name": "event information by id",
-                  "originalRequest": {
-                    "method": "GET",
-                    "header": [
-                      {
-                        "key": "Accept",
-                        "value": "application/json"
-                      },
-                      {
-                        "description": "Added as a part of security scheme: bearer",
-                        "key": "Authorization",
-                        "value": "Bearer <token>"
-                      }
-                    ],
-                    "url": {
-                      "raw": "{{baseUrl}}/events/:event_id",
-                      "host": [
-                        "{{baseUrl}}"
-                      ],
-                      "path": [
-                        "events",
-                        ":event_id"
-                      ],
-                      "variable": [
-                        {
-                          "key": "event_id",
-                          "value": "321",
-                          "description": "Event numeric id"
-                        }
-                      ]
-                    }
-                  },
-                  "status": "OK",
-                  "code": 200,
-                  "_postman_previewlanguage": "json",
-                  "header": [
-                    {
-                      "key": "Content-Type",
-                      "value": "application/json"
-                    }
-                  ],
-                  "cookie": [],
-                  "body": "{\n  \"data\": {\n    \"id\": 321,\n    \"rule_id\": \"29e31015-4733-49f3-855a-ef7f30e6c147\",\n    \"device_id\": \"a1b2c3d4-e5f6-7890-1234-567890abcdef\",\n    \"severity\": \"warning\",\n    \"message\": \"Warning: Device-01 temperature 84.3C\",\n    \"status\": \"acknowledged\",\n    \"acknowledged\": true,\n    \"fired_at\": \"2026-02-08T18:22:31Z\",\n    \"created_at\": \"2026-02-08T18:22:31Z\",\n    \"execution_results\": [\n      {\n        \"type\": \"notification\",\n        \"template_id\": 5,\n        \"status\": \"completed\"\n      }\n    ],\n    \"telemetry_snapshot\": {\n      \"device_id\": \"a1b2c3d4-e5f6-7890-1234-567890abcdef\",\n      \"timestamp\": \"2026-02-08T18:22:00Z\",\n      \"payload\": {\n        \"value\": 84.3\n      }\n    },\n    \"payload\": {\n      \"value\": 84.3\n    }\n  }\n}"
-                },
-                {
-                  "name": "No or invalid JWT token provided",
-                  "originalRequest": {
-                    "method": "GET",
-                    "header": [
-                      {
-                        "key": "Accept",
-                        "value": "application/json"
-                      },
-                      {
-                        "description": "Added as a part of security scheme: bearer",
-                        "key": "Authorization",
-                        "value": "Bearer <token>"
-                      }
-                    ],
-                    "url": {
-                      "raw": "{{baseUrl}}/events/:event_id",
-                      "host": [
-                        "{{baseUrl}}"
-                      ],
-                      "path": [
-                        "events",
-                        ":event_id"
-                      ],
-                      "variable": [
-                        {
-                          "key": "event_id",
-                          "value": "321",
-                          "description": "Event numeric id"
-                        }
-                      ]
-                    }
-                  },
-                  "status": "Unauthorized",
-                  "code": 401,
-                  "_postman_previewlanguage": "json",
-                  "header": [
-                    {
-                      "key": "Content-Type",
-                      "value": "application/json"
-                    }
-                  ],
-                  "cookie": [],
-                  "body": "{\n  \"error\": \"Some error has occured\"\n}"
-                },
-                {
-                  "name": "Forbidden",
-                  "originalRequest": {
-                    "method": "GET",
-                    "header": [
-                      {
-                        "key": "Accept",
-                        "value": "application/json"
-                      },
-                      {
-                        "description": "Added as a part of security scheme: bearer",
-                        "key": "Authorization",
-                        "value": "Bearer <token>"
-                      }
-                    ],
-                    "url": {
-                      "raw": "{{baseUrl}}/events/:event_id",
-                      "host": [
-                        "{{baseUrl}}"
-                      ],
-                      "path": [
-                        "events",
-                        ":event_id"
-                      ],
-                      "variable": [
-                        {
-                          "key": "event_id",
-                          "value": "321",
-                          "description": "Event numeric id"
-                        }
-                      ]
-                    }
-                  },
-                  "status": "Forbidden",
-                  "code": 403,
-                  "_postman_previewlanguage": "json",
-                  "header": [
-                    {
-                      "key": "Content-Type",
-                      "value": "application/json"
-                    }
-                  ],
-                  "cookie": [],
-                  "body": "{\n  \"error\": \"Some error has occured\"\n}"
-                },
-                {
-                  "name": "Resource not found",
-                  "originalRequest": {
-                    "method": "GET",
-                    "header": [
-                      {
-                        "key": "Accept",
-                        "value": "application/json"
-                      },
-                      {
-                        "description": "Added as a part of security scheme: bearer",
-                        "key": "Authorization",
-                        "value": "Bearer <token>"
-                      }
-                    ],
-                    "url": {
-                      "raw": "{{baseUrl}}/events/:event_id",
-                      "host": [
-                        "{{baseUrl}}"
-                      ],
-                      "path": [
-                        "events",
-                        ":event_id"
-                      ],
-                      "variable": [
-                        {
-                          "key": "event_id",
-                          "value": "321",
-                          "description": "Event numeric id"
-                        }
-                      ]
-                    }
-                  },
-                  "status": "Not Found",
-                  "code": 404,
-                  "_postman_previewlanguage": "json",
-                  "header": [
-                    {
-                      "key": "Content-Type",
-                      "value": "application/json"
-                    }
-                  ],
-                  "cookie": [],
-                  "body": "{\n  \"error\": \"Some error has occured\"\n}"
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "name": "Get paginated event data",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/events?page=1&page_size=1&device_id=a1b2c3d4-e5f6-7890-1234-567890abcdef&device=5ca699e3-950a-ea6c-7a7e-7cae3bc0438e&rule_id=29e31015-4733-49f3-855a-ef7f30e6c147&rule=5ca699e3-950a-ea6c-7a7e-7cae3bc0438e&severity=warning&acknowledged=true",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "events"
-              ],
-              "query": [
-                {
-                  "key": "page",
-                  "value": "1",
-                  "description": "page number (1-based)"
-                },
-                {
-                  "key": "page_size",
-                  "value": "1",
-                  "description": "number of items per page"
-                },
-                {
-                  "key": "device_id",
-                  "value": "a1b2c3d4-e5f6-7890-1234-567890abcdef",
-                  "description": "Filter events by device UUID"
-                },
-                {
-                  "key": "device",
-                  "value": "5ca699e3-950a-ea6c-7a7e-7cae3bc0438e",
-                  "description": "Alias for device_id"
-                },
-                {
-                  "key": "rule_id",
-                  "value": "29e31015-4733-49f3-855a-ef7f30e6c147",
-                  "description": "Filter events by rule UUID"
-                },
-                {
-                  "key": "rule",
-                  "value": "5ca699e3-950a-ea6c-7a7e-7cae3bc0438e",
-                  "description": "Alias for rule_id"
-                },
-                {
-                  "key": "severity",
-                  "value": "warning",
-                  "description": "Filter events by severity"
-                },
-                {
-                  "key": "acknowledged",
-                  "value": "true",
-                  "description": "Filter by acknowledged status (true means status != new)"
-                }
-              ]
-            },
-            "description": "get list of events (requires events.view_event permission)"
-          },
-          "response": [
-            {
-              "name": "Page of events (may be empty)",
-              "originalRequest": {
-                "method": "GET",
-                "header": [
-                  {
-                    "key": "Accept",
-                    "value": "application/json"
-                  },
-                  {
-                    "description": "Added as a part of security scheme: bearer",
-                    "key": "Authorization",
-                    "value": "Bearer <token>"
-                  }
-                ],
-                "url": {
-                  "raw": "{{baseUrl}}/events?page=1&page_size=1&device_id=a1b2c3d4-e5f6-7890-1234-567890abcdef&device=5ca699e3-950a-ea6c-7a7e-7cae3bc0438e&rule_id=29e31015-4733-49f3-855a-ef7f30e6c147&rule=5ca699e3-950a-ea6c-7a7e-7cae3bc0438e&severity=warning&acknowledged=true",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "events"
-                  ],
-                  "query": [
-                    {
-                      "description": "page number (1-based)",
-                      "key": "page",
-                      "value": "1"
-                    },
-                    {
-                      "description": "number of items per page",
-                      "key": "page_size",
-                      "value": "1"
-                    },
-                    {
-                      "description": "Filter events by device UUID",
-                      "key": "device_id",
-                      "value": "a1b2c3d4-e5f6-7890-1234-567890abcdef"
-                    },
-                    {
-                      "description": "Alias for device_id",
-                      "key": "device",
-                      "value": "5ca699e3-950a-ea6c-7a7e-7cae3bc0438e"
-                    },
-                    {
-                      "description": "Filter events by rule UUID",
-                      "key": "rule_id",
-                      "value": "29e31015-4733-49f3-855a-ef7f30e6c147"
-                    },
-                    {
-                      "description": "Alias for rule_id",
-                      "key": "rule",
-                      "value": "5ca699e3-950a-ea6c-7a7e-7cae3bc0438e"
-                    },
-                    {
-                      "description": "Filter events by severity",
-                      "key": "severity",
-                      "value": "warning"
-                    },
-                    {
-                      "description": "Filter by acknowledged status (true means status != new)",
-                      "key": "acknowledged",
-                      "value": "true"
-                    }
-                  ]
-                }
-              },
-              "status": "OK",
-              "code": 200,
-              "_postman_previewlanguage": "json",
-              "header": [
-                {
-                  "key": "Content-Type",
-                  "value": "application/json"
-                }
-              ],
-              "cookie": [],
-              "body": "{\n  \"data\": [\n    {\n      \"id\": 321,\n      \"rule_id\": \"29e31015-4733-49f3-855a-ef7f30e6c147\",\n      \"device_id\": \"a1b2c3d4-e5f6-7890-1234-567890abcdef\",\n      \"severity\": \"warning\",\n      \"message\": \"Warning: Device-01 temperature 84.3C\",\n      \"status\": \"acknowledged\",\n      \"acknowledged\": true,\n      \"fired_at\": \"2026-02-08T18:22:31Z\",\n      \"created_at\": \"2026-02-08T18:22:31Z\",\n      \"execution_results\": [\n        {\n          \"type\": \"notification\",\n          \"template_id\": 5,\n          \"status\": \"completed\"\n        }\n      ],\n      \"telemetry_snapshot\": {\n        \"device_id\": \"a1b2c3d4-e5f6-7890-1234-567890abcdef\",\n        \"timestamp\": \"2026-02-08T18:22:00Z\",\n        \"payload\": {\n          \"value\": 84.3\n        }\n      },\n      \"payload\": {\n        \"value\": 84.3\n      }\n    },\n    {\n      \"id\": 321,\n      \"rule_id\": \"29e31015-4733-49f3-855a-ef7f30e6c147\",\n      \"device_id\": \"a1b2c3d4-e5f6-7890-1234-567890abcdef\",\n      \"severity\": \"warning\",\n      \"message\": \"Warning: Device-01 temperature 84.3C\",\n      \"status\": \"acknowledged\",\n      \"acknowledged\": true,\n      \"fired_at\": \"2026-02-08T18:22:31Z\",\n      \"created_at\": \"2026-02-08T18:22:31Z\",\n      \"execution_results\": [\n        {\n          \"type\": \"notification\",\n          \"template_id\": 5,\n          \"status\": \"completed\"\n        }\n      ],\n      \"telemetry_snapshot\": {\n        \"device_id\": \"a1b2c3d4-e5f6-7890-1234-567890abcdef\",\n        \"timestamp\": \"2026-02-08T18:22:00Z\",\n        \"payload\": {\n          \"value\": 84.3\n        }\n      },\n      \"payload\": {\n        \"value\": 84.3\n      }\n    }\n  ],\n  \"pagination\": {\n    \"page\": 2,\n    \"page_size\": 10,\n    \"total\": 134,\n    \"total_pages\": 14,\n    \"next_page\": 3,\n    \"prev_page\": 1\n  }\n}"
-            },
-            {
-              "name": "Bad request body",
-              "originalRequest": {
-                "method": "GET",
-                "header": [
-                  {
-                    "key": "Accept",
-                    "value": "application/json"
-                  },
-                  {
-                    "description": "Added as a part of security scheme: bearer",
-                    "key": "Authorization",
-                    "value": "Bearer <token>"
-                  }
-                ],
-                "url": {
-                  "raw": "{{baseUrl}}/events?page=1&page_size=1&device_id=a1b2c3d4-e5f6-7890-1234-567890abcdef&device=5ca699e3-950a-ea6c-7a7e-7cae3bc0438e&rule_id=29e31015-4733-49f3-855a-ef7f30e6c147&rule=5ca699e3-950a-ea6c-7a7e-7cae3bc0438e&severity=warning&acknowledged=true",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "events"
-                  ],
-                  "query": [
-                    {
-                      "description": "page number (1-based)",
-                      "key": "page",
-                      "value": "1"
-                    },
-                    {
-                      "description": "number of items per page",
-                      "key": "page_size",
-                      "value": "1"
-                    },
-                    {
-                      "description": "Filter events by device UUID",
-                      "key": "device_id",
-                      "value": "a1b2c3d4-e5f6-7890-1234-567890abcdef"
-                    },
-                    {
-                      "description": "Alias for device_id",
-                      "key": "device",
-                      "value": "5ca699e3-950a-ea6c-7a7e-7cae3bc0438e"
-                    },
-                    {
-                      "description": "Filter events by rule UUID",
-                      "key": "rule_id",
-                      "value": "29e31015-4733-49f3-855a-ef7f30e6c147"
-                    },
-                    {
-                      "description": "Alias for rule_id",
-                      "key": "rule",
-                      "value": "5ca699e3-950a-ea6c-7a7e-7cae3bc0438e"
-                    },
-                    {
-                      "description": "Filter events by severity",
-                      "key": "severity",
-                      "value": "warning"
-                    },
-                    {
-                      "description": "Filter by acknowledged status (true means status != new)",
-                      "key": "acknowledged",
-                      "value": "true"
-                    }
-                  ]
-                }
-              },
-              "status": "Bad Request",
-              "code": 400,
-              "_postman_previewlanguage": "json",
-              "header": [
-                {
-                  "key": "Content-Type",
-                  "value": "application/json"
-                }
-              ],
-              "cookie": [],
-              "body": "{\n  \"error\": \"Some error has occured\"\n}"
-            },
-            {
-              "name": "No or invalid JWT token provided",
-              "originalRequest": {
-                "method": "GET",
-                "header": [
-                  {
-                    "key": "Accept",
-                    "value": "application/json"
-                  },
-                  {
-                    "description": "Added as a part of security scheme: bearer",
-                    "key": "Authorization",
-                    "value": "Bearer <token>"
-                  }
-                ],
-                "url": {
-                  "raw": "{{baseUrl}}/events?page=1&page_size=1&device_id=a1b2c3d4-e5f6-7890-1234-567890abcdef&device=5ca699e3-950a-ea6c-7a7e-7cae3bc0438e&rule_id=29e31015-4733-49f3-855a-ef7f30e6c147&rule=5ca699e3-950a-ea6c-7a7e-7cae3bc0438e&severity=warning&acknowledged=true",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "events"
-                  ],
-                  "query": [
-                    {
-                      "description": "page number (1-based)",
-                      "key": "page",
-                      "value": "1"
-                    },
-                    {
-                      "description": "number of items per page",
-                      "key": "page_size",
-                      "value": "1"
-                    },
-                    {
-                      "description": "Filter events by device UUID",
-                      "key": "device_id",
-                      "value": "a1b2c3d4-e5f6-7890-1234-567890abcdef"
-                    },
-                    {
-                      "description": "Alias for device_id",
-                      "key": "device",
-                      "value": "5ca699e3-950a-ea6c-7a7e-7cae3bc0438e"
-                    },
-                    {
-                      "description": "Filter events by rule UUID",
-                      "key": "rule_id",
-                      "value": "29e31015-4733-49f3-855a-ef7f30e6c147"
-                    },
-                    {
-                      "description": "Alias for rule_id",
-                      "key": "rule",
-                      "value": "5ca699e3-950a-ea6c-7a7e-7cae3bc0438e"
-                    },
-                    {
-                      "description": "Filter events by severity",
-                      "key": "severity",
-                      "value": "warning"
-                    },
-                    {
-                      "description": "Filter by acknowledged status (true means status != new)",
-                      "key": "acknowledged",
-                      "value": "true"
-                    }
-                  ]
-                }
-              },
-              "status": "Unauthorized",
-              "code": 401,
-              "_postman_previewlanguage": "json",
-              "header": [
-                {
-                  "key": "Content-Type",
-                  "value": "application/json"
-                }
-              ],
-              "cookie": [],
-              "body": "{\n  \"error\": \"Some error has occured\"\n}"
-            },
-            {
-              "name": "Forbidden",
-              "originalRequest": {
-                "method": "GET",
-                "header": [
-                  {
-                    "key": "Accept",
-                    "value": "application/json"
-                  },
-                  {
-                    "description": "Added as a part of security scheme: bearer",
-                    "key": "Authorization",
-                    "value": "Bearer <token>"
-                  }
-                ],
-                "url": {
-                  "raw": "{{baseUrl}}/events?page=1&page_size=1&device_id=a1b2c3d4-e5f6-7890-1234-567890abcdef&device=5ca699e3-950a-ea6c-7a7e-7cae3bc0438e&rule_id=29e31015-4733-49f3-855a-ef7f30e6c147&rule=5ca699e3-950a-ea6c-7a7e-7cae3bc0438e&severity=warning&acknowledged=true",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "events"
-                  ],
-                  "query": [
-                    {
-                      "description": "page number (1-based)",
-                      "key": "page",
-                      "value": "1"
-                    },
-                    {
-                      "description": "number of items per page",
-                      "key": "page_size",
-                      "value": "1"
-                    },
-                    {
-                      "description": "Filter events by device UUID",
-                      "key": "device_id",
-                      "value": "a1b2c3d4-e5f6-7890-1234-567890abcdef"
-                    },
-                    {
-                      "description": "Alias for device_id",
-                      "key": "device",
-                      "value": "5ca699e3-950a-ea6c-7a7e-7cae3bc0438e"
-                    },
-                    {
-                      "description": "Filter events by rule UUID",
-                      "key": "rule_id",
-                      "value": "29e31015-4733-49f3-855a-ef7f30e6c147"
-                    },
-                    {
-                      "description": "Alias for rule_id",
-                      "key": "rule",
-                      "value": "5ca699e3-950a-ea6c-7a7e-7cae3bc0438e"
-                    },
-                    {
-                      "description": "Filter events by severity",
-                      "key": "severity",
-                      "value": "warning"
-                    },
-                    {
-                      "description": "Filter by acknowledged status (true means status != new)",
-                      "key": "acknowledged",
-                      "value": "true"
-                    }
-                  ]
-                }
-              },
-              "status": "Forbidden",
-              "code": 403,
-              "_postman_previewlanguage": "json",
-              "header": [
-                {
-                  "key": "Content-Type",
-                  "value": "application/json"
-                }
-              ],
-              "cookie": [],
-              "body": "{\n  \"error\": \"Some error has occured\"\n}"
             }
           ]
         }
@@ -2670,6 +1622,243 @@
     {
       "name": "rules",
       "item": [
+        {
+          "name": "inbound",
+          "item": [
+            {
+              "name": "{inbound_id}",
+              "item": [
+                {
+                  "name": "Triggeres an external event",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"key_0\": false\n}",
+                      "options": {
+                        "raw": {
+                          "headerFamily": "json",
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/rules/inbound/:inbound_id",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "rules",
+                        "inbound",
+                        ":inbound_id"
+                      ],
+                      "variable": [
+                        {
+                          "key": "inbound_id",
+                          "value": "1234",
+                          "description": "Get rule data of specific rule by id"
+                        }
+                      ]
+                    },
+                    "description": "Trigger external rule/event"
+                  },
+                  "response": [
+                    {
+                      "name": "Transformed rule",
+                      "originalRequest": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                          },
+                          {
+                            "key": "Accept",
+                            "value": "application/json"
+                          },
+                          {
+                            "description": "Added as a part of security scheme: bearer",
+                            "key": "Authorization",
+                            "value": "Bearer <token>"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n  \"key_0\": false\n}",
+                          "options": {
+                            "raw": {
+                              "headerFamily": "json",
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseUrl}}/rules/inbound/:inbound_id",
+                          "host": [
+                            "{{baseUrl}}"
+                          ],
+                          "path": [
+                            "rules",
+                            "inbound",
+                            ":inbound_id"
+                          ],
+                          "variable": [
+                            {
+                              "key": "inbound_id",
+                              "value": "1234",
+                              "description": "Get rule data of specific rule by id"
+                            }
+                          ]
+                        }
+                      },
+                      "status": "OK",
+                      "code": 200,
+                      "_postman_previewlanguage": "json",
+                      "header": [
+                        {
+                          "key": "Content-Type",
+                          "value": "application/json"
+                        }
+                      ],
+                      "cookie": [],
+                      "body": "{\n  \"type\": \"external\",\n  \"rule_id\": \"133322\",\n  \"device_id\": \"6652\",\n  \"timestamp\": \"2026-02-28T08:59:47.720763+00:00\",\n  \"severy\": \"warning\",\n  \"message\": \"Rule triggered\",\n  \"execution_results\": [],\n  \"telemetry_snapshot\": {\n    \"value\": 15,\n    \"ts\": \"2026-02-28T09:02:55.979981+00:00\",\n    \"temperature\": 21.5,\n    \"battery\": 87\n  },\n  \"action_config\": [\n    {\n      \"type\": \"email\",\n      \"to\": \"bob@gmail.com\",\n      \"name\": \"bob\"\n    }\n  ],\n  \"notifications\": [],\n  \"cooldown_min\": 25\n}"
+                    },
+                    {
+                      "name": "No or invalid JWT token provided",
+                      "originalRequest": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                          },
+                          {
+                            "key": "Accept",
+                            "value": "application/json"
+                          },
+                          {
+                            "description": "Added as a part of security scheme: bearer",
+                            "key": "Authorization",
+                            "value": "Bearer <token>"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n  \"key_0\": false\n}",
+                          "options": {
+                            "raw": {
+                              "headerFamily": "json",
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseUrl}}/rules/inbound/:inbound_id",
+                          "host": [
+                            "{{baseUrl}}"
+                          ],
+                          "path": [
+                            "rules",
+                            "inbound",
+                            ":inbound_id"
+                          ],
+                          "variable": [
+                            {
+                              "key": "inbound_id",
+                              "value": "1234",
+                              "description": "Get rule data of specific rule by id"
+                            }
+                          ]
+                        }
+                      },
+                      "status": "Unauthorized",
+                      "code": 401,
+                      "_postman_previewlanguage": "json",
+                      "header": [
+                        {
+                          "key": "Content-Type",
+                          "value": "application/json"
+                        }
+                      ],
+                      "cookie": [],
+                      "body": "{\n  \"error\": \"Some error has occured\"\n}"
+                    },
+                    {
+                      "name": "Resource not found",
+                      "originalRequest": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                          },
+                          {
+                            "key": "Accept",
+                            "value": "application/json"
+                          },
+                          {
+                            "description": "Added as a part of security scheme: bearer",
+                            "key": "Authorization",
+                            "value": "Bearer <token>"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n  \"key_0\": false\n}",
+                          "options": {
+                            "raw": {
+                              "headerFamily": "json",
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseUrl}}/rules/inbound/:inbound_id",
+                          "host": [
+                            "{{baseUrl}}"
+                          ],
+                          "path": [
+                            "rules",
+                            "inbound",
+                            ":inbound_id"
+                          ],
+                          "variable": [
+                            {
+                              "key": "inbound_id",
+                              "value": "1234",
+                              "description": "Get rule data of specific rule by id"
+                            }
+                          ]
+                        }
+                      },
+                      "status": "Not Found",
+                      "code": 404,
+                      "_postman_previewlanguage": "json",
+                      "header": [
+                        {
+                          "key": "Content-Type",
+                          "value": "application/json"
+                        }
+                      ],
+                      "cookie": [],
+                      "body": "{\n  \"error\": \"Some error has occured\"\n}"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
         {
           "name": "{id}",
           "item": [
@@ -3933,6 +3122,1054 @@
                   "body": "{\n  \"error\": \"Some error has occured\"\n}"
                 }
               ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "events",
+      "item": [
+        {
+          "name": "{event_id}",
+          "item": [
+            {
+              "name": "ack",
+              "item": [
+                {
+                  "name": "Acknowledge an event",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/events/:event_id/ack",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "events",
+                        ":event_id",
+                        "ack"
+                      ],
+                      "variable": [
+                        {
+                          "key": "event_id",
+                          "value": "321",
+                          "description": "Event numeric id"
+                        }
+                      ]
+                    },
+                    "description": "acknowledge an event (requires events.change_event permission)"
+                  },
+                  "response": [
+                    {
+                      "name": "event acknowledged",
+                      "originalRequest": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "key": "Accept",
+                            "value": "application/json"
+                          },
+                          {
+                            "description": "Added as a part of security scheme: bearer",
+                            "key": "Authorization",
+                            "value": "Bearer <token>"
+                          }
+                        ],
+                        "url": {
+                          "raw": "{{baseUrl}}/events/:event_id/ack",
+                          "host": [
+                            "{{baseUrl}}"
+                          ],
+                          "path": [
+                            "events",
+                            ":event_id",
+                            "ack"
+                          ],
+                          "variable": [
+                            {
+                              "key": "event_id",
+                              "value": "321",
+                              "description": "Event numeric id"
+                            }
+                          ]
+                        }
+                      },
+                      "status": "OK",
+                      "code": 200,
+                      "_postman_previewlanguage": "json",
+                      "header": [
+                        {
+                          "key": "Content-Type",
+                          "value": "application/json"
+                        }
+                      ],
+                      "cookie": [],
+                      "body": "{\n  \"data\": {\n    \"id\": 321,\n    \"rule_id\": \"29e31015-4733-49f3-855a-ef7f30e6c147\",\n    \"device_id\": \"a1b2c3d4-e5f6-7890-1234-567890abcdef\",\n    \"severity\": \"warning\",\n    \"message\": \"Warning: Device-01 temperature 84.3C\",\n    \"status\": \"acknowledged\",\n    \"acknowledged\": true,\n    \"fired_at\": \"2026-02-08T18:22:31Z\",\n    \"created_at\": \"2026-02-08T18:22:31Z\",\n    \"execution_results\": [\n      {\n        \"type\": \"notification\",\n        \"template_id\": 5,\n        \"status\": \"completed\"\n      }\n    ],\n    \"telemetry_snapshot\": {\n      \"device_id\": \"a1b2c3d4-e5f6-7890-1234-567890abcdef\",\n      \"timestamp\": \"2026-02-08T18:22:00Z\",\n      \"payload\": {\n        \"value\": 84.3\n      }\n    },\n    \"payload\": {\n      \"value\": 84.3\n    }\n  }\n}"
+                    },
+                    {
+                      "name": "No or invalid JWT token provided",
+                      "originalRequest": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "key": "Accept",
+                            "value": "application/json"
+                          },
+                          {
+                            "description": "Added as a part of security scheme: bearer",
+                            "key": "Authorization",
+                            "value": "Bearer <token>"
+                          }
+                        ],
+                        "url": {
+                          "raw": "{{baseUrl}}/events/:event_id/ack",
+                          "host": [
+                            "{{baseUrl}}"
+                          ],
+                          "path": [
+                            "events",
+                            ":event_id",
+                            "ack"
+                          ],
+                          "variable": [
+                            {
+                              "key": "event_id",
+                              "value": "321",
+                              "description": "Event numeric id"
+                            }
+                          ]
+                        }
+                      },
+                      "status": "Unauthorized",
+                      "code": 401,
+                      "_postman_previewlanguage": "json",
+                      "header": [
+                        {
+                          "key": "Content-Type",
+                          "value": "application/json"
+                        }
+                      ],
+                      "cookie": [],
+                      "body": "{\n  \"error\": \"Some error has occured\"\n}"
+                    },
+                    {
+                      "name": "Forbidden",
+                      "originalRequest": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "key": "Accept",
+                            "value": "application/json"
+                          },
+                          {
+                            "description": "Added as a part of security scheme: bearer",
+                            "key": "Authorization",
+                            "value": "Bearer <token>"
+                          }
+                        ],
+                        "url": {
+                          "raw": "{{baseUrl}}/events/:event_id/ack",
+                          "host": [
+                            "{{baseUrl}}"
+                          ],
+                          "path": [
+                            "events",
+                            ":event_id",
+                            "ack"
+                          ],
+                          "variable": [
+                            {
+                              "key": "event_id",
+                              "value": "321",
+                              "description": "Event numeric id"
+                            }
+                          ]
+                        }
+                      },
+                      "status": "Forbidden",
+                      "code": 403,
+                      "_postman_previewlanguage": "json",
+                      "header": [
+                        {
+                          "key": "Content-Type",
+                          "value": "application/json"
+                        }
+                      ],
+                      "cookie": [],
+                      "body": "{\n  \"error\": \"Some error has occured\"\n}"
+                    },
+                    {
+                      "name": "Resource not found",
+                      "originalRequest": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "key": "Accept",
+                            "value": "application/json"
+                          },
+                          {
+                            "description": "Added as a part of security scheme: bearer",
+                            "key": "Authorization",
+                            "value": "Bearer <token>"
+                          }
+                        ],
+                        "url": {
+                          "raw": "{{baseUrl}}/events/:event_id/ack",
+                          "host": [
+                            "{{baseUrl}}"
+                          ],
+                          "path": [
+                            "events",
+                            ":event_id",
+                            "ack"
+                          ],
+                          "variable": [
+                            {
+                              "key": "event_id",
+                              "value": "321",
+                              "description": "Event numeric id"
+                            }
+                          ]
+                        }
+                      },
+                      "status": "Not Found",
+                      "code": 404,
+                      "_postman_previewlanguage": "json",
+                      "header": [
+                        {
+                          "key": "Content-Type",
+                          "value": "application/json"
+                        }
+                      ],
+                      "cookie": [],
+                      "body": "{\n  \"error\": \"Some error has occured\"\n}"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "name": "resolve",
+              "item": [
+                {
+                  "name": "Resolve an event",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/events/:event_id/resolve",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "events",
+                        ":event_id",
+                        "resolve"
+                      ],
+                      "variable": [
+                        {
+                          "key": "event_id",
+                          "value": "321",
+                          "description": "Event numeric id"
+                        }
+                      ]
+                    },
+                    "description": "resolve an event (requires events.change_event permission)"
+                  },
+                  "response": [
+                    {
+                      "name": "event resolved",
+                      "originalRequest": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "key": "Accept",
+                            "value": "application/json"
+                          },
+                          {
+                            "description": "Added as a part of security scheme: bearer",
+                            "key": "Authorization",
+                            "value": "Bearer <token>"
+                          }
+                        ],
+                        "url": {
+                          "raw": "{{baseUrl}}/events/:event_id/resolve",
+                          "host": [
+                            "{{baseUrl}}"
+                          ],
+                          "path": [
+                            "events",
+                            ":event_id",
+                            "resolve"
+                          ],
+                          "variable": [
+                            {
+                              "key": "event_id",
+                              "value": "321",
+                              "description": "Event numeric id"
+                            }
+                          ]
+                        }
+                      },
+                      "status": "OK",
+                      "code": 200,
+                      "_postman_previewlanguage": "json",
+                      "header": [
+                        {
+                          "key": "Content-Type",
+                          "value": "application/json"
+                        }
+                      ],
+                      "cookie": [],
+                      "body": "{\n  \"data\": {\n    \"id\": 321,\n    \"rule_id\": \"29e31015-4733-49f3-855a-ef7f30e6c147\",\n    \"device_id\": \"a1b2c3d4-e5f6-7890-1234-567890abcdef\",\n    \"severity\": \"warning\",\n    \"message\": \"Warning: Device-01 temperature 84.3C\",\n    \"status\": \"acknowledged\",\n    \"acknowledged\": true,\n    \"fired_at\": \"2026-02-08T18:22:31Z\",\n    \"created_at\": \"2026-02-08T18:22:31Z\",\n    \"execution_results\": [\n      {\n        \"type\": \"notification\",\n        \"template_id\": 5,\n        \"status\": \"completed\"\n      }\n    ],\n    \"telemetry_snapshot\": {\n      \"device_id\": \"a1b2c3d4-e5f6-7890-1234-567890abcdef\",\n      \"timestamp\": \"2026-02-08T18:22:00Z\",\n      \"payload\": {\n        \"value\": 84.3\n      }\n    },\n    \"payload\": {\n      \"value\": 84.3\n    }\n  }\n}"
+                    },
+                    {
+                      "name": "No or invalid JWT token provided",
+                      "originalRequest": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "key": "Accept",
+                            "value": "application/json"
+                          },
+                          {
+                            "description": "Added as a part of security scheme: bearer",
+                            "key": "Authorization",
+                            "value": "Bearer <token>"
+                          }
+                        ],
+                        "url": {
+                          "raw": "{{baseUrl}}/events/:event_id/resolve",
+                          "host": [
+                            "{{baseUrl}}"
+                          ],
+                          "path": [
+                            "events",
+                            ":event_id",
+                            "resolve"
+                          ],
+                          "variable": [
+                            {
+                              "key": "event_id",
+                              "value": "321",
+                              "description": "Event numeric id"
+                            }
+                          ]
+                        }
+                      },
+                      "status": "Unauthorized",
+                      "code": 401,
+                      "_postman_previewlanguage": "json",
+                      "header": [
+                        {
+                          "key": "Content-Type",
+                          "value": "application/json"
+                        }
+                      ],
+                      "cookie": [],
+                      "body": "{\n  \"error\": \"Some error has occured\"\n}"
+                    },
+                    {
+                      "name": "Forbidden",
+                      "originalRequest": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "key": "Accept",
+                            "value": "application/json"
+                          },
+                          {
+                            "description": "Added as a part of security scheme: bearer",
+                            "key": "Authorization",
+                            "value": "Bearer <token>"
+                          }
+                        ],
+                        "url": {
+                          "raw": "{{baseUrl}}/events/:event_id/resolve",
+                          "host": [
+                            "{{baseUrl}}"
+                          ],
+                          "path": [
+                            "events",
+                            ":event_id",
+                            "resolve"
+                          ],
+                          "variable": [
+                            {
+                              "key": "event_id",
+                              "value": "321",
+                              "description": "Event numeric id"
+                            }
+                          ]
+                        }
+                      },
+                      "status": "Forbidden",
+                      "code": 403,
+                      "_postman_previewlanguage": "json",
+                      "header": [
+                        {
+                          "key": "Content-Type",
+                          "value": "application/json"
+                        }
+                      ],
+                      "cookie": [],
+                      "body": "{\n  \"error\": \"Some error has occured\"\n}"
+                    },
+                    {
+                      "name": "Resource not found",
+                      "originalRequest": {
+                        "method": "POST",
+                        "header": [
+                          {
+                            "key": "Accept",
+                            "value": "application/json"
+                          },
+                          {
+                            "description": "Added as a part of security scheme: bearer",
+                            "key": "Authorization",
+                            "value": "Bearer <token>"
+                          }
+                        ],
+                        "url": {
+                          "raw": "{{baseUrl}}/events/:event_id/resolve",
+                          "host": [
+                            "{{baseUrl}}"
+                          ],
+                          "path": [
+                            "events",
+                            ":event_id",
+                            "resolve"
+                          ],
+                          "variable": [
+                            {
+                              "key": "event_id",
+                              "value": "321",
+                              "description": "Event numeric id"
+                            }
+                          ]
+                        }
+                      },
+                      "status": "Not Found",
+                      "code": 404,
+                      "_postman_previewlanguage": "json",
+                      "header": [
+                        {
+                          "key": "Content-Type",
+                          "value": "application/json"
+                        }
+                      ],
+                      "cookie": [],
+                      "body": "{\n  \"error\": \"Some error has occured\"\n}"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "name": "Get a specific event by id",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/events/:event_id",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "events",
+                    ":event_id"
+                  ],
+                  "variable": [
+                    {
+                      "key": "event_id",
+                      "value": "321",
+                      "description": "Event numeric id"
+                    }
+                  ]
+                },
+                "description": "get a specific event by id (requires events.view_event permission)"
+              },
+              "response": [
+                {
+                  "name": "event information by id",
+                  "originalRequest": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "description": "Added as a part of security scheme: bearer",
+                        "key": "Authorization",
+                        "value": "Bearer <token>"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/events/:event_id",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "events",
+                        ":event_id"
+                      ],
+                      "variable": [
+                        {
+                          "key": "event_id",
+                          "value": "321",
+                          "description": "Event numeric id"
+                        }
+                      ]
+                    }
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"data\": {\n    \"id\": 321,\n    \"rule_id\": \"29e31015-4733-49f3-855a-ef7f30e6c147\",\n    \"device_id\": \"a1b2c3d4-e5f6-7890-1234-567890abcdef\",\n    \"severity\": \"warning\",\n    \"message\": \"Warning: Device-01 temperature 84.3C\",\n    \"status\": \"acknowledged\",\n    \"acknowledged\": true,\n    \"fired_at\": \"2026-02-08T18:22:31Z\",\n    \"created_at\": \"2026-02-08T18:22:31Z\",\n    \"execution_results\": [\n      {\n        \"type\": \"notification\",\n        \"template_id\": 5,\n        \"status\": \"completed\"\n      }\n    ],\n    \"telemetry_snapshot\": {\n      \"device_id\": \"a1b2c3d4-e5f6-7890-1234-567890abcdef\",\n      \"timestamp\": \"2026-02-08T18:22:00Z\",\n      \"payload\": {\n        \"value\": 84.3\n      }\n    },\n    \"payload\": {\n      \"value\": 84.3\n    }\n  }\n}"
+                },
+                {
+                  "name": "No or invalid JWT token provided",
+                  "originalRequest": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "description": "Added as a part of security scheme: bearer",
+                        "key": "Authorization",
+                        "value": "Bearer <token>"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/events/:event_id",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "events",
+                        ":event_id"
+                      ],
+                      "variable": [
+                        {
+                          "key": "event_id",
+                          "value": "321",
+                          "description": "Event numeric id"
+                        }
+                      ]
+                    }
+                  },
+                  "status": "Unauthorized",
+                  "code": 401,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"error\": \"Some error has occured\"\n}"
+                },
+                {
+                  "name": "Forbidden",
+                  "originalRequest": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "description": "Added as a part of security scheme: bearer",
+                        "key": "Authorization",
+                        "value": "Bearer <token>"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/events/:event_id",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "events",
+                        ":event_id"
+                      ],
+                      "variable": [
+                        {
+                          "key": "event_id",
+                          "value": "321",
+                          "description": "Event numeric id"
+                        }
+                      ]
+                    }
+                  },
+                  "status": "Forbidden",
+                  "code": 403,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"error\": \"Some error has occured\"\n}"
+                },
+                {
+                  "name": "Resource not found",
+                  "originalRequest": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "description": "Added as a part of security scheme: bearer",
+                        "key": "Authorization",
+                        "value": "Bearer <token>"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/events/:event_id",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "events",
+                        ":event_id"
+                      ],
+                      "variable": [
+                        {
+                          "key": "event_id",
+                          "value": "321",
+                          "description": "Event numeric id"
+                        }
+                      ]
+                    }
+                  },
+                  "status": "Not Found",
+                  "code": 404,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"error\": \"Some error has occured\"\n}"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Get paginated event data",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/events?page=1&page_size=1&device_id=a1b2c3d4-e5f6-7890-1234-567890abcdef&device=93397529-ac36-d44d-2a60-5eac86d58556&rule_id=29e31015-4733-49f3-855a-ef7f30e6c147&rule=93397529-ac36-d44d-2a60-5eac86d58556&severity=warning&acknowledged=true",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "page number (1-based)"
+                },
+                {
+                  "key": "page_size",
+                  "value": "1",
+                  "description": "number of items per page"
+                },
+                {
+                  "key": "device_id",
+                  "value": "a1b2c3d4-e5f6-7890-1234-567890abcdef",
+                  "description": "Filter events by device UUID"
+                },
+                {
+                  "key": "device",
+                  "value": "93397529-ac36-d44d-2a60-5eac86d58556",
+                  "description": "Alias for device_id"
+                },
+                {
+                  "key": "rule_id",
+                  "value": "29e31015-4733-49f3-855a-ef7f30e6c147",
+                  "description": "Filter events by rule UUID"
+                },
+                {
+                  "key": "rule",
+                  "value": "93397529-ac36-d44d-2a60-5eac86d58556",
+                  "description": "Alias for rule_id"
+                },
+                {
+                  "key": "severity",
+                  "value": "warning",
+                  "description": "Filter events by severity"
+                },
+                {
+                  "key": "acknowledged",
+                  "value": "true",
+                  "description": "Filter by acknowledged status (true means status != new)"
+                }
+              ]
+            },
+            "description": "get list of events (requires events.view_event permission)"
+          },
+          "response": [
+            {
+              "name": "Page of events (may be empty)",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "description": "Added as a part of security scheme: bearer",
+                    "key": "Authorization",
+                    "value": "Bearer <token>"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/events?page=1&page_size=1&device_id=a1b2c3d4-e5f6-7890-1234-567890abcdef&device=93397529-ac36-d44d-2a60-5eac86d58556&rule_id=29e31015-4733-49f3-855a-ef7f30e6c147&rule=93397529-ac36-d44d-2a60-5eac86d58556&severity=warning&acknowledged=true",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "events"
+                  ],
+                  "query": [
+                    {
+                      "description": "page number (1-based)",
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "description": "number of items per page",
+                      "key": "page_size",
+                      "value": "1"
+                    },
+                    {
+                      "description": "Filter events by device UUID",
+                      "key": "device_id",
+                      "value": "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+                    },
+                    {
+                      "description": "Alias for device_id",
+                      "key": "device",
+                      "value": "93397529-ac36-d44d-2a60-5eac86d58556"
+                    },
+                    {
+                      "description": "Filter events by rule UUID",
+                      "key": "rule_id",
+                      "value": "29e31015-4733-49f3-855a-ef7f30e6c147"
+                    },
+                    {
+                      "description": "Alias for rule_id",
+                      "key": "rule",
+                      "value": "93397529-ac36-d44d-2a60-5eac86d58556"
+                    },
+                    {
+                      "description": "Filter events by severity",
+                      "key": "severity",
+                      "value": "warning"
+                    },
+                    {
+                      "description": "Filter by acknowledged status (true means status != new)",
+                      "key": "acknowledged",
+                      "value": "true"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"data\": [\n    {\n      \"id\": 321,\n      \"rule_id\": \"29e31015-4733-49f3-855a-ef7f30e6c147\",\n      \"device_id\": \"a1b2c3d4-e5f6-7890-1234-567890abcdef\",\n      \"severity\": \"warning\",\n      \"message\": \"Warning: Device-01 temperature 84.3C\",\n      \"status\": \"acknowledged\",\n      \"acknowledged\": true,\n      \"fired_at\": \"2026-02-08T18:22:31Z\",\n      \"created_at\": \"2026-02-08T18:22:31Z\",\n      \"execution_results\": [\n        {\n          \"type\": \"notification\",\n          \"template_id\": 5,\n          \"status\": \"completed\"\n        }\n      ],\n      \"telemetry_snapshot\": {\n        \"device_id\": \"a1b2c3d4-e5f6-7890-1234-567890abcdef\",\n        \"timestamp\": \"2026-02-08T18:22:00Z\",\n        \"payload\": {\n          \"value\": 84.3\n        }\n      },\n      \"payload\": {\n        \"value\": 84.3\n      }\n    },\n    {\n      \"id\": 321,\n      \"rule_id\": \"29e31015-4733-49f3-855a-ef7f30e6c147\",\n      \"device_id\": \"a1b2c3d4-e5f6-7890-1234-567890abcdef\",\n      \"severity\": \"warning\",\n      \"message\": \"Warning: Device-01 temperature 84.3C\",\n      \"status\": \"acknowledged\",\n      \"acknowledged\": true,\n      \"fired_at\": \"2026-02-08T18:22:31Z\",\n      \"created_at\": \"2026-02-08T18:22:31Z\",\n      \"execution_results\": [\n        {\n          \"type\": \"notification\",\n          \"template_id\": 5,\n          \"status\": \"completed\"\n        }\n      ],\n      \"telemetry_snapshot\": {\n        \"device_id\": \"a1b2c3d4-e5f6-7890-1234-567890abcdef\",\n        \"timestamp\": \"2026-02-08T18:22:00Z\",\n        \"payload\": {\n          \"value\": 84.3\n        }\n      },\n      \"payload\": {\n        \"value\": 84.3\n      }\n    }\n  ],\n  \"pagination\": {\n    \"page\": 2,\n    \"page_size\": 10,\n    \"total\": 134,\n    \"total_pages\": 14,\n    \"next_page\": 3,\n    \"prev_page\": 1\n  }\n}"
+            },
+            {
+              "name": "Bad request body",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "description": "Added as a part of security scheme: bearer",
+                    "key": "Authorization",
+                    "value": "Bearer <token>"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/events?page=1&page_size=1&device_id=a1b2c3d4-e5f6-7890-1234-567890abcdef&device=93397529-ac36-d44d-2a60-5eac86d58556&rule_id=29e31015-4733-49f3-855a-ef7f30e6c147&rule=93397529-ac36-d44d-2a60-5eac86d58556&severity=warning&acknowledged=true",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "events"
+                  ],
+                  "query": [
+                    {
+                      "description": "page number (1-based)",
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "description": "number of items per page",
+                      "key": "page_size",
+                      "value": "1"
+                    },
+                    {
+                      "description": "Filter events by device UUID",
+                      "key": "device_id",
+                      "value": "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+                    },
+                    {
+                      "description": "Alias for device_id",
+                      "key": "device",
+                      "value": "93397529-ac36-d44d-2a60-5eac86d58556"
+                    },
+                    {
+                      "description": "Filter events by rule UUID",
+                      "key": "rule_id",
+                      "value": "29e31015-4733-49f3-855a-ef7f30e6c147"
+                    },
+                    {
+                      "description": "Alias for rule_id",
+                      "key": "rule",
+                      "value": "93397529-ac36-d44d-2a60-5eac86d58556"
+                    },
+                    {
+                      "description": "Filter events by severity",
+                      "key": "severity",
+                      "value": "warning"
+                    },
+                    {
+                      "description": "Filter by acknowledged status (true means status != new)",
+                      "key": "acknowledged",
+                      "value": "true"
+                    }
+                  ]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"error\": \"Some error has occured\"\n}"
+            },
+            {
+              "name": "No or invalid JWT token provided",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "description": "Added as a part of security scheme: bearer",
+                    "key": "Authorization",
+                    "value": "Bearer <token>"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/events?page=1&page_size=1&device_id=a1b2c3d4-e5f6-7890-1234-567890abcdef&device=93397529-ac36-d44d-2a60-5eac86d58556&rule_id=29e31015-4733-49f3-855a-ef7f30e6c147&rule=93397529-ac36-d44d-2a60-5eac86d58556&severity=warning&acknowledged=true",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "events"
+                  ],
+                  "query": [
+                    {
+                      "description": "page number (1-based)",
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "description": "number of items per page",
+                      "key": "page_size",
+                      "value": "1"
+                    },
+                    {
+                      "description": "Filter events by device UUID",
+                      "key": "device_id",
+                      "value": "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+                    },
+                    {
+                      "description": "Alias for device_id",
+                      "key": "device",
+                      "value": "93397529-ac36-d44d-2a60-5eac86d58556"
+                    },
+                    {
+                      "description": "Filter events by rule UUID",
+                      "key": "rule_id",
+                      "value": "29e31015-4733-49f3-855a-ef7f30e6c147"
+                    },
+                    {
+                      "description": "Alias for rule_id",
+                      "key": "rule",
+                      "value": "93397529-ac36-d44d-2a60-5eac86d58556"
+                    },
+                    {
+                      "description": "Filter events by severity",
+                      "key": "severity",
+                      "value": "warning"
+                    },
+                    {
+                      "description": "Filter by acknowledged status (true means status != new)",
+                      "key": "acknowledged",
+                      "value": "true"
+                    }
+                  ]
+                }
+              },
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"error\": \"Some error has occured\"\n}"
+            },
+            {
+              "name": "Forbidden",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "description": "Added as a part of security scheme: bearer",
+                    "key": "Authorization",
+                    "value": "Bearer <token>"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/events?page=1&page_size=1&device_id=a1b2c3d4-e5f6-7890-1234-567890abcdef&device=93397529-ac36-d44d-2a60-5eac86d58556&rule_id=29e31015-4733-49f3-855a-ef7f30e6c147&rule=93397529-ac36-d44d-2a60-5eac86d58556&severity=warning&acknowledged=true",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "events"
+                  ],
+                  "query": [
+                    {
+                      "description": "page number (1-based)",
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "description": "number of items per page",
+                      "key": "page_size",
+                      "value": "1"
+                    },
+                    {
+                      "description": "Filter events by device UUID",
+                      "key": "device_id",
+                      "value": "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+                    },
+                    {
+                      "description": "Alias for device_id",
+                      "key": "device",
+                      "value": "93397529-ac36-d44d-2a60-5eac86d58556"
+                    },
+                    {
+                      "description": "Filter events by rule UUID",
+                      "key": "rule_id",
+                      "value": "29e31015-4733-49f3-855a-ef7f30e6c147"
+                    },
+                    {
+                      "description": "Alias for rule_id",
+                      "key": "rule",
+                      "value": "93397529-ac36-d44d-2a60-5eac86d58556"
+                    },
+                    {
+                      "description": "Filter events by severity",
+                      "key": "severity",
+                      "value": "warning"
+                    },
+                    {
+                      "description": "Filter by acknowledged status (true means status != new)",
+                      "key": "acknowledged",
+                      "value": "true"
+                    }
+                  ]
+                }
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"error\": \"Some error has occured\"\n}"
             }
           ]
         }

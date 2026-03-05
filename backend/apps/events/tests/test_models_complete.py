@@ -103,6 +103,47 @@ class TestValidateExecutionResults:
             ]
         )
 
+    def test_execution_results_alert_without_template_id(self):
+        """Reject alert results without template_id."""
+        with pytest.raises(
+            ValidationError,
+            match="alert result must include template_id",
+        ):
+            validate_execution_results([{"type": "alert", "status": "queued"}])
+
+    def test_execution_results_webhook_without_url(self):
+        """Reject webhook results without url."""
+        with pytest.raises(ValidationError, match="webhook result must include url"):
+            validate_execution_results([{"type": "webhook", "status": "failed"}])
+
+    def test_execution_results_command_without_command(self):
+        """Reject command results without command field."""
+        with pytest.raises(
+            ValidationError,
+            match="command result must include command",
+        ):
+            validate_execution_results([{"type": "command", "status": "failed"}])
+
+    def test_execution_results_accepts_new_action_types(self):
+        """Accept alert, webhook, and command execution traces."""
+        validate_execution_results(
+            [
+                {"type": "alert", "status": "queued", "template_id": 2},
+                {
+                    "type": "webhook",
+                    "status": "completed",
+                    "url": "https://ops.example.com/hook",
+                    "status_code": 200,
+                },
+                {
+                    "type": "command",
+                    "status": "completed",
+                    "command": "set_device_status",
+                    "new_status": "inactive",
+                },
+            ]
+        )
+
 
 @pytest.mark.django_db
 class TestValidateTelemetrySnapshot:

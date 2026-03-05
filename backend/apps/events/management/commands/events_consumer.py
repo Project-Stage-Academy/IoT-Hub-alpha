@@ -13,10 +13,12 @@ Usage:
 import json
 import logging
 from datetime import datetime
+from typing import Any
 from uuid import UUID
 
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
+from django.utils import timezone
 
 from apps.events.services.event_handler import (
     event_handler,
@@ -27,9 +29,10 @@ from apps.events.services.actions import action_dispatch
 from apps.events.services.helpers import handle_rules
 from apps.rules.services.data_structure import EvalResults, ActionConfig
 from apps.rules.services.metrics import track_kafka_message_processing
+from apps.rules.models import Rule
+from apps.events.services.external_events_data_structure import FakeRule
 
-
-logger = logging.getLogger("events.consumer")
+logger = logging.getLogger("apps.events.consumer")
 
 try:
     from confluent_kafka import Consumer, KafkaError, Producer
@@ -88,6 +91,12 @@ Metrics Exported (Prometheus):
             default="events-processor",
             help="Kafka consumer group ID (default: events-processor)",
         )
+        parser.add_argument(
+            "--metrics-port",
+            type=int,
+            default=9102,
+            help="Port for Prometheus metrics HTTP server (default: 9102)",
+        )
 
     def handle(self, **options):
         if Consumer is None or Producer is None:
@@ -98,6 +107,18 @@ Metrics Exported (Prometheus):
 
         input_topic = options["input_topic"]
         group_id = options["group_id"]
+        metrics_port = options["metrics_port"]
+
+        from prometheus_client import start_http_server
+
+        try:
+            start_http_server(metrics_port)
+        except OSError as e:
+            logger.warning(
+                "Could not start Prometheus HTTP server on port %d: %s",
+                metrics_port,
+                str(e),
+            )
 
         consumer = Consumer(self._build_consumer_config(group_id))
         consumer.subscribe([input_topic])
@@ -106,13 +127,16 @@ Metrics Exported (Prometheus):
             self.style.SUCCESS(
                 f"EventsConsumer started\n"
                 f"   Input:  {input_topic}\n"
-                f"   Group:  {group_id}"
+                f"   Group:  {group_id}\n"
+                f"   Metrics: http://0.0.0.0:{metrics_port}/"
             )
         )
 
-        message_count = 0
-        error_count = 0
-        cooldown_skip_count = 0
+        stats = {
+            "message_count": 0,
+            "error_count": 0,
+            "cooldown_skip_count": 0,
+        }
 
         try:
             while True:
@@ -122,126 +146,243 @@ Metrics Exported (Prometheus):
                     continue
 
                 if self._handle_kafka_error(msg):
-                    error_count += 1
+                    stats["error_count"] += 1
                     continue
 
-                try:
-                    with track_kafka_message_processing(input_topic, group_id):
-                        payload = json.loads(msg.value().decode("utf-8"))
-                        message_count += 1
-                        payload_type = payload.get("type")
-
-                        rule, rule_id, device_id = handle_rules(
-                            payload, payload_type, consumer, logger
-                        )
-                        if not rule:
-                            continue
-
-                        message_text = payload.get("message", "Rule triggered")
-                        snapshot = payload.get("telemetry_snapshot", {})
-                        aggregate = EvalResults(
-                            trigger=True,
-                            values=snapshot.get("values", []),
-                            start=(
-                                datetime.fromisoformat(snapshot["start"])
-                                if snapshot.get("start")
-                                else None
-                            ),
-                            end=(
-                                datetime.fromisoformat(snapshot["end"])
-                                if snapshot.get("end")
-                                else None
-                            ),
-                        )
-
-                        try:
-                            if payload_type == "internal":
-                                event = event_handler(aggregate, rule, message_text)
-                            else:
-                                event = external_event_handler(
-                                    aggregate,
-                                    rule_id,
-                                    message_text,
-                                    rule.event_cooldown_until,
-                                )
-
-                            logger.info(
-                                f"Event created: {event.id}",
-                                extra={
-                                    "event_id": str(event.id),
-                                    "rule_id": str(rule_id),
-                                    "device_id": str(device_id),
-                                },
-                            )
-
-                            for action_config_dict in rule.action_config:
-                                action_config = ActionConfig.model_validate(
-                                    action_config_dict
-                                )
-                                try:
-                                    action_dispatch(action_config, rule, aggregate)
-                                except Exception as e:
-                                    logger.error(
-                                        f"Error dispatching action: {e}",
-                                        exc_info=True,
-                                        extra={
-                                            "rule_id": str(rule_id),
-                                            "action_type": (action_config.type),
-                                        },
-                                    )
-
-                        except EventCooldownActive:
-                            logger.info(
-                                "Event in cooldown, skipping",
-                                extra={
-                                    "rule_id": str(rule_id),
-                                    "device_id": str(device_id),
-                                },
-                            )
-                            cooldown_skip_count += 1
-
-                        if message_count % 100 == 0:
-                            self.stdout.write(
-                                f"Processed {message_count} messages "
-                                f"({error_count} errors, "
-                                f"{cooldown_skip_count} cooldown skips)"
-                            )
-
-                        consumer.commit(asynchronous=False)
-
-                except (KeyError, ValueError, TypeError) as e:
-                    logger.error(
-                        f"Error parsing message: {e}",
-                        exc_info=True,
-                        extra={"raw_value": msg.value()},
-                    )
-                    error_count += 1
-                    consumer.commit(asynchronous=False)
-                    continue
-
-                except Exception as e:
-                    logger.error(
-                        f"Unexpected error: {e}",
-                        exc_info=True,
-                    )
-                    error_count += 1
-                    consumer.commit(asynchronous=False)
-                    continue
+                self._process_message(
+                    msg=msg,
+                    consumer=consumer,
+                    input_topic=input_topic,
+                    group_id=group_id,
+                    stats=stats,
+                )
 
         except KeyboardInterrupt:
-            self.stdout.write(self.style.WARNING("\nConsumer stopped"))
-
+            self.stdout.write("Shutting down EventsConsumer")
         finally:
             consumer.close()
-
             self.stdout.write(
                 self.style.SUCCESS(
                     f"\nFinal stats:\n"
-                    f"   Messages:     {message_count}\n"
-                    f"   Errors:       {error_count}\n"
-                    f"   Cooldown:     {cooldown_skip_count}"
+                    f"   Messages:     {stats['message_count']}\n"
+                    f"   Errors:       {stats['error_count']}\n"
+                    f"   Cooldown:     {stats['cooldown_skip_count']}"
                 )
             )
+
+    def _process_message(
+        self,
+        *,
+        msg,
+        consumer,
+        input_topic: str,
+        group_id: str,
+        stats: dict[str, int],
+    ) -> None:
+        try:
+            with track_kafka_message_processing(input_topic, group_id):
+                payload = json.loads(msg.value().decode("utf-8"))
+                stats["message_count"] += 1
+
+                rule_id, device_id, message_text, aggregate = self._parse_payload(
+                    payload
+                )
+                if (
+                    payload["type"] == "internal"
+                    and isinstance(rule_id, UUID)
+                    and isinstance(device_id, UUID)
+                ):
+                    rule = self._get_rule_or_none(rule_id=rule_id, device_id=device_id)
+                    if rule is None:
+                        consumer.commit(asynchronous=False)
+                        return
+                elif isinstance(rule_id, str):
+                    rule = FakeRule(
+                        id=rule_id,
+                        action_config=payload["action_config"],
+                        event_cooldown_until=payload["cooldown_min"],
+                        additional_recipients=payload["external_recipients"],
+                    )
+
+                self._handle_event_actions(
+                    rule_id=rule_id,
+                    device_id=device_id,
+                    message_text=message_text,
+                    aggregate=aggregate,
+                    rule=rule,
+                    stats=stats,
+                )
+
+                self._print_progress(stats)
+                consumer.commit(asynchronous=False)
+
+        except (KeyError, ValueError, TypeError) as exc:
+            logger.error(
+                "Error parsing message: %s",
+                str(exc),
+                exc_info=True,
+                extra={"raw_value": msg.value()},
+            )
+            stats["error_count"] += 1
+            consumer.commit(asynchronous=False)
+        except Exception as exc:
+            logger.error(
+                "Unexpected error: %s",
+                str(exc),
+                exc_info=True,
+            )
+            stats["error_count"] += 1
+            consumer.commit(asynchronous=False)
+
+    def _parse_payload(
+        self,
+        payload: dict[str, Any],
+    ) -> tuple[UUID | str, UUID | str, str, EvalResults]:
+        if payload["type"] == "internal":
+            rule_id = UUID(payload["rule_id"])
+            device_id = UUID(payload["device_id"])
+        else:
+            rule_id = str(payload["rule_id"])
+            device_id = str(payload["device_id"])
+
+        message_text = payload.get("message", "Rule triggered")
+        snapshot = payload.get("telemetry_snapshot", {})
+        aggregate = EvalResults(
+            trigger=True,
+            values=snapshot.get("values", []),
+            start=(
+                datetime.fromisoformat(snapshot["start"])
+                if snapshot.get("start")
+                else None
+            ),
+            end=(
+                datetime.fromisoformat(snapshot["end"]) if snapshot.get("end") else None
+            ),
+        )
+        return rule_id, device_id, message_text, aggregate
+
+    def _get_rule_or_none(self, *, rule_id: UUID, device_id: UUID) -> Rule | None:
+        try:
+            return Rule.objects.get(id=rule_id)
+        except Rule.DoesNotExist:
+            logger.error(
+                "Rule not found: %s",
+                rule_id,
+                extra={
+                    "rule_id": str(rule_id),
+                    "device_id": str(device_id),
+                },
+            )
+            return None
+
+    def _handle_event_actions(
+        self,
+        *,
+        rule_id: UUID | str,
+        device_id: UUID | str,
+        message_text: str,
+        aggregate: EvalResults,
+        rule: Rule | FakeRule,
+        stats: dict[str, int],
+    ) -> None:
+        try:
+            if isinstance(rule_id, UUID):
+                event = event_handler(aggregate, rule, message_text)
+            else:
+                event = external_event_handler(
+                    aggregate, rule.id, message_text, rule.event_cooldown_until
+                )
+
+            logger.info(
+                "Event created: %s",
+                event.id,
+                extra={
+                    "event_id": str(event.id),
+                    "rule_id": str(rule_id),
+                    "device_id": str(device_id),
+                },
+            )
+
+            execution_results = self._dispatch_actions(
+                rule_id=rule_id,
+                rule=rule,
+                aggregate=aggregate,
+            )
+            if execution_results:
+                event.execution_results = execution_results
+                event.save(update_fields=["execution_results"])
+
+        except EventCooldownActive:
+            logger.info(
+                "Event in cooldown, skipping",
+                extra={
+                    "rule_id": str(rule_id),
+                    "device_id": str(device_id),
+                },
+            )
+            stats["cooldown_skip_count"] += 1
+
+    def _dispatch_actions(
+        self,
+        *,
+        rule_id: UUID | str,
+        rule: Rule | FakeRule,
+        aggregate: EvalResults,
+    ) -> list[dict[str, Any]]:
+        execution_results: list[dict[str, Any]] = []
+
+        for action_config_dict in rule.action_config:
+            try:
+                action_config = ActionConfig.model_validate(action_config_dict)
+            except Exception as exc:
+                execution_results.append(
+                    self._invalid_action_result(
+                        action_config_dict=action_config_dict,
+                        rule_id=rule_id,
+                        error=exc,
+                    )
+                )
+                continue
+
+            execution_results.append(action_dispatch(action_config, rule, aggregate))
+
+        return execution_results
+
+    def _invalid_action_result(
+        self,
+        *,
+        action_config_dict: Any,
+        rule_id: UUID | str,
+        error: Exception,
+    ) -> dict[str, str]:
+        invalid_action_type = (
+            action_config_dict.get("type", "unknown")
+            if isinstance(action_config_dict, dict)
+            else "unknown"
+        )
+        logger.error(
+            "Invalid action config",
+            exc_info=True,
+            extra={
+                "rule_id": str(rule_id),
+                "action_type": invalid_action_type,
+            },
+        )
+        return {
+            "type": invalid_action_type,
+            "status": "failed",
+            "error": f"Invalid action config: {error}",
+            "completed_at": timezone.now().isoformat(),
+        }
+
+    def _print_progress(self, stats: dict[str, int]) -> None:
+        if stats["message_count"] % 100 != 0:
+            return
+        self.stdout.write(
+            f"Processed {stats['message_count']} messages "
+            f"({stats['error_count']} errors, "
+            f"{stats['cooldown_skip_count']} cooldown skips)"
+        )
 
     def _build_consumer_config(self, group_id: str) -> dict:
         """

@@ -65,7 +65,7 @@ def event_handler(aggregate, rule, message: str, template=None):
 
 
 def external_event_handler(aggregate, rule_id, message, cooldown_min) -> Event:
-    cooldown = timezone.now() - timedelta(minutes=20)
+    cooldown = timezone.now() - timedelta(minutes=cooldown_min)
 
     qs = Event.objects.filter(
         external_rule_id=rule_id,
