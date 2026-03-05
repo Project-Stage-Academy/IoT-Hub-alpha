@@ -353,6 +353,20 @@ paths:
       parameters:
         - $ref: "#/components/parameters/PageParam"
         - $ref: "#/components/parameters/PageSizeParam"
+        - name: device_id
+          in: query
+          description: Filter rules by device UUID
+          schema:
+            type: string
+            format: uuid
+          example: a80031eb-189a-49d5-93ab-11bd465143e9
+        - name: is_enabled
+          in: query
+          description: Filter rules by enabled status (true/false)
+          schema:
+            type: string
+            enum: ["true", "false"]
+          example: "true"
       responses:
         "200":
           description: a paginated list of rules
@@ -360,8 +374,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/RuleListResponse"
-        "404":
-          $ref: "#/components/responses/NotFoundError"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
     post:
@@ -385,7 +397,7 @@ paths:
                     operator: gt
                     threshold: 5
                     window_seconds: 15
-                    occurances: 3
+                    occurrences: 3
                   action_config:
                     - type: notification
                       recipients: ["test@test.com"]
@@ -398,11 +410,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Rules"
+                $ref: "#/components/schemas/RuleResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
-        "404":
-          $ref: "#/components/responses/NotFoundError"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
   /rules/inbound/{inbound_id}:
@@ -448,9 +458,10 @@ paths:
         - name: id
           in: path
           required: true
-          description: Get rule data of specific rule by id
+          description: Rule UUID
           schema:
             type: string
+            format: uuid
             example: 29e31015-4733-49f3-855a-ef7f30e6c147
       responses:
         "200":
@@ -458,63 +469,72 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Rules"
+                $ref: "#/components/schemas/RuleResponse"
         "404":
           $ref: "#/components/responses/NotFoundError"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
     patch:
-      description: update a rule to enable/disable it
-      summary: Update activation of rule
+      description: partially update a rule (all fields optional)
+      summary: Partially update a rule
       operationId: RulePatch
       tags: [rules]
       parameters:
         - name: id
           in: path
           required: true
-          description: Get rule data of specific rule by id
+          description: Rule UUID
           schema:
             type: string
+            format: uuid
             example: 29e31015-4733-49f3-855a-ef7f30e6c147
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              required: [enabled]
-              properties:
-                enabled:
-                  type: boolean
-                  example: true
+              $ref: "#/components/schemas/RuleUpdate"
             examples:
               enable:
-                value: { "enabled": true }
+                summary: Enable a rule
+                value: { "is_enabled": true }
               disable:
-                value: { "enabled": false }
+                summary: Disable a rule
+                value: { "is_enabled": false }
+              update_condition:
+                summary: Update condition and name
+                value:
+                  name: "Updated Rule Name"
+                  condition:
+                    type: leaf
+                    operator: lt
+                    threshold: 20.0
       responses:
         "200":
-          description: rule is_active enabled successfully
+          description: rule updated successfully
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Rules"
+                $ref: "#/components/schemas/RuleResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
         "404":
           $ref: "#/components/responses/NotFoundError"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
     delete:
       description: delete a rule by id
-      summary: Delete a specific rule based by id
+      summary: Delete a specific rule by id
       operationId: RuleDelete
       tags: [rules]
       parameters:
         - name: id
           in: path
           required: true
-          description: Get rule data of specific rule by id
+          description: Rule UUID
           schema:
             type: string
+            format: uuid
             example: 29e31015-4733-49f3-855a-ef7f30e6c147
       responses:
         "204":
@@ -1188,32 +1208,39 @@ components:
             $ref: "#/components/schemas/Event"
         pagination:
           $ref: "#/components/schemas/PaginationMeta"
-    Rules:
+    Rule:
       type: object
       required:
+        - id
         - name
-        - description
         - condition
-        - last_triggered_at
+        - action_config
         - is_enabled
+        - device_id
+        - created_at
+        - updated_at
       properties:
+        id:
+          type: string
+          format: uuid
+          example: 29e31015-4733-49f3-855a-ef7f30e6c147
         name:
           type: string
           example: Low Vibration Alert Lathe
         description:
           type: string
-          description: "Device serial number (must match a registered device)"
+          nullable: true
           example: Alerts maintenance when vibration drops below expected operating range
         condition:
           type: object
-          description: Condition json description
+          description: Condition JSON definition
           additionalProperties: true
           example:
             type: leaf
             operator: gt
             threshold: 5
             window_seconds: 15
-            occurances: 3
+            occurrences: 3
         action_config:
           type: array
           description: List of action configuration objects
@@ -1226,14 +1253,66 @@ components:
               template_id: 5
             - type: stop_machine
               machine_id: CNC-002
+        is_enabled:
+          type: boolean
+          description: Whether the rule is active
+          example: true
+        device_id:
+          type: string
+          format: uuid
+          example: a80031eb-189a-49d5-93ab-11bd465143e9
         last_triggered_at:
           type: string
           format: date-time
+          nullable: true
           example: 2026-01-16T17:30:00Z
+        created_at:
+          type: string
+          format: date-time
+          example: "2026-01-27T20:57:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2026-01-27T21:10:00Z"
+    RuleResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: "#/components/schemas/Rule"
+    RuleUpdate:
+      type: object
+      description: Partial update (all fields optional)
+      properties:
+        name:
+          type: string
+          example: Updated Rule Name
+        description:
+          type: string
+          nullable: true
+          example: Updated description
+        condition:
+          type: object
+          additionalProperties: true
+          example:
+            type: leaf
+            operator: lt
+            threshold: 20.0
+        action_config:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+          example:
+            - type: notification
+              template_id: 2
         is_enabled:
           type: boolean
-          description: is the rule enabled
-          example: true
+          example: false
+        device_id:
+          type: string
+          format: uuid
+          example: a80031eb-189a-49d5-93ab-11bd465143e9
     Device:
       type: object
       required:
@@ -1343,7 +1422,7 @@ components:
         data:
           type: array
           items:
-            $ref: "#/components/schemas/Rules"
+            $ref: "#/components/schemas/Rule"
         pagination:
           $ref: "#/components/schemas/PaginationMeta"
   responses:
