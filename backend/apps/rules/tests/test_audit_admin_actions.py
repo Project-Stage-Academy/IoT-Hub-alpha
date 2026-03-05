@@ -71,9 +71,7 @@ def test_admin_enable_disable_actions_create_explicit_audit_rows(admin_request, 
 
     enable_logs = RuleAuditLog.objects.filter(action=RuleAuditLog.Action.ENABLE)
     assert enable_logs.count() == 2
-    assert {
-        str(log.rule_id) for log in enable_logs
-    } == {str(rule_a.id), str(rule_b.id)}
+    assert {str(log.rule_id) for log in enable_logs} == {str(rule_a.id), str(rule_b.id)}
     for log in enable_logs:
         assert log.changed_fields == ["is_enabled"]
         assert log.before == {"is_enabled": False}

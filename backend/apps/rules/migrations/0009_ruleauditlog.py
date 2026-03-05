@@ -53,9 +53,7 @@ class Migration(migrations.Migration):
                 "db_table": "rule_audit_log",
                 "ordering": ["-created_at", "-id"],
                 "indexes": [
-                    models.Index(
-                        fields=["created_at"], name="idx_r_audit_created_at"
-                    ),
+                    models.Index(fields=["created_at"], name="idx_r_audit_created_at"),
                     models.Index(fields=["rule_id"], name="idx_r_audit_rule_id"),
                     models.Index(
                         fields=["action", "created_at"],

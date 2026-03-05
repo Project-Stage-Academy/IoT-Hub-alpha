@@ -176,7 +176,9 @@ class RuleAuditLogListView(View):
                 "page_size": page_size_num,
                 "total": paginator.count,
                 "total_pages": paginator.num_pages,
-                "next_page": page_obj.next_page_number() if page_obj.has_next() else None,
+                "next_page": (
+                    page_obj.next_page_number() if page_obj.has_next() else None
+                ),
                 "prev_page": (
                     page_obj.previous_page_number() if page_obj.has_previous() else None
                 ),
