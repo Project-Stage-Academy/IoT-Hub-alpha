@@ -61,7 +61,7 @@ def rules(db):
     return rule_a, rule_b, rule_c
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(transaction=True)
 def test_admin_enable_disable_actions_create_explicit_audit_rows(admin_request, rules):
     rule_a, rule_b, rule_c = rules
     queryset = Rule.objects.filter(id__in=[rule_a.id, rule_b.id, rule_c.id])
