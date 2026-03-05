@@ -51,11 +51,6 @@ Example - Threshold Rule:
     {
       "type": "notification",
       "template_id": "2",
-      "recipients": [
-        { "type": "email", "address": "a@b.com" },
-        { "type": "sms", "phone": "+3800000000" },
-        { "type": "webhook", "url": "http://why.com" }
-      ]
     }
   ],
   "is_enabled": true
