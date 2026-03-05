@@ -66,6 +66,7 @@ services:
       - "80:80"
     volumes:
       - ./nginx/certs:/etc/ssl/certs:ro
+      - ./frontend:/var/www/frontend:ro
     depends_on:
       - web
     networks:
