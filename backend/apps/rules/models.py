@@ -103,3 +103,46 @@ class Rule(models.Model):
 
     def __str__(self):
         return f"{self.name} - {self.device.name}"
+
+
+class RuleAuditLog(models.Model):
+    class Action(models.TextChoices):
+        CREATE = "create", "Create"
+        UPDATE = "update", "Update"
+        DELETE = "delete", "Delete"
+        ENABLE = "enable", "Enable"
+        DISABLE = "disable", "Disable"
+
+    class Source(models.TextChoices):
+        SIGNAL = "signal", "Signal"
+        ADMIN_ACTION = "admin_action", "Admin Action"
+        API = "api", "API"
+        SYSTEM = "system", "System"
+
+    id = models.BigAutoField(primary_key=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    rule_id = models.UUIDField(null=True, blank=True)
+    action = models.CharField(max_length=32, choices=Action.choices)
+    changed_fields = models.JSONField(default=list, blank=True)
+    before = models.JSONField(default=dict, blank=True)
+    after = models.JSONField(default=dict, blank=True)
+    actor_user_id = models.IntegerField(null=True, blank=True)
+    actor_username = models.CharField(max_length=150, null=True, blank=True)
+    request_id = models.CharField(max_length=128, null=True, blank=True)
+    source = models.CharField(max_length=32, choices=Source.choices)
+
+    class Meta:
+        db_table = "rule_audit_log"
+        ordering = ["-created_at", "-id"]
+        indexes = [
+            models.Index(fields=["created_at"], name="idx_r_audit_created_at"),
+            models.Index(fields=["rule_id"], name="idx_r_audit_rule_id"),
+            models.Index(
+                fields=["action", "created_at"],
+                name="idx_r_audit_action_created",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        created = self.created_at.isoformat() if self.created_at else "unsaved"
+        return f"{self.action} rule={self.rule_id} at {created}"
