@@ -124,8 +124,10 @@ class TestEventWorkflow:
             end=timezone.now(),
         )
 
-        # Should not raise exception
-        dispatch_msg(config, self.rule, aggregate)
+        result = dispatch_msg(config, self.rule, aggregate)
+        assert result["type"] == "notification"
+        assert result["status"] == "queued"
+        assert result["template_id"] == self.template.id
 
     def test_notification_action_fails_for_missing_template(self):
         """Notification action raises for missing template."""
@@ -150,8 +152,10 @@ class TestEventWorkflow:
             end=timezone.now(),
         )
 
-        # Should not raise exception
-        stop_machine(config, self.rule, aggregate)
+        result = stop_machine(config, self.rule, aggregate)
+        self.device.refresh_from_db()
+        assert result["status"] == "completed"
+        assert self.device.status == Device.DeviceStatus.INACTIVE
 
     def test_action_dispatch_routes_notification_type(self):
         """action_dispatch routes to dispatch_msg for notification type."""
@@ -163,8 +167,9 @@ class TestEventWorkflow:
             end=timezone.now(),
         )
 
-        # Should complete without exception
-        action_dispatch(config, self.rule, aggregate)
+        result = action_dispatch(config, self.rule, aggregate)
+        assert result["type"] == "notification"
+        assert result["status"] == "queued"
 
     def test_action_dispatch_routes_stop_machine_type(self):
         """action_dispatch routes to stop_machine for stop_machine type."""
@@ -176,8 +181,9 @@ class TestEventWorkflow:
             end=timezone.now(),
         )
 
-        # Should complete without exception
-        action_dispatch(config, self.rule, aggregate)
+        result = action_dispatch(config, self.rule, aggregate)
+        assert result["type"] == "stop_machine"
+        assert result["status"] == "completed"
 
     def test_action_dispatch_handles_unknown_type_gracefully(self):
         """action_dispatch logs unknown action type gracefully."""
@@ -192,8 +198,8 @@ class TestEventWorkflow:
             end=timezone.now(),
         )
 
-        # Should not raise exception
-        action_dispatch(config, self.rule, aggregate)
+        result = action_dispatch(config, self.rule, aggregate)
+        assert result["status"] == "failed"
 
     def test_action_dispatch_handles_dispatch_errors_gracefully(self):
         """action_dispatch handles exceptions in action handlers gracefully."""
@@ -205,8 +211,65 @@ class TestEventWorkflow:
             end=timezone.now(),
         )
 
-        # Should not raise exception (error is caught and logged)
-        action_dispatch(config, self.rule, aggregate)
+        result = action_dispatch(config, self.rule, aggregate)
+        assert result["status"] == "failed"
+
+    def test_command_action_updates_device_status(self):
+        """Command action updates device status."""
+        config = ActionConfig(
+            type="command",
+            command="set_device_status",
+            params={"status": "error"},
+        )
+        aggregate = EvalResults(
+            trigger=True,
+            values=[26.0],
+            start=timezone.now(),
+            end=timezone.now(),
+        )
+
+        result = action_dispatch(config, self.rule, aggregate)
+        self.device.refresh_from_db()
+        assert result["type"] == "command"
+        assert result["status"] == "completed"
+        assert self.device.status == Device.DeviceStatus.ERROR
+
+    def test_webhook_action_executes_successfully(self, monkeypatch, settings):
+        """Webhook action returns completed status on HTTP 2xx."""
+        settings.WEBHOOKS_ENABLED = True
+        settings.WEBHOOK_TIMEOUT_SECONDS = 2
+
+        class DummyResponse:
+            status = 200
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, tb):
+                return False
+
+        monkeypatch.setattr(
+            "apps.events.services.actions.urllib.request.urlopen",
+            lambda *args, **kwargs: DummyResponse(),
+        )
+
+        config = ActionConfig(
+            type="webhook",
+            url="https://ops.example.com/hook",
+            method="POST",
+            payload={"site": "line-2"},
+        )
+        aggregate = EvalResults(
+            trigger=True,
+            values=[26.0],
+            start=timezone.now(),
+            end=timezone.now(),
+        )
+
+        result = action_dispatch(config, self.rule, aggregate)
+        assert result["type"] == "webhook"
+        assert result["status"] == "completed"
+        assert result["status_code"] == 200
 
     def test_full_workflow_event_creation_and_action(self):
         """Test complete workflow: trigger event and dispatch action."""

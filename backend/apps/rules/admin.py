@@ -88,7 +88,6 @@ class RuleAdmin(admin.ModelAdmin):
     readonly_fields = ["id", "created_at", "updated_at", "last_triggered_at"]
     date_hierarchy = "created_at"
     actions = [enable_rules, disable_rules]
-    change_list_template = "admin/rules/rule/change_list.html"
 
     def formfield_for_dbfield(self, db_field, request, **kwargs):
         formfield = super().formfield_for_dbfield(db_field, request, **kwargs)
