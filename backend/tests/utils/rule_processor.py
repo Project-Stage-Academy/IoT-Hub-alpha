@@ -21,8 +21,12 @@ def _build_execution_results(rule):
     results = []
     for action in rule.action_config:
         item = {"type": action.get("type"), "status": "pending"}
-        if action.get("type") == "notification":
+        if action.get("type") in {"notification", "alert"}:
             item["template_id"] = action.get("template_id")
+        elif action.get("type") == "webhook":
+            item["url"] = action.get("url")
+        elif action.get("type") == "command":
+            item["command"] = action.get("command")
         elif action.get("type") == "stop_machine":
             item["machine_id"] = action.get("machine_id")
         results.append(item)
@@ -31,7 +35,7 @@ def _build_execution_results(rule):
 
 def _create_notification_deliveries(event, rule, templates_by_id):
     for action in rule.action_config:
-        if action.get("type") != "notification":
+        if action.get("type") not in {"notification", "alert"}:
             continue
         template = templates_by_id.get(action.get("template_id"))
         if not template:
@@ -92,7 +96,7 @@ def process_telemetry_for_device(telemetry):
         template_ids = {
             action.get("template_id")
             for action in rule.action_config
-            if action.get("type") == "notification"
+            if action.get("type") in {"notification", "alert"}
         }
         templates_by_id = NotificationTemplate.objects.in_bulk(template_ids)
         _create_notification_deliveries(event, rule, templates_by_id)
