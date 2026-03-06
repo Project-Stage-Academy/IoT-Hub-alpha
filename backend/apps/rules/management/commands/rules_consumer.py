@@ -42,6 +42,25 @@ except ImportError:  # pragma: no cover - depends on runtime environment
 class Command(BaseCommand):
     help = "Real-time rules consumer: telemetry → eval → events"
 
+    @staticmethod
+    def _resolve_point_timestamp(payload: dict[str, Any]) -> datetime:
+        """
+        Resolve telemetry point timestamp from message payload.
+
+        Priority:
+        1) timestamp
+        2) received_at
+        3) processed_at
+        """
+        raw = (
+            payload.get("timestamp")
+            or payload.get("received_at")
+            or payload.get("processed_at")
+        )
+        if not isinstance(raw, str) or not raw.strip():
+            raise KeyError("timestamp")
+        return datetime.fromisoformat(raw)
+
     def get_help(self):
         """Return help text with detailed rule evaluation pipeline description."""
         return """
@@ -186,10 +205,7 @@ All metrics exported to Prometheus via HTTP on specified port (default: 9101).
                         message_count += 1
 
                         device_id = UUID(payload["device_id"])
-                        timestamp = datetime.fromisoformat(
-                            payload.get("timestamp")
-                            or payload["payload"].get("timestamp")
-                        )
+                        timestamp = self._resolve_point_timestamp(payload)
                         value = float(payload["payload"]["value"])
 
                         point = TelemetryPoint(ts=timestamp, value=value)
