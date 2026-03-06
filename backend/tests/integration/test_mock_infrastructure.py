@@ -2,6 +2,7 @@
 Simple tests for mock infrastructure in apps.telemetry.mocks.
 Tests the mocking utilities used in integration testing.
 """
+
 import pytest
 from datetime import datetime
 from apps.telemetry.mocks import (
@@ -37,52 +38,32 @@ class TestTelemetryBuilder:
 
     def test_builder_with_serial(self):
         """Test setting device serial"""
-        telemetry = (
-            TelemetryBuilder()
-            .with_serial("TEMP-SN-001")
-            .build()
-        )
+        telemetry = TelemetryBuilder().with_serial("TEMP-SN-001").build()
 
         assert telemetry["serial_number"] == "TEMP-SN-001"
 
     def test_builder_with_value(self):
         """Test setting telemetry value"""
-        telemetry = (
-            TelemetryBuilder()
-            .with_value(42.5)
-            .build()
-        )
+        telemetry = TelemetryBuilder().with_value(42.5).build()
 
         assert telemetry["value"] == 42.5
 
     def test_builder_with_timestamp(self):
         """Test setting custom timestamp"""
         timestamp = "2026-03-01T12:00:00"
-        telemetry = (
-            TelemetryBuilder()
-            .with_timestamp(timestamp)
-            .build()
-        )
+        telemetry = TelemetryBuilder().with_timestamp(timestamp).build()
 
         assert telemetry["timestamp"] == timestamp
 
     def test_builder_with_schema_version(self):
         """Test setting schema version"""
-        telemetry = (
-            TelemetryBuilder()
-            .with_schema_version("2.0")
-            .build()
-        )
+        telemetry = TelemetryBuilder().with_schema_version("2.0").build()
 
         assert telemetry["schema_version"] == "2.0"
 
     def test_builder_with_custom_field(self):
         """Test adding custom fields"""
-        telemetry = (
-            TelemetryBuilder()
-            .with_field("custom_key", "custom_value")
-            .build()
-        )
+        telemetry = TelemetryBuilder().with_field("custom_key", "custom_value").build()
 
         assert telemetry["custom_key"] == "custom_value"
 
@@ -90,10 +71,7 @@ class TestTelemetryBuilder:
         """Test adding multiple custom fields"""
         telemetry = (
             TelemetryBuilder()
-            .with_fields({
-                "location": "Lab A",
-                "unit": "celsius"
-            })
+            .with_fields({"location": "Lab A", "unit": "celsius"})
             .build()
         )
 
@@ -131,31 +109,19 @@ class TestRuleBuilder:
 
     def test_builder_with_name(self):
         """Test setting rule name"""
-        rule = (
-            RuleBuilder()
-            .with_name("Temperature Alert")
-            .build()
-        )
+        rule = RuleBuilder().with_name("Temperature Alert").build()
 
         assert rule["name"] == "Temperature Alert"
 
     def test_builder_with_threshold(self):
         """Test setting threshold value"""
-        rule = (
-            RuleBuilder()
-            .with_threshold(30.0)
-            .build()
-        )
+        rule = RuleBuilder().with_threshold(30.0).build()
 
         assert rule["condition"]["threshold"] == 30.0
 
     def test_builder_with_operator(self):
         """Test setting comparison operator"""
-        rule = (
-            RuleBuilder()
-            .with_operator("lt")
-            .build()
-        )
+        rule = RuleBuilder().with_operator("lt").build()
 
         assert rule["condition"]["operator"] == "lt"
 
@@ -166,31 +132,19 @@ class TestRuleBuilder:
 
     def test_builder_with_window_seconds(self):
         """Test setting sliding window"""
-        rule = (
-            RuleBuilder()
-            .with_window_seconds(600)
-            .build()
-        )
+        rule = RuleBuilder().with_window_seconds(600).build()
 
         assert rule["condition"]["window_seconds"] == 600
 
     def test_builder_with_occurrences(self):
         """Test setting occurrence count"""
-        rule = (
-            RuleBuilder()
-            .with_occurrences(3)
-            .build()
-        )
+        rule = RuleBuilder().with_occurrences(3).build()
 
         assert rule["condition"]["occurrences"] == 3
 
     def test_builder_with_inactive(self):
         """Test disabling rule"""
-        rule = (
-            RuleBuilder()
-            .with_active(False)
-            .build()
-        )
+        rule = RuleBuilder().with_active(False).build()
 
         assert rule["is_active"] is False
 
@@ -350,12 +304,12 @@ class TestTimeFreeze:
 
     def test_time_freeze_resets_after(self):
         """Test TimeFreeze resets clock after context"""
-        clock_before = MockClock().current_time()
+        with TimeFreeze("2026-03-15T12:00:00") as clock:
+            assert clock.current_time().day == 15
 
-        with TimeFreeze("2026-03-15T12:00:00"):
-            pass  # Clock is frozen during context
-
-        # Clock should reset to default after
+        # After context exits, clock should be reset to default
+        clock_after = MockClock().current_time()
+        assert clock_after.day == 1  # Default is March 1st
 
 
 class TestMockMQTTClient:
@@ -421,13 +375,14 @@ class TestMockMQTTClient:
         client = MockMQTTClient()
 
         with pytest.raises(RuntimeError):
-            client.publish("sensors/temp", b'test')
+            client.publish("sensors/temp", b"test")
 
     def test_mqtt_client_callbacks(self):
         """Test MQTT client callbacks"""
         client = MockMQTTClient()
 
         connect_called = []
+
         def on_connect(c, u, f, r):
             connect_called.append(True)
 
