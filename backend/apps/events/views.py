@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import Any
 from uuid import UUID
 
@@ -11,6 +12,8 @@ from django.views.decorators.csrf import csrf_exempt
 
 from .models import Event
 from .serializer import EventSerializer
+
+logger = logging.getLogger("apps.events")
 
 
 def _error(message: str, status: int) -> JsonResponse:
@@ -203,6 +206,16 @@ class EventAcknowledgeView(View):
         if event.status == Event.EventStatus.NEW:
             event.status = Event.EventStatus.ACKNOWLEDGED
             event.save(update_fields=["status"])
+            logger.info(
+                "event.acknowledged",
+                extra={
+                    "event_id": event.id,
+                    "rule_id": str(event.rule_id),
+                    "device_id": str(event.rule.device_id),
+                    "previous_status": "new",
+                    "new_status": "acknowledged",
+                },
+            )
 
         return JsonResponse(
             {"data": EventSerializer(instance=event).to_dict()},
@@ -221,8 +234,19 @@ class EventResolveView(View):
         if not_found_error is not None:
             return not_found_error
         if event.status != Event.EventStatus.RESOLVED:
+            previous_status = event.status
             event.status = Event.EventStatus.RESOLVED
             event.save(update_fields=["status"])
+            logger.info(
+                "event.resolved",
+                extra={
+                    "event_id": event.id,
+                    "rule_id": str(event.rule_id),
+                    "device_id": str(event.rule.device_id),
+                    "previous_status": previous_status,
+                    "new_status": "resolved",
+                },
+            )
 
         return JsonResponse(
             {"data": EventSerializer(instance=event).to_dict()},
