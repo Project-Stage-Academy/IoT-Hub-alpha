@@ -24,6 +24,11 @@ services:
       - ./backend:/app
     environment:
       DJANGO_SETTINGS_MODULE: config.settings.local
+  events_consumer:
+    volumes:
+      - ./backend:/app
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.local
 volumes:
   backend-worker-data:
   backend-migrate-data:

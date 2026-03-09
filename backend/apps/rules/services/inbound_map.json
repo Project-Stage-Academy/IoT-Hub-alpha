@@ -15,7 +15,8 @@
         "to": { "from": "address" },
         "name": { "from": "person" },
         "template_id": {"default": 1}
-    }}
+    }},
+    "external_recipients": { "from": "recipients" }
   }
 },
 {
@@ -26,7 +27,8 @@
     "device_id": { "from": "device", "cast": "str" },
     "telemetry_snapshot": { "from": "trigger_device", "inner_dict": {
         "value": { "from": "vibration", "cast": "int" },
-        "ts": { "default": "", "cast": "timezone" }
+        "start": { "default": "", "cast": "timezone" },
+        "end": { "default": "", "cast": "timezone" }
     } },
     "action_config": { "from": "actions", "list": {
         "type": { "default": "email" },

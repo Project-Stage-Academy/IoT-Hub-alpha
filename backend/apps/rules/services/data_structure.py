@@ -111,6 +111,7 @@ class ExternalEventMessage(BaseModel):
     execution_results: list = Field(default_factory=list)
     telemetry_snapshot: dict = Field(default_factory=dict)
     action_config: list = Field(default_factory=list)
+    external_recipients: list = Field(default_factory=list)
     cooldown_min: int = 60
 
     model_config = ConfigDict(extra="ignore")
