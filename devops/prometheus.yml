@@ -6,6 +6,14 @@ global:
     environment: local
     service: iot-hub
 
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ['alertmanager:9093']
+
+rule_files:
+  - /etc/prometheus/prometheus-alerts.yml
+
 scrape_configs:
   # Django application metrics
   - job_name: 'django'
@@ -31,6 +39,30 @@ scrape_configs:
       - targets: ['events_consumer:9102']
         labels:
           instance: 'events-consumer'
+
+  # DB Writer metrics
+  - job_name: 'db-writer'
+    scrape_interval: 10s
+    static_configs:
+      - targets: ['db-writer:9100']
+        labels:
+          instance: 'db-writer'
+
+  # MQTT Adapter metrics
+  - job_name: 'mqtt-adapter'
+    scrape_interval: 10s
+    static_configs:
+      - targets: ['mqtt_adapter:9103']
+        labels:
+          instance: 'mqtt-adapter'
+
+  # DLQ Consumer metrics
+  - job_name: 'dlq-consumer'
+    scrape_interval: 10s
+    static_configs:
+      - targets: ['dlq_consumer:9104']
+        labels:
+          instance: 'dlq-consumer'
 
   # Prometheus itself
   - job_name: 'prometheus'

@@ -1,0 +1,27 @@
+groups:
+  - name: telemetry_ingestion
+    interval: 30s
+    rules:
+      # Alert when DLQ error rate exceeds 5% over 15 minutes
+      - alert: HighDLQErrorRate
+        expr: ((sum(increase(telemetry_dlq_total[15m])) or sum(telemetry_dlq_total)) / (sum(increase(kafka_messages_processed_total{topic="telemetry.raw"}[15m])) or sum(kafka_messages_processed_total{topic="telemetry.raw"}))) * 100 > 5
+        for: 1m
+        labels:
+          severity: warning
+          service: telemetry-ingestion
+        annotations:
+          summary: "High DLQ error rate detected"
+          description: "DLQ error rate is {{ $value | humanize }}% (threshold: 5%)"
+          dashboard: "http://grafana:3000/d/telemetry-ingestion"
+
+      # Alert when DLQ error rate exceeds 10% over 15 minutes (critical)
+      - alert: CriticalDLQErrorRate
+        expr: ((sum(increase(telemetry_dlq_total[15m])) or sum(telemetry_dlq_total)) / (sum(increase(kafka_messages_processed_total{topic="telemetry.raw"}[15m])) or sum(kafka_messages_processed_total{topic="telemetry.raw"}))) * 100 > 10
+        for: 1m
+        labels:
+          severity: critical
+          service: telemetry-ingestion
+        annotations:
+          summary: "CRITICAL: DLQ error rate exceeds 10%"
+          description: "DLQ error rate is {{ $value | humanize }}% (threshold: 10%)"
+          dashboard: "http://grafana:3000/d/telemetry-ingestion"
