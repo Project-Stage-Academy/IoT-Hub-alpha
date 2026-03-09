@@ -122,6 +122,20 @@ KAFKA_MESSAGE_PROCESSING_DURATION_MS = Histogram(
     buckets=(1.0, 5.0, 10.0, 50.0, 100.0, 500.0, 1000.0),
 )
 
+# Telemetry Ingestion Metrics
+TELEMETRY_INGESTED_TOTAL = Counter(
+    "telemetry_ingested_total",
+    "Total telemetry messages ingested via HTTP API",
+    ["source"],  # source: http, mqtt
+)
+
+# Telemetry DLQ Metrics
+TELEMETRY_DLQ_TOTAL = Counter(
+    "telemetry_dlq_total",
+    "Total telemetry messages sent to DLQ",
+    ["original_topic", "error_reason"],
+)
+
 # Window State Metrics
 WINDOW_STATE_POINTS = Gauge(
     "window_state_points_current",

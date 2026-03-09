@@ -26,9 +26,11 @@ from django.utils import timezone
 
 import paho.mqtt.client as mqtt
 from paho.mqtt.enums import CallbackAPIVersion
+from prometheus_client import start_http_server
 
 from apps.telemetry.producers import get_producer, build_raw_event
 from apps.telemetry.services import TelemetryBatchProcessor, TelemetryValidator
+from apps.rules.services.metrics import record_telemetry_ingested
 
 logger = logging.getLogger(__name__)
 
@@ -174,6 +176,8 @@ def handle_mqtt_message(topic: str, payload_bytes: bytes) -> dict:
                 source="mqtt",
                 serial_number=serial_number,
             )
+            # Record metrics for ingested messages
+            record_telemetry_ingested(count=1, source="mqtt")
         except Exception as exc:
             logger.error(
                 "MQTT failed to publish raw event",
@@ -310,12 +314,33 @@ class Command(BaseCommand):
             default=settings.MQTT_QOS,
             help=f"MQTT QoS level (default: {settings.MQTT_QOS})",
         )
+        parser.add_argument(
+            "--metrics-port",
+            type=int,
+            default=9103,
+            help="Port to expose Prometheus metrics (default: 9103)",
+        )
 
     def handle(self, *args, **options):
         host = options["host"]
         port = options["port"]
         topic = options["topic"]
         qos = options["qos"]
+        metrics_port = options["metrics_port"]
+
+        # Start Prometheus metrics server
+        if metrics_port:
+            try:
+                start_http_server(metrics_port)
+                self.stdout.write(
+                    self.style.SUCCESS(f"Metrics server started on port {metrics_port}")
+                )
+            except OSError as e:
+                logger.warning(
+                    "Could not start metrics server on port %s: %s",
+                    metrics_port,
+                    e,
+                )
 
         if settings.TELEMETRY_PIPELINE_MODE == "direct":
             try:

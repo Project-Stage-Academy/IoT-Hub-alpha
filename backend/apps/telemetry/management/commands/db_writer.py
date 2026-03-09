@@ -1,3 +1,4 @@
+# flake8: noqa: C901
 import base64
 import json
 import logging
@@ -12,11 +13,14 @@ from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
 
+from prometheus_client import start_http_server
+
 from apps.devices.models import Device
 from apps.telemetry.services import process_telemetry_payload
 from apps.telemetry.exceptions import RawContractError
 from apps.telemetry.validators import validate_raw_contract
 from apps.telemetry.service_layer.write_buffer import WriteBuffer
+from apps.rules.services.metrics import track_kafka_message_processing
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +59,12 @@ class Command(BaseCommand):
             default=500,
             help="Number of messages to process in one batch",
         )
+        parser.add_argument(
+            "--metrics-port",
+            type=int,
+            default=9100,
+            help="Port to expose Prometheus metrics (default: 9100)",
+        )
 
     def handle(self, *args, **options):
         logger.info("Starting DB Writer......")
@@ -91,6 +101,21 @@ class Command(BaseCommand):
             self.style.SUCCESS(f"Worker started (BATCH SIZE: {batch_size})")
         )
 
+        # Start Prometheus metrics server
+        metrics_port = options["metrics_port"]
+        if metrics_port:
+            try:
+                start_http_server(metrics_port)
+                self.stdout.write(
+                    self.style.SUCCESS(f"Metrics server started on port {metrics_port}")
+                )
+            except OSError as e:
+                logger.warning(
+                    "Could not start metrics server on port %s: %s",
+                    metrics_port,
+                    e,
+                )
+
         processed_total = 0
         publish_timeout = max(settings.KAFKA_REQUEST_TIMEOUT_MS / 1000.0, 5.0)
 
@@ -120,44 +145,49 @@ class Command(BaseCommand):
                             )
                         continue
 
-                    routed = self._build_routed_message(message, clean_topic, dlq_topic)
-                    payload_bytes = json.dumps(
-                        routed["envelope"], ensure_ascii=False
-                    ).encode("utf-8")
+                    with track_kafka_message_processing(raw_topic, raw_group_id):
+                        routed = self._build_routed_message(
+                            message, clean_topic, dlq_topic
+                        )
+                        payload_bytes = json.dumps(
+                            routed["envelope"], ensure_ascii=False
+                        ).encode("utf-8")
 
-                    max_retries = 3
-                    for attempt in range(max_retries + 1):
-                        try:
-                            producer.produce(
-                                topic=routed["target_topic"],
-                                key=routed["key"],
-                                value=payload_bytes,
-                                on_delivery=_batch_delivery_callback,
-                            )
-                            producer.poll(0)
-                            break
-                        except BufferError:
-                            if attempt == max_retries:
-                                logger.critical(
-                                    "Kafka producer buffer full. Max retries exceeded.",
-                                    extra={"event_id": routed.get("event_id")},
+                        max_retries = 3
+                        for attempt in range(max_retries + 1):
+                            try:
+                                producer.produce(
+                                    topic=routed["target_topic"],
+                                    key=routed["key"],
+                                    value=payload_bytes,
+                                    on_delivery=_batch_delivery_callback,
                                 )
-                                raise CommandError(
-                                    "Failed to publish message due to persistent "
-                                    "BufferError. Stopping stub to preserve "
-                                    "at-least-once behavior."
+                                producer.poll(0)
+                                break
+                            except BufferError:
+                                if attempt == max_retries:
+                                    logger.critical(
+                                        "Kafka producer buffer full. "
+                                        "Max retries exceeded.",
+                                        extra={"event_id": routed.get("event_id")},
+                                    )
+                                    raise CommandError(
+                                        "Failed to publish message due to persistent "
+                                        "BufferError. Stopping stub to preserve "
+                                        "at-least-once behavior."
+                                    )
+
+                                logger.warning(
+                                    "BufferError caught. "
+                                    "Waiting for buffer to clear...",
+                                    extra={
+                                        "attempt": attempt + 1,
+                                        "max_retries": max_retries,
+                                    },
                                 )
+                                producer.poll(0.5)
 
-                            logger.warning(
-                                "BufferError caught. Waiting for buffer to clear...",
-                                extra={
-                                    "attempt": attempt + 1,
-                                    "max_retries": max_retries,
-                                },
-                            )
-                            producer.poll(0.5)
-
-                    processed_total += 1
+                        processed_total += 1
 
                 producer.flush(publish_timeout)
 
