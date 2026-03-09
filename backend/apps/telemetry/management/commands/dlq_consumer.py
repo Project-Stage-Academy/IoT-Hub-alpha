@@ -72,9 +72,7 @@ class Command(BaseCommand):
             try:
                 start_http_server(metrics_port)
                 self.stdout.write(
-                    self.style.SUCCESS(
-                        f"Metrics server started on port {metrics_port}"
-                    )
+                    self.style.SUCCESS(f"Metrics server started on port {metrics_port}")
                 )
             except OSError as e:
                 logger.warning(
@@ -140,9 +138,7 @@ class Command(BaseCommand):
                     )
 
                     # Get original topic (default: telemetry.raw)
-                    original_topic = message_data.get(
-                        "original_topic", "telemetry.raw"
-                    )
+                    original_topic = message_data.get("original_topic", "telemetry.raw")
 
                     # Record the metric
                     record_telemetry_dlq(topic=original_topic, reason=reason)
@@ -150,9 +146,7 @@ class Command(BaseCommand):
                     reason_counts[reason] = reason_counts.get(reason, 0) + 1
 
                     if message_count % 10 == 0:
-                        self.stdout.write(
-                            f"✓ Processed {message_count} DLQ messages"
-                        )
+                        self.stdout.write(f"✓ Processed {message_count} DLQ messages")
 
                 except json.JSONDecodeError as e:
                     logger.error("Failed to parse message JSON: %s", e)
