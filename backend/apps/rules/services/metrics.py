@@ -17,6 +17,8 @@ from config.metrics import (
     EVENT_CREATION_DURATION_MS,
     KAFKA_MESSAGES_PROCESSED,
     KAFKA_MESSAGE_PROCESSING_DURATION_MS,
+    TELEMETRY_INGESTED_TOTAL,
+    TELEMETRY_DLQ_TOTAL,
     WINDOW_STATE_POINTS,
     WINDOW_STATE_CLEANUP_DURATION_MS,
     ACTION_DISPATCH_DURATION_MS,
@@ -334,3 +336,31 @@ def update_throughput_metrics(
     """
     TELEMETRY_POINTS_PROCESSED_PER_SECOND.set(telemetry_per_second)
     EVENTS_CREATED_PER_SECOND.set(events_per_second)
+
+
+def record_telemetry_ingested(count: int = 1, source: str = "http") -> None:
+    """
+    Record telemetry messages ingested via API.
+
+    Args:
+        count: Number of messages ingested (default: 1)
+        source: Source of ingestion - "http" or "mqtt" (default: "http")
+    """
+    for _ in range(count):
+        TELEMETRY_INGESTED_TOTAL.labels(
+            source=source,
+        ).inc()
+
+
+def record_telemetry_dlq(topic: str, reason: str) -> None:
+    """
+    Record a telemetry message sent to DLQ.
+
+    Args:
+        topic: Original topic the message came from (e.g., "telemetry.raw")
+        reason: Error reason or code that caused DLQ routing
+    """
+    TELEMETRY_DLQ_TOTAL.labels(
+        original_topic=topic,
+        error_reason=reason,
+    ).inc()
