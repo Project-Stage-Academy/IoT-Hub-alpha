@@ -1,5 +1,6 @@
 """Event creation with cooldown protection."""
 
+import logging
 import os
 from datetime import timedelta
 
@@ -7,6 +8,8 @@ from django.utils import timezone
 
 from apps.events.models import Event
 from apps.notifications.models import NotificationTemplate
+
+logger = logging.getLogger("apps.events")
 
 COOLDOWN_TIMER_MINUTES = int(os.getenv("COOLDOWN_TIMER_MINUTES", "60"))
 
@@ -53,6 +56,17 @@ def event_handler(aggregate, rule, message: str, template=None):
             "values": aggregate.values,
             "start": aggregate.start.isoformat() if aggregate.start else None,
             "end": aggregate.end.isoformat() if aggregate.end else None,
+        },
+    )
+
+    logger.info(
+        "event.created",
+        extra={
+            "event_id": event.id,
+            "rule_id": str(rule.id),
+            "device_id": str(rule.device_id),
+            "severity": event.severity,
+            "status": event.status,
         },
     )
 

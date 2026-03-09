@@ -23,11 +23,38 @@ def action_dispatch(action_config: ActionConfig, rule, aggregate) -> dict[str, A
     """
     try:
         if action_config.type in {"notification", "alert"}:
-            return dispatch_msg(action_config, rule, aggregate)
+            result = dispatch_msg(action_config, rule, aggregate)
+            logger.info(
+                "action.dispatched",
+                extra={
+                    "rule_id": str(rule.id),
+                    "action_type": action_config.type,
+                    "status": "success",
+                },
+            )
+            return result
         if action_config.type == "webhook":
-            return dispatch_webhook(action_config, rule, aggregate)
+            result = dispatch_webhook(action_config, rule, aggregate)
+            logger.info(
+                "action.dispatched",
+                extra={
+                    "rule_id": str(rule.id),
+                    "action_type": action_config.type,
+                    "status": "success",
+                },
+            )
+            return result
         if action_config.type in {"command", "stop_machine"}:
-            return stop_machine(action_config, rule, aggregate)
+            result = stop_machine(action_config, rule, aggregate)
+            logger.info(
+                "action.dispatched",
+                extra={
+                    "rule_id": str(rule.id),
+                    "action_type": action_config.type,
+                    "status": "success",
+                },
+            )
+            return result
 
         result = {
             "type": action_config.type,
