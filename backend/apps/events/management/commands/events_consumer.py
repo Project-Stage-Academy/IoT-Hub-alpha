@@ -23,11 +23,14 @@ from django.utils import timezone
 from apps.events.services.event_handler import (
     event_handler,
     EventCooldownActive,
+    external_event_handler,
 )
 from apps.events.services.actions import action_dispatch
-from apps.rules.models import Rule
+from apps.events.services.helpers import handle_rules
 from apps.rules.services.data_structure import EvalResults, ActionConfig
 from apps.rules.services.metrics import track_kafka_message_processing
+from apps.rules.models import Rule
+from apps.events.services.external_events_data_structure import FakeRule
 
 logger = logging.getLogger("apps.events.consumer")
 
@@ -184,10 +187,22 @@ Metrics Exported (Prometheus):
                 rule_id, device_id, message_text, aggregate = self._parse_payload(
                     payload
                 )
-                rule = self._get_rule_or_none(rule_id=rule_id, device_id=device_id)
-                if rule is None:
-                    consumer.commit(asynchronous=False)
-                    return
+                if (
+                    payload["type"] == "internal"
+                    and isinstance(rule_id, UUID)
+                    and isinstance(device_id, UUID)
+                ):
+                    rule = self._get_rule_or_none(rule_id=rule_id, device_id=device_id)
+                    if rule is None:
+                        consumer.commit(asynchronous=False)
+                        return
+                elif isinstance(rule_id, str):
+                    rule = FakeRule(
+                        id=rule_id,
+                        action_config=payload["action_config"],
+                        event_cooldown_until=payload["cooldown_min"],
+                        additional_recipients=payload["external_recipients"],
+                    )
 
                 self._handle_event_actions(
                     rule_id=rule_id,
@@ -222,9 +237,14 @@ Metrics Exported (Prometheus):
     def _parse_payload(
         self,
         payload: dict[str, Any],
-    ) -> tuple[UUID, UUID, str, EvalResults]:
-        rule_id = UUID(payload["rule_id"])
-        device_id = UUID(payload["device_id"])
+    ) -> tuple[UUID | str, UUID | str, str, EvalResults]:
+        if payload["type"] == "internal":
+            rule_id = UUID(payload["rule_id"])
+            device_id = UUID(payload["device_id"])
+        else:
+            rule_id = str(payload["rule_id"])
+            device_id = str(payload["device_id"])
+
         message_text = payload.get("message", "Rule triggered")
         snapshot = payload.get("telemetry_snapshot", {})
         aggregate = EvalResults(
@@ -258,15 +278,20 @@ Metrics Exported (Prometheus):
     def _handle_event_actions(
         self,
         *,
-        rule_id: UUID,
-        device_id: UUID,
+        rule_id: UUID | str,
+        device_id: UUID | str,
         message_text: str,
         aggregate: EvalResults,
-        rule: Rule,
+        rule: Rule | FakeRule,
         stats: dict[str, int],
     ) -> None:
         try:
-            event = event_handler(aggregate, rule, message_text)
+            if isinstance(rule, Rule):
+                event = event_handler(aggregate, rule, message_text)
+            else:
+                event = external_event_handler(
+                    aggregate, rule.id, message_text, rule.event_cooldown_until
+                )
 
             logger.info(
                 "Event created: %s",
@@ -300,8 +325,8 @@ Metrics Exported (Prometheus):
     def _dispatch_actions(
         self,
         *,
-        rule_id: UUID,
-        rule: Rule,
+        rule_id: UUID | str,
+        rule: Rule | FakeRule,
         aggregate: EvalResults,
     ) -> list[dict[str, Any]]:
         execution_results: list[dict[str, Any]] = []
@@ -327,7 +352,7 @@ Metrics Exported (Prometheus):
         self,
         *,
         action_config_dict: Any,
-        rule_id: UUID,
+        rule_id: UUID | str,
         error: Exception,
     ) -> dict[str, str]:
         invalid_action_type = (
