@@ -6,6 +6,53 @@ from apps.devices.models import Device
 from .services.data_structure import Condition
 
 
+ALLOWED_ACTION_TYPES = {"notification", "stop_machine", "alert", "webhook", "command"}
+
+
+def _validate_cooldown(item: dict) -> None:
+    cooldown_minutes = item.get("cooldown_minutes")
+    if cooldown_minutes is None:
+        return
+    if not isinstance(cooldown_minutes, int):
+        raise DjangoValidationError("cooldown_minutes must be an integer")
+    if cooldown_minutes < 0:
+        raise DjangoValidationError("cooldown_minutes must be >= 0")
+
+
+def _validate_action_type(action_type: str) -> None:
+    if action_type not in ALLOWED_ACTION_TYPES:
+        raise DjangoValidationError(
+            "Unsupported action type. Allowed values: "
+            "notification, stop_machine, alert, webhook, command"
+        )
+
+
+def _validate_type_specific_requirements(item: dict, action_type: str) -> None:
+    required_fields = {
+        "notification": "template_id",
+        "alert": "template_id",
+        "webhook": "url",
+        "stop_machine": "machine_id",
+        "command": "command",
+    }
+    required_field = required_fields.get(action_type)
+    if required_field and required_field not in item:
+        if action_type == "notification":
+            raise DjangoValidationError("Notification action must include template_id")
+        raise DjangoValidationError(
+            f"{action_type} action must include {required_field}"
+        )
+
+
+def _validate_action_item(item: dict) -> None:
+    if "type" not in item:
+        raise DjangoValidationError("Each action item must have a 'type' field")
+    _validate_cooldown(item)
+    action_type = item["type"]
+    _validate_action_type(action_type)
+    _validate_type_specific_requirements(item, action_type)
+
+
 def validate_action_config(value):
     """Validates action_config JSON structure."""
     if not isinstance(value, list):
@@ -14,30 +61,7 @@ def validate_action_config(value):
     for item in value:
         if not isinstance(item, dict):
             raise DjangoValidationError("Each action item must be a dictionary")
-
-        if "type" not in item:
-            raise DjangoValidationError("Each action item must have a 'type' field")
-
-        cooldown_minutes = item.get("cooldown_minutes")
-        if cooldown_minutes is not None:
-            if not isinstance(cooldown_minutes, int):
-                raise DjangoValidationError("cooldown_minutes must be an integer")
-            if cooldown_minutes < 0:
-                raise DjangoValidationError("cooldown_minutes must be >= 0")
-
-        action_type = item.get("type")
-
-        # Type-specific validation
-        if action_type == "notification":
-            if "template_id" not in item:
-                raise DjangoValidationError(
-                    "Notification action must include template_id"
-                )
-        elif action_type == "stop_machine":
-            if "machine_id" not in item:
-                raise DjangoValidationError(
-                    "stop_machine action must include machine_id"
-                )
+        _validate_action_item(item)
 
 
 def validate_condition(condition):
@@ -75,8 +99,10 @@ class Rule(models.Model):
     action_config = models.JSONField(
         validators=[validate_action_config],
         help_text=(
-            'Schema: [{"type": "notification", "template_id": 5}, '
-            '{"type": "stop_machine", "machine_id": "M-123"}]'
+            'Schema: [{"type": "alert", "template_id": 5}, '
+            '{"type": "webhook", "url": "https://ops.example/webhook"}, '
+            '{"type": "command", "command": "set_device_status", '
+            '"params": {"status": "inactive"}}]'
         ),
     )
     last_triggered_at = models.DateTimeField(null=True, blank=True)

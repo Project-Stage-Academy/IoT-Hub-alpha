@@ -21,10 +21,25 @@ def validate_execution_results(value):
             raise ValidationError("Each execution result must have a 'status' field")
 
         action_type = item.get("type")
+        allowed_types = {"notification", "stop_machine", "alert", "webhook", "command"}
+        if action_type not in allowed_types:
+            raise ValidationError(
+                "Unsupported execution result type. Allowed values: "
+                "notification, stop_machine, alert, webhook, command"
+            )
 
         if action_type == "notification":
             if "template_id" not in item:
                 raise ValidationError("Notification result must include template_id")
+        elif action_type == "alert":
+            if "template_id" not in item:
+                raise ValidationError("alert result must include template_id")
+        elif action_type == "webhook":
+            if "url" not in item:
+                raise ValidationError("webhook result must include url")
+        elif action_type == "command":
+            if "command" not in item:
+                raise ValidationError("command result must include command")
         elif action_type == "stop_machine":
             if "machine_id" not in item:
                 raise ValidationError("stop_machine result must include machine_id")
@@ -67,11 +82,11 @@ class Event(models.Model):
         default=list,
         blank=True,
         help_text=(
-            'Schema: [{"type": "notification", "template_id": 5, '
-            '"status": "completed", "sent_count": 3, '
-            '"completed_at": "2025-01-21T10:00:08Z"}, '
-            '{"type": "stop_machine", "machine_id": "M-123", '
-            '"status": "failed", "error": "API timeout"}]'
+            'Schema: [{"type": "alert", "template_id": 5, "status": "queued"}, '
+            '{"type": "webhook", "url": "https://ops.example/webhook", '
+            '"status": "completed", "status_code": 200}, '
+            '{"type": "command", "command": "set_device_status", '
+            '"status": "completed", "new_status": "inactive"}]'
         ),
     )
     telemetry_snapshot = models.JSONField(

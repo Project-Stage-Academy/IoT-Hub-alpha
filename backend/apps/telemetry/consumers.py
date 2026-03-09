@@ -62,10 +62,14 @@ class TelemetryConsumer(AsyncWebsocketConsumer):
             start_telemetry_consumer()
 
         client = self.scope.get("client", ("unknown", 0))
+        user = self.scope.get("user")
+        username = user.username if user else "anonymous"
+
         logger.info(
             "websocket.connected",
             extra={
                 "client": f"{client[0]}:{client[1]}",
+                "user": username,
                 "total_clients": len(connected_clients),
             },
         )
@@ -76,6 +80,7 @@ class TelemetryConsumer(AsyncWebsocketConsumer):
                 {
                     "type": "connection",
                     "status": "connected",
+                    "user": username,
                     "subscriptions": list(self.subscribed_devices),
                     "message": "Connected. Subscribe to devices to receive telemetry.",
                 }
@@ -93,10 +98,14 @@ class TelemetryConsumer(AsyncWebsocketConsumer):
             await stop_telemetry_consumer()
 
         client = self.scope.get("client", ("unknown", 0))
+        user = self.scope.get("user")
+        username = user.username if user else "anonymous"
+
         logger.info(
             "websocket.disconnected",
             extra={
                 "client": f"{client[0]}:{client[1]}",
+                "user": username,
                 "close_code": close_code,
                 "total_clients": len(connected_clients),
             },
