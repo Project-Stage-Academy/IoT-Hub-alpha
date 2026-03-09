@@ -200,10 +200,14 @@ class TestDLQConsumerCommand(TestCase):
             )
 
     @patch("apps.telemetry.management.commands.dlq_consumer.Consumer")
-    def test_handle_metrics_port_error(self, mock_consumer_class):
+    @patch("apps.telemetry.management.commands.dlq_consumer.logger")
+    def test_handle_metrics_port_error(self, mock_logger, mock_consumer_class):
         """Test handling metrics port startup error."""
         mock_consumer = MagicMock()
         mock_consumer_class.return_value = mock_consumer
+
+        # Immediately raise KeyboardInterrupt to exit loop
+        mock_consumer.poll.side_effect = [KeyboardInterrupt()]
 
         with patch(
             "apps.telemetry.management.commands.dlq_consumer.start_http_server",
@@ -219,6 +223,9 @@ class TestDLQConsumerCommand(TestCase):
                 )
             except KeyboardInterrupt:
                 pass
+
+        # Verify warning was logged
+        mock_logger.warning.assert_called()
 
     @patch("apps.telemetry.management.commands.dlq_consumer.Consumer")
     @patch("apps.telemetry.management.commands.dlq_consumer.record_telemetry_dlq")
