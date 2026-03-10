@@ -13,6 +13,7 @@ from django.utils import timezone
 from apps.devices.models import Device
 from apps.notifications.models import NotificationTemplate
 from apps.rules.services.data_structure import ActionConfig
+from apps.events.services.external_events_data_structure import FakeRule
 
 logger = logging.getLogger("apps.rules")
 
@@ -88,7 +89,11 @@ def dispatch_msg(action_config: ActionConfig, rule, aggregate) -> dict[str, Any]
     del aggregate
     template_id = action_config.template_id
     template = NotificationTemplate.objects.get(id=template_id)
-    recipient_count = len(template.recipients or [])
+    additional_reps = []
+    if isinstance(rule, FakeRule):
+        additional_reps = rule.additional_recipients
+
+    recipient_count = len(template.recipients or []) + len(additional_reps)
     result_type = "alert" if action_config.type == "alert" else "notification"
 
     logger.info(

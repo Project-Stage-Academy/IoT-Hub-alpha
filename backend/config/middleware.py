@@ -44,12 +44,16 @@ class RequestContextMiddleware:
 
         # Record request start time for metrics
         start_time = time.perf_counter()
-        response = None
         status_code = 500  # Default for errors
 
         try:
             response = self.get_response(request)
             status_code = response.status_code
+            request_id = getattr(request, "request_id", None)
+            if request_id:
+                header = getattr(settings, "REQUEST_ID_RESPONSE_HEADER", "X-Request-ID")
+                response[header] = request_id
+            return response
         finally:
             # Record request latency and count even if an error occurred
             latency = time.perf_counter() - start_time
@@ -63,13 +67,7 @@ class RequestContextMiddleware:
                 endpoint=request.path,
                 status=str(status_code),
             ).inc()
-
-        request_id = getattr(request, "request_id", None)
-        if request_id:
-            header = getattr(settings, "REQUEST_ID_RESPONSE_HEADER", "X-Request-ID")
-            response[header] = request_id
-
-        return response
+            clear_request_context()
 
 
 class RateLimitingMiddleware:
