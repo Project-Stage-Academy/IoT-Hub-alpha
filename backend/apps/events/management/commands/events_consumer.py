@@ -289,7 +289,9 @@ Metrics Exported (Prometheus):
             if isinstance(rule, Rule):
                 event = event_handler(aggregate, rule, message_text)
             else:
-                event = external_event_handler(aggregate, rule.id, message_text, rule.event_cooldown_until)
+                event = external_event_handler(
+                    aggregate, rule.id, message_text, rule.event_cooldown_until
+                )
 
             logger.info(
                 "Event created: %s",
