@@ -56,6 +56,14 @@ def clear_request_context():
     _context.request_path.set(None)
 
 
+def get_logging_context() -> dict[str, Optional[str]]:
+    return {
+        "request_id": _context.request_id.get(),
+        "task_id": _context.task_id.get(),
+        "task_name": _context.task_name.get(),
+    }
+
+
 def setup_celery_logging_context():
     try:
         from celery.signals import task_postrun, task_prerun
