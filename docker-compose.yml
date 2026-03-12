@@ -208,7 +208,9 @@ services:
 
   db-writer:
     build: ./backend
-    command: python manage.py db_writer
+    command: python manage.py db_writer --metrics-port 9100
+    expose:
+      - "9100"
     env_file: .env
     restart: unless-stopped
     depends_on:
@@ -243,6 +245,7 @@ services:
       - '--storage.tsdb.path=/prometheus'
     volumes:
       - ./devops/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./devops/prometheus-alerts.yml:/etc/prometheus/prometheus-alerts.yml:ro
       - prometheus_data:/prometheus
     ports:
       - "9090:9090"
@@ -269,7 +272,46 @@ services:
     logging: *default-logging
     networks:
       - iot_hub_net
-      
+
+  alertmanager:
+    image: prom/alertmanager:v0.26.0
+    container_name: iot_hub_alertmanager
+    profiles: ["monitoring"]
+    command:
+      - '--config.file=/etc/alertmanager/config.yml'
+      - '--storage.path=/alertmanager'
+    volumes:
+      - ./devops/alertmanager.yml:/etc/alertmanager/config.yml:ro
+      - alertmanager_data:/alertmanager
+    ports:
+      - "9093:9093"
+    depends_on:
+      - web
+    logging: *default-logging
+    networks:
+      - iot_hub_net
+
+  dlq_consumer:
+    build: ./backend
+    container_name: iot_hub_dlq_consumer
+    profiles: ["monitoring"]
+    entrypoint: ["/app/scripts/entrypoint.sh"]
+    command: >-
+      python manage.py dlq_consumer
+      --metrics-port 9104
+    expose:
+      - "9104"
+    env_file:
+      - .env
+    depends_on:
+      kafka:
+        condition: service_healthy
+      web:
+        condition: service_healthy
+    logging: *default-logging
+    networks:
+      - iot_hub_net
+
   mosquitto:
     image: eclipse-mosquitto:2
     container_name: iot_hub_mosquitto
@@ -294,7 +336,9 @@ services:
     build: ./backend
     container_name: iot_hub_mqtt_adapter
     entrypoint: ["/app/scripts/entrypoint.sh"]
-    command: python manage.py mqtt_adapter
+    command: python manage.py mqtt_adapter --metrics-port 9103
+    expose:
+      - "9103"
     env_file:
       - .env
     depends_on:
@@ -373,5 +417,6 @@ volumes:
   kafka_data:
   prometheus_data:
   grafana_data:
+  alertmanager_data:
   mosquitto_data:
   mosquitto_log:

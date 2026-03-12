@@ -258,7 +258,13 @@ class TestMqttAdapterCommandCallbacks:
         mock_client_instance.loop_forever.side_effect = KeyboardInterrupt
 
         try:
-            cmd.handle(host="localhost", port=1883, topic="telemetry/#", qos=1)
+            cmd.handle(
+                host="localhost",
+                port=1883,
+                topic="telemetry/#",
+                qos=1,
+                metrics_port=None,
+            )
         except (KeyboardInterrupt, SystemExit):
             pass
 
@@ -303,7 +309,13 @@ class TestMqttAdapterCommandCallbacks:
         mock_client_instance.loop_forever.side_effect = KeyboardInterrupt
 
         try:
-            cmd.handle(host="localhost", port=1883, topic="telemetry/#", qos=1)
+            cmd.handle(
+                host="localhost",
+                port=1883,
+                topic="telemetry/#",
+                qos=1,
+                metrics_port=None,
+            )
         except (KeyboardInterrupt, SystemExit):
             pass
 

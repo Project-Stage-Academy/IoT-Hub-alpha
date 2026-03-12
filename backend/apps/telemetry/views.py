@@ -24,6 +24,7 @@ from .services import (
     TelemetryBatchProcessor,
     TelemetryResponseFormatter,
 )
+from apps.rules.services.metrics import record_telemetry_ingested
 
 logger = logging.getLogger(__name__)
 
@@ -325,6 +326,9 @@ class TelemetryIngestView(View):
                 },
             )
             return JsonResponse({"error": "Kafka publish failed"}, status=503)
+
+        # Record metrics for ingested messages
+        record_telemetry_ingested(count=count, source="http")
 
         response = TelemetryResponseFormatter.format_async_accepted(
             request_id=request_id,
